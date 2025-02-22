@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Preconnect to Stripe domains -->
+    <link rel="preconnect" href="https://js.stripe.com" crossorigin />
+    <link rel="preconnect" href="https://api.stripe.com" crossorigin />
+    <link rel="preconnect" href="https://m.stripe.com" crossorigin />
+    <link rel="preconnect" href="https://checkout.stripe.com" crossorigin />
+    
+    <!-- Primary Meta Tags -->
+    <title>Smart Debt Flow - Get Debt-Free Faster</title>
+    <meta name="title" content="Smart Debt Flow - Get Debt-Free Faster">
+    <meta name="description" content="Create a realistic debt payoff plan that fits your life. Track your progress, adjust for life changes, and stay motivated with clear milestones. Join thousands who've paid off debt while maintaining their lifestyle.">
+    <meta name="keywords" content="debt payoff, debt freedom, financial planning, debt snowball, debt avalanche, budget planning, debt tracker">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://smartdebtflow.com/">
+    <meta property="og:title" content="Smart Debt Flow - Get Debt-Free Faster">
+    <meta property="og:description" content="Create a realistic debt payoff plan that fits your life. See exactly how small changes today can take years off your debt - without sacrificing your lifestyle.">
+    <meta property="og:image" content="https://smartdebtflow.com/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://smartdebtflow.com/">
+    <meta property="twitter:title" content="Smart Debt Flow - Get Debt-Free Faster">
+    <meta property="twitter:description" content="Create a realistic debt payoff plan that fits your life. See exactly how small changes today can take years off your debt - without sacrificing your lifestyle.">
+    <meta property="twitter:image" content="https://smartdebtflow.com/og-image.jpg">
+
+    <!-- Preload Critical Assets -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" as="style">
+    
+    <!-- Preconnect to External Domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Critical CSS -->
+    <style>
+      /* Inline critical CSS here */
+      body { background: #1E1E1E; }
+      .loading { 
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: #88B04B;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      }
+    </style>
+    
+    <!-- Non-critical CSS -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,245 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* Essential Scroll Behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Main Styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply antialiased bg-[#1E1E1E];
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  /* Improved focus styles */
+  *:focus-visible {
+    outline: none;
+    @apply ring-2 ring-offset-2 ring-[#00CC88];
+    transition-property: box-shadow;
+    transition-duration: 200ms;
+  }
+}
+
+/* Hardware acceleration classes */
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.hardware-accelerated-opacity {
+  will-change: opacity;
+}
+
+.hardware-accelerated-composite {
+  will-change: transform, opacity;
+  contain: paint layout style;
+}
+
+/* Custom easing curves */
+@keyframes customEaseInOut {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0); }
+  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .touch-scroll-optimization {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y pinch-zoom;
+  }
+  
+  .touch-hover-disabled:hover {
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Performance optimizations */
+.performance-critical {
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scroll optimizations */
+.scroll-container {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--scroll-padding, 0px);
+  scroll-snap-type: y proximity;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+.scroll-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  scroll-margin-top: var(--scroll-padding, 0px);
+}
+
+/* Floating animation with custom easing */
+@keyframes float {
+  0%, 100% { 
+    transform: translateY(0px) rotate(0deg); 
+  }
+  25% { 
+    transform: translateY(-15px) rotate(-1deg); 
+  }
+  75% { 
+    transform: translateY(-5px) rotate(1deg); 
+  }
+}
+
+.floating-element {
+  animation: float 6s var(--custom-easing) infinite;
+  will-change: transform;
+}
+
+/* Auto-hiding scrollbar */
+:root {
+  --scrollbar-width: 8px;
+  --scrollbar-height: 8px;
+  --scrollbar-track-color: rgba(255, 255, 255, 0.05);
+  --scrollbar-thumb-color: rgba(136, 176, 75, 0.5);
+  --scrollbar-thumb-hover-color: rgba(136, 176, 75, 0.7);
+  --scrollbar-border-radius: 4px;
+  --custom-easing: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+body.scrolling {
+  --scrollbar-opacity: 1;
+}
+
+/* Webkit scrollbar */
+::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-height);
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track-color);
+  border-radius: var(--scrollbar-border-radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb-color);
+  border-radius: var(--scrollbar-border-radius);
+  transition: background-color 0.3s var(--custom-easing);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover-color);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb-color) var(--scrollbar-track-color);
+}
+
+/* Enhanced scrollbar for specific elements */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #00CC88 #1E1E1E;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #1E1E1E;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #00CC88;
+  border-radius: 4px;
+  transition: background-color 0.3s var(--custom-easing);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00b377;
+}
+
+/* Hide scrollbar for testimonials carousel */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth transitions */
+.transition-custom {
+  transition-timing-function: var(--custom-easing);
+}
+
+/* Blur loading for images */
+.blur-load {
+  background: #1E1E1E;
+  transition: filter 0.3s var(--custom-easing);
+}
+
+.blur-load.loaded {
+  filter: blur(0);
+}
+
+/* WebP support detection */
+.webp .bg-image {
+  background-image: var(--webp-image);
+}
+
+.no-webp .bg-image {
+  background-image: var(--fallback-image);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Hide horizontal scrollbars */
+body {
+  overflow-x: hidden;
+}

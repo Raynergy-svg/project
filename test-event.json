@@ -1,0 +1,1 @@
+{"type":"customer.subscription.created","data":{"object":{"id":"sub_test","customer":"cus_test","status":"active","items":{"data":[{"price":{"id":"price_test"}}]},"current_period_end":1742835482,"cancel_at_period_end":false}}}

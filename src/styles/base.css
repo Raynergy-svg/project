@@ -1,0 +1,105 @@
+@layer base {
+  /* Typography */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display text-text-primary;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl font-bold;
+  }
+
+  h4 {
+    @apply text-xl md:text-2xl font-semibold;
+  }
+
+  p {
+    @apply text-text-secondary font-sans;
+  }
+
+  /* Interactive Elements */
+  button, 
+  [role="button"],
+  a {
+    @apply min-h-[44px] min-w-[44px] font-sans;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
+    @apply transition-all duration-300;
+  }
+
+  /* Layout */
+  .container {
+    @apply px-4 md:px-6 lg:px-8;
+    @apply mx-auto;
+    @apply max-w-[1920px];
+  }
+
+  .section {
+    @apply py-12 md:py-16 lg:py-24;
+  }
+
+  .section-sm {
+    @apply py-8 md:py-12 lg:py-16;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-background-paper rounded-xl border border-divider;
+    @apply p-6 md:p-8;
+    @apply shadow-lg;
+  }
+
+  .card-hover {
+    @apply hover:border-primary/30 transition-all duration-300;
+  }
+
+  /* Forms */
+  input, select, textarea {
+    @apply bg-background-paper border border-divider rounded-lg;
+    @apply px-4 py-2;
+    @apply text-text-primary;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+    @apply transition-all duration-300;
+  }
+
+  /* Scrollbars */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.primary.DEFAULT') theme('colors.background.paper');
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-2;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-background-paper;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded-full;
+    @apply hover:bg-primary-dark;
+    @apply transition-colors duration-300;
+  }
+}
+
+/* Utilities */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent;
+  }
+
+  .bg-gradient {
+    @apply bg-gradient-to-r from-primary to-primary-dark;
+  }
+
+  .backdrop-blur {
+    @apply backdrop-blur-md bg-background-paper/50;
+  }
+}

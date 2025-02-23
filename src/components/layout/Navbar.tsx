@@ -13,19 +13,15 @@ import { cn } from "@/lib/utils";
 
 interface NavbarProps {
   onSignIn: () => void;
-  onNavigate: (id: string) => void;
   isAuthenticated: boolean;
   userName?: string;
-  onDebtPlannerClick: () => void;
   onDashboardClick: () => void;
 }
 
 export default function Navbar({
   onSignIn,
-  onNavigate,
   isAuthenticated,
   userName,
-  onDebtPlannerClick,
   onDashboardClick
 }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,23 +45,26 @@ export default function Navbar({
   }, []);
 
   const navItems = [
-    { id: 'features-heading', label: 'Features', type: 'scroll' },
-    { id: 'visualization-heading', label: 'Methods', type: 'scroll' },
-    { id: 'pricing-heading', label: 'Pricing', type: 'scroll' }
+    { id: 'features', label: 'Features', type: 'scroll' },
+    { id: 'debt-management', label: 'Methods', type: 'scroll' },
+    { id: 'pricing', label: 'Pricing', type: 'scroll' }
   ];
 
-  const handleNavigation = (item: { id: string, type: string }) => {
+  const handleNavigation = (id: string) => {
     if (location.pathname !== '/') {
       navigate('/');
       // Add a small delay to allow the page to load before scrolling
       setTimeout(() => {
-        const element = document.getElementById(item.id);
+        const element = document.getElementById(id);
         if (element) {
           element.scrollIntoView({ behavior: 'smooth' });
         }
       }, 100);
-    } else if (item.type === 'scroll') {
-      onNavigate(item.id);
+    } else {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 
@@ -86,18 +85,12 @@ export default function Navbar({
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNavigation(item)}
+                onClick={() => handleNavigation(item.id)}
                 className="text-gray-300 hover:text-white transition-colors"
               >
                 {item.label}
               </button>
             ))}
-            <button
-              onClick={onDebtPlannerClick}
-              className="text-gray-300 hover:text-white transition-colors"
-            >
-              Debt Planner
-            </button>
           </div>
 
           {/* Sign In / Dashboard Button */}
@@ -156,7 +149,7 @@ export default function Navbar({
                 <button
                   key={item.id}
                   onClick={() => {
-                    handleNavigation(item);
+                    handleNavigation(item.id);
                     setIsMenuOpen(false);
                   }}
                   className="block w-full text-left px-4 py-2 text-gray-300 hover:text-white transition-colors"
@@ -164,15 +157,6 @@ export default function Navbar({
                   {item.label}
                 </button>
               ))}
-              <button
-                onClick={() => {
-                  onDebtPlannerClick();
-                  setIsMenuOpen(false);
-                }}
-                className="block w-full text-left px-4 py-2 text-gray-300 hover:text-white transition-colors"
-              >
-                Debt Planner
-              </button>
               {isAuthenticated ? (
                 <Button
                   onClick={() => {

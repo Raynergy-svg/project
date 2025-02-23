@@ -77,7 +77,11 @@ function FeatureCard({ title, description, icon: Icon, benefits, index }: any) {
   );
 }
 
-export default function Features() {
+interface FeaturesProps {
+  id?: string;
+}
+
+export default function Features({ id }: FeaturesProps) {
   const navigate = useNavigate();
 
   const handleExploreClick = () => {
@@ -85,7 +89,7 @@ export default function Features() {
   };
 
   return (
-    <div className="relative py-24 overflow-hidden">
+    <div id={id} className="relative py-24 overflow-hidden">
       <div className="absolute inset-0">
         <motion.div 
           initial={{ opacity: 0 }}

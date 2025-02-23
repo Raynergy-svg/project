@@ -18,6 +18,17 @@ interface NavbarProps {
   onDashboardClick: () => void;
 }
 
+interface NavItem {
+  id?: string;
+  label: string;
+  type: 'scroll' | 'menu';
+  href?: string;
+  items?: Array<{
+    label: string;
+    href: string;
+  }>;
+}
+
 export default function Navbar({
   onSignIn,
   isAuthenticated,
@@ -44,16 +55,52 @@ export default function Navbar({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { id: 'features', label: 'Features', type: 'scroll' },
     { id: 'debt-management', label: 'Methods', type: 'scroll' },
-    { id: 'pricing', label: 'Pricing', type: 'scroll' }
+    { id: 'pricing', label: 'Pricing', type: 'scroll' },
+    { 
+      label: 'Company',
+      type: 'menu',
+      items: [
+        { label: 'About Us', href: '/about' },
+        { label: 'Careers', href: '/careers' },
+        { label: 'Blog', href: '/blog' },
+        { label: 'Press', href: '/press' }
+      ]
+    },
+    { 
+      label: 'Resources',
+      type: 'menu',
+      items: [
+        { label: 'Help Center', href: '/help' },
+        { label: 'Documentation', href: '/docs' },
+        { label: 'API Reference', href: '/api' },
+        { label: 'Status', href: '/status' }
+      ]
+    },
+    { 
+      label: 'Legal',
+      type: 'menu',
+      items: [
+        { label: 'Privacy Policy', href: '/privacy' },
+        { label: 'Terms of Service', href: '/terms' },
+        { label: 'Security', href: '/security' },
+        { label: 'Compliance', href: '/compliance' }
+      ]
+    }
   ];
 
-  const handleNavigation = (id: string) => {
+  const handleNavigation = (id?: string, href?: string) => {
+    if (href) {
+      navigate(href);
+      return;
+    }
+
+    if (!id) return;
+
     if (location.pathname !== '/') {
       navigate('/');
-      // Add a small delay to allow the page to load before scrolling
       setTimeout(() => {
         const element = document.getElementById(id);
         if (element) {
@@ -83,13 +130,37 @@ export default function Navbar({
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleNavigation(item.id)}
-                className="text-gray-300 hover:text-white transition-colors"
-              >
-                {item.label}
-              </button>
+              item.type === 'menu' ? (
+                <div key={item.label} className="relative group">
+                  <button className="text-gray-300 hover:text-white transition-colors flex items-center gap-1">
+                    {item.label}
+                    <svg className="w-4 h-4 transition-transform group-hover:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                    <div className="bg-black/90 backdrop-blur-lg rounded-lg border border-white/10 py-2 min-w-[200px]">
+                      {item.items?.map((subItem) => (
+                        <Link
+                          key={subItem.label}
+                          to={subItem.href}
+                          className="block px-4 py-2 text-gray-300 hover:text-white hover:bg-white/5 transition-colors"
+                        >
+                          {subItem.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavigation(item.id)}
+                  className="text-gray-300 hover:text-white transition-colors"
+                >
+                  {item.label}
+                </button>
+              )
             ))}
           </div>
 

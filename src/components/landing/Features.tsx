@@ -16,6 +16,7 @@ const FEATURES = [
     title: "AI-Powered Analysis",
     description: "Our advanced AI system analyzes your financial data in real-time to provide personalized recommendations and insights.",
     icon: Brain,
+    image: "https://images.unsplash.com/photo-1639322537228-f710d846310a?auto=format&fit=crop&q=80&w=1200",
     benefits: [
       "Real-time financial analysis",
       "Personalized debt strategies",
@@ -27,6 +28,7 @@ const FEATURES = [
     title: "Smart Financial Tools",
     description: "Leverage our comprehensive suite of tools designed to help you manage and eliminate debt effectively.",
     icon: Calculator,
+    image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=1200",
     benefits: [
       "Debt payoff calculator",
       "Budget optimization",
@@ -38,6 +40,7 @@ const FEATURES = [
     title: "Financial Insights",
     description: "Get deep insights into your spending patterns and debt repayment progress with advanced analytics.",
     icon: BarChart,
+    image: "https://images.unsplash.com/photo-1579621970795-87facc2f976d?auto=format&fit=crop&q=80&w=1200",
     benefits: [
       "Spending pattern analysis",
       "Debt reduction forecasting",
@@ -47,32 +50,43 @@ const FEATURES = [
   }
 ];
 
-function FeatureCard({ title, description, icon: Icon, benefits, index }: any) {
+function FeatureCard({ title, description, icon: Icon, image, benefits, index }: any) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.1 }}
-      className="group relative bg-white/5 rounded-xl p-8 border border-white/10 hover:border-[#88B04B]/30 transition-all"
+      className="group relative bg-white/5 rounded-xl overflow-hidden border border-white/10 hover:border-[#88B04B]/30 transition-all"
     >
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-14 h-14 rounded-xl bg-[#88B04B]/10 flex items-center justify-center">
-          <Icon className="w-7 h-7 text-[#88B04B]" />
-        </div>
-        <h3 className="text-2xl font-semibold text-white">{title}</h3>
+      <div className="relative h-48 overflow-hidden">
+        <img 
+          src={image} 
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
       </div>
       
-      <p className="text-gray-300 mb-6 text-lg">{description}</p>
-      
-      <ul className="space-y-3">
-        {benefits.map((benefit, i) => (
-          <li key={i} className="flex items-center gap-3 text-gray-300">
-            <Sparkles className="w-5 h-5 text-[#88B04B]" />
-            <span>{benefit}</span>
-          </li>
-        ))}
-      </ul>
+      <div className="p-8">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-14 h-14 rounded-xl bg-[#88B04B]/10 flex items-center justify-center">
+            <Icon className="w-7 h-7 text-[#88B04B]" />
+          </div>
+          <h3 className="text-2xl font-semibold text-white">{title}</h3>
+        </div>
+        
+        <p className="text-gray-300 mb-6 text-lg">{description}</p>
+        
+        <ul className="space-y-3">
+          {benefits.map((benefit: string, i: number) => (
+            <li key={i} className="flex items-center gap-3 text-gray-300">
+              <Sparkles className="w-5 h-5 text-[#88B04B]" />
+              <span>{benefit}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </motion.div>
   );
 }

@@ -242,7 +242,7 @@ export default function SignUp() {
         </Link>
       </div>
 
-      <div className="max-w-xl mx-auto pt-16 sm:pt-20">
+      <div className="max-w-xl mx-auto pt-24 sm:pt-20">
         <div className="text-center mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
             Create Your Account

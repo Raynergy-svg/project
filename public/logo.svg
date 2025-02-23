@@ -1,30 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="70" height="50" viewBox="0 0 70 50" fill="none"
     xmlns="http://www.w3.org/2000/svg">
-    <g transform="translate(0, 5) rotate(-10 35 25)">
+    <g transform="translate(0, 0)">
         <!-- Bar 1 -->
         <g>
             <rect x="0" y="20" width="12" height="30" fill="url(#gradient)" />
-            <rect x="12" y="20" width="3" height="30" fill="#4A7A2A" transform="skewY(-45)" />
-            <rect x="0" y="20" width="12" height="3" fill="#A8D06B" transform="skewX(-45)" />
+            <rect x="12" y="20" width="2" height="30" fill="#4A7A2A" transform="skewY(-35)" />
+            <rect x="0" y="20" width="12" height="2" fill="#A8D06B" transform="skewX(-35)" />
         </g>
         <!-- Bar 2 -->
         <g>
             <rect x="16" y="5" width="12" height="45" fill="url(#gradient)" />
-            <rect x="28" y="5" width="3" height="45" fill="#4A7A2A" transform="skewY(-45)" />
-            <rect x="16" y="5" width="12" height="3" fill="#A8D06B" transform="skewX(-45)" />
+            <rect x="28" y="5" width="2" height="45" fill="#4A7A2A" transform="skewY(-35)" />
+            <rect x="16" y="5" width="12" height="2" fill="#A8D06B" transform="skewX(-35)" />
         </g>
         <!-- Bar 3 -->
         <g>
             <rect x="32" y="15" width="12" height="35" fill="url(#gradient)" />
-            <rect x="44" y="15" width="3" height="35" fill="#4A7A2A" transform="skewY(-45)" />
-            <rect x="32" y="15" width="12" height="3" fill="#A8D06B" transform="skewX(-45)" />
+            <rect x="44" y="15" width="2" height="35" fill="#4A7A2A" transform="skewY(-35)" />
+            <rect x="32" y="15" width="12" height="2" fill="#A8D06B" transform="skewX(-35)" />
         </g>
         <!-- Bar 4 -->
         <g>
             <rect x="48" y="0" width="12" height="50" fill="url(#gradient)" />
-            <rect x="60" y="0" width="3" height="50" fill="#4A7A2A" transform="skewY(-45)" />
-            <rect x="48" y="0" width="12" height="3" fill="#A8D06B" transform="skewX(-45)" />
+            <rect x="60" y="0" width="2" height="50" fill="#4A7A2A" transform="skewY(-35)" />
+            <rect x="48" y="0" width="12" height="2" fill="#A8D06B" transform="skewX(-35)" />
         </g>
     </g>
     <defs>

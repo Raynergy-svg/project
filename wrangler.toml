@@ -4,18 +4,16 @@ compatibility_date = "2024-02-22"
 workers_dev = true
 
 [site]
-bucket = "./dist"
-include = ["**/*"]
-exclude = []
+bucket = "dist"
 
 [[kv_namespaces]]
 binding = "STATIC_ASSETS"
-id = "dc953a65f10c424d94803328e066b5a9"
+id = "28111915119942eca5dc83a27d0a4ca7"
 preview_id = "28111915119942eca5dc83a27d0a4ca7"
 
 # Non-sensitive environment variables
 [vars]
-ENVIRONMENT = "development"
+ENVIRONMENT = "production"
 STRIPE_MODE = "test"
 S3_REGION = "local"
 SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"

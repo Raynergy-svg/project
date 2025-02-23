@@ -5,6 +5,8 @@ workers_dev = true
 
 [site]
 bucket = "./dist"
+include = ["**/*"]
+exclude = []
 
 [[kv_namespaces]]
 binding = "STATIC_ASSETS"
@@ -38,4 +40,5 @@ SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
 
 [build]
 command = "npm run build"
-watch_dir = "src" 
+watch_dir = "src"
+upload.format = "service-worker" 

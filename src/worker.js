@@ -1,23 +1,28 @@
-import { getAssetFromKV, NotFoundError } from "@cloudflare/kv-asset-handler";
+import {
+  getAssetFromKV,
+  NotFoundError,
+  serveSinglePageApp,
+} from "@cloudflare/kv-asset-handler";
 
 const DEBUG = false;
 
 async function handleEvent(event) {
-  const url = new URL(event.request.url);
-  let options = {};
-
   try {
+    let options = {
+      mapRequestToAsset: serveSinglePageApp,
+    };
+
     if (DEBUG) {
       options.cacheControl = {
         bypassCache: true,
       };
     }
 
-    // First try serving static assets
     const page = await getAssetFromKV(event, options);
+
+    // Allow the SPA to handle 404s
     const response = new Response(page.body, page);
 
-    // Add security headers
     response.headers.set("X-XSS-Protection", "1; mode=block");
     response.headers.set("X-Content-Type-Options", "nosniff");
     response.headers.set("X-Frame-Options", "DENY");
@@ -26,16 +31,16 @@ async function handleEvent(event) {
 
     return response;
   } catch (e) {
-    // If an error occurred while serving static assets...
     if (!(e instanceof NotFoundError)) {
       return new Response("An unexpected error occurred", { status: 500 });
     }
 
-    // If path is not a static asset, serve index.html for SPA routing
+    // If the error is a NotFoundError, serve the SPA's index.html
     try {
-      options.mapRequestToAsset = (req) =>
-        new Request(`${new URL(req.url).origin}/index.html`, req);
-      const notFoundResponse = await getAssetFromKV(event, options);
+      let notFoundResponse = await getAssetFromKV(event, {
+        mapRequestToAsset: (req) =>
+          new Request(`${new URL(req.url).origin}/index.html`, req),
+      });
 
       return new Response(notFoundResponse.body, {
         ...notFoundResponse,
@@ -54,12 +59,12 @@ async function handleEvent(event) {
 export default {
   async fetch(request, env, ctx) {
     try {
-      return await handleEvent({
+      const event = {
         request,
-        env,
-        ctx,
         waitUntil: ctx.waitUntil.bind(ctx),
-      });
+        env,
+      };
+      return await handleEvent(event);
     } catch (e) {
       return new Response("Internal Error", { status: 500 });
     }

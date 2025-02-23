@@ -6,6 +6,10 @@ workers_dev = true
 [site]
 bucket = "./dist"
 
+[[kv_namespaces]]
+binding = "STATIC_ASSETS"
+id = "dc953a65f10c424d94803328e066b5a9"
+
 # Non-sensitive environment variables
 [vars]
 ENVIRONMENT = "development"

@@ -1,5 +1,5 @@
 import { ArrowRight, Shield, Star, Lock } from "lucide-react";
-import { Suspense, lazy, useCallback, useMemo, useRef } from "react";
+import { Suspense, lazy, useCallback, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useScroll, useSpring, useInView } from "framer-motion";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
@@ -137,6 +137,9 @@ const Pricing = lazy(() => {
   });
 });
 
+// Add DebtPlannerPreview to lazy imports
+const DebtPlannerPreview = lazy(() => import("@/components/previews/DebtPlannerPreview"));
+
 // Loading component with fade transition
 const SectionLoader = () => (
   <motion.div
@@ -249,6 +252,7 @@ function Landing() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const { performanceLevel, isMobile } = useDeviceContext();
+  const [showDebtPlanner, setShowDebtPlanner] = useState(false);
 
   // Memoize handlers
   const handleSignIn = useCallback(() => {
@@ -317,6 +321,18 @@ function Landing() {
     }
   ], []);
 
+  const handleDebtPlannerClick = useCallback(() => {
+    setShowDebtPlanner(true);
+  }, []);
+
+  const handleDebtPlannerClose = useCallback(() => {
+    setShowDebtPlanner(false);
+  }, []);
+
+  const handleDebtPlannerContinue = useCallback(() => {
+    navigate('/signup');
+  }, [navigate]);
+
   return (
     <div className="relative w-full overflow-x-hidden">
       <BackgroundElements />
@@ -329,7 +345,36 @@ function Landing() {
             isAuthenticated={isAuthenticated}
             userName={user?.name}
             onDashboardClick={handleDashboardClick}
+            onDebtPlannerClick={handleDebtPlannerClick}
           />
+
+          {/* Add DebtPlannerPreview Modal */}
+          <AnimatePresence>
+            {showDebtPlanner && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+                  onClick={handleDebtPlannerClose}
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="fixed inset-4 md:inset-10 z-50 overflow-auto"
+                >
+                  <Suspense fallback={<SectionLoader />}>
+                    <DebtPlannerPreview
+                      onClose={handleDebtPlannerClose}
+                      onContinue={handleDebtPlannerContinue}
+                    />
+                  </Suspense>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
 
           {/* Hero Section */}
           <header className="flex flex-col justify-center items-center min-h-screen pt-16 md:pt-20 pb-8 md:py-12 relative scroll-section">

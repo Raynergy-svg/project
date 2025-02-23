@@ -123,7 +123,7 @@ const STEPS = [
   }
 ];
 
-export function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerPreviewProps) {
+export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerPreviewProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const navigate = useNavigate();

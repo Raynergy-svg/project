@@ -34,11 +34,4 @@ SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
 command = "npm run build"
 watch_dir = "src"
 
-workers_dev = true
-
-[build.upload]
-format = "service-worker"
-
-[[routes]]
-pattern = "/*"
-zone_name = "project.dcertan84.workers.dev" 
+workers_dev = true 

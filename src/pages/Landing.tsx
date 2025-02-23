@@ -9,29 +9,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDeviceContext } from "@/hooks/useDeviceContext";
 import Navbar from "@/components/layout/Navbar";
 import DebtManagementVisualization from "@/components/landing/DebtManagementVisualization";
+import Features from "@/components/landing/Features";
 
 // Optimized lazy loading with prefetch and error handling
-const Features = lazy(() => {
-  return new Promise<{ default: React.ComponentType }>(resolve => {
-    import("@/components/landing/Features")
-      .then(module => {
-        // Prefetch next components in the background
-        import("@/components/layout/Footer").catch(() => {});
-        resolve(module);
-      })
-      .catch(error => {
-        console.error("Error loading Features:", error);
-        resolve({
-          default: () => (
-            <div className="py-20 text-center">
-              <LoadingSpinner className="mx-auto" />
-            </div>
-          )
-        });
-      });
-  });
-});
-
 const Footer = lazy(() => {
   return new Promise<{ default: React.ComponentType }>(resolve => {
     import("@/components/layout/Footer")
@@ -524,9 +504,7 @@ export default function Landing() {
         </div>
       </Section>
 
-      <Suspense fallback={<SectionLoader />}>
-        <Features />
-      </Suspense>
+      <Features />
 
       <div className="relative scroll-section" id="visualization-heading">
         <DebtManagementVisualization />

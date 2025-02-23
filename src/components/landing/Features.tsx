@@ -2,14 +2,14 @@ import { motion } from 'framer-motion';
 import { 
   Brain, 
   Calculator, 
-  ChartBar,
+  BarChart,
   Sparkles,
   ArrowRight,
-  BarChart,
   Wallet,
   Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const FEATURES = [
   {
@@ -37,7 +37,7 @@ const FEATURES = [
   {
     title: "Financial Insights",
     description: "Get deep insights into your spending patterns and debt repayment progress with advanced analytics.",
-    icon: ChartBar,
+    icon: BarChart,
     benefits: [
       "Spending pattern analysis",
       "Debt reduction forecasting",
@@ -78,6 +78,12 @@ function FeatureCard({ title, description, icon: Icon, benefits, index }: any) {
 }
 
 export default function Features() {
+  const navigate = useNavigate();
+
+  const handleExploreClick = () => {
+    navigate('/signup?plan=trial');
+  };
+
   return (
     <div className="relative py-24 overflow-hidden">
       <div className="absolute inset-0">
@@ -115,6 +121,7 @@ export default function Features() {
           className="text-center"
         >
           <Button
+            onClick={handleExploreClick}
             className="group px-6 py-3 bg-[#88B04B] hover:bg-[#88B04B]/90 text-white rounded-xl font-semibold text-lg"
           >
             <span className="flex items-center gap-2">

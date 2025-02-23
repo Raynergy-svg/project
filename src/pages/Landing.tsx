@@ -248,78 +248,10 @@ const Section = ({ children, id = "", className = "" }: SectionProps) => {
   );
 };
 
-function Landing() {
+export default function Landing() {
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
-  const { performanceLevel, isMobile } = useDeviceContext();
+  const { isAuthenticated } = useAuth();
   const [showDebtPlanner, setShowDebtPlanner] = useState(false);
-
-  // Memoize handlers
-  const handleSignIn = useCallback(() => {
-    navigate("/signin", {
-      state: {
-        returnTo: window.location.pathname,
-        animation: "slide-in",
-      },
-    });
-  }, [navigate]);
-
-  const handleGetStarted = useCallback((planId: string) => {
-    navigate(`/signup?plan=${planId}`, {
-      state: {
-        returnTo: window.location.pathname,
-        animation: "slide-in",
-        selectedPlan: planId,
-        paymentLinks: {
-          basic: 'https://buy.stripe.com/test_4gwcPW1HN8597x64gi',
-          pro: 'https://buy.stripe.com/test_8wM5nu72799dbNm6or'
-        }
-      },
-    });
-  }, [navigate]);
-
-  const handleDashboardClick = useCallback(() => {
-    navigate("/dashboard");
-  }, [navigate]);
-
-  const scrollToSection = useCallback((sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
-  }, []);
-
-  // Memoize scroll progress for better performance
-  const { scrollYProgress } = useScroll();
-  const smoothProgress = useSpring(scrollYProgress, {
-    stiffness: performanceLevel === 'high' ? 100 : 50,
-    damping: performanceLevel === 'high' ? 30 : 20,
-    restDelta: 0.001
-  });
-
-  // Memoize stats data with more realistic, conservative numbers
-  const statsData = useMemo(() => [
-    { 
-      label: "Debt Reduced", 
-      value: "$500M+",
-      description: "Total debt reduced by our users"
-    },
-    { 
-      label: "Average Savings", 
-      value: "$3,200",
-      description: "Average savings on interest"
-    },
-    { 
-      label: "Active Users", 
-      value: "10,000+",
-      description: "Working towards debt freedom"
-    },
-    { 
-      label: "Success Rate", 
-      value: "92%",
-      description: "Users who stick to their plan"
-    }
-  ], []);
 
   const handleDebtPlannerClick = useCallback(() => {
     setShowDebtPlanner(true);
@@ -330,195 +262,266 @@ function Landing() {
   }, []);
 
   const handleDebtPlannerContinue = useCallback(() => {
+    setShowDebtPlanner(false);
     navigate('/signup');
   }, [navigate]);
 
+  const handleGetStarted = useCallback((planId: string) => {
+    navigate(`/signup?plan=${planId}`);
+  }, [navigate]);
+
   return (
-    <div className="relative w-full overflow-x-hidden">
+    <div className="min-h-screen bg-[#0A0A0A] text-white overflow-x-hidden">
       <BackgroundElements />
+      <Navbar onDebtPlannerClick={handleDebtPlannerClick} />
 
-      <main className="relative z-10 min-h-screen">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <Navbar
-            onSignIn={handleSignIn}
-            onNavigate={scrollToSection}
-            isAuthenticated={isAuthenticated}
-            userName={user?.name}
-            onDashboardClick={handleDashboardClick}
-            onDebtPlannerClick={handleDebtPlannerClick}
-          />
+      {/* Hero Section */}
+      <Section className="pt-32 pb-20">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUpVariants}
+            className="text-center max-w-4xl mx-auto relative"
+          >
+            {/* Decorative elements */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 0.15, scale: 1 }}
+              transition={{ duration: 1 }}
+              className="absolute -top-20 -left-20 w-40 h-40 bg-[#88B04B] rounded-full blur-[100px] pointer-events-none"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 0.15, scale: 1 }}
+              transition={{ duration: 1, delay: 0.2 }}
+              className="absolute -bottom-20 -right-20 w-40 h-40 bg-[#88B04B] rounded-full blur-[100px] pointer-events-none"
+            />
 
-          {/* Add DebtPlannerPreview Modal */}
-          <AnimatePresence>
-            {showDebtPlanner && (
-              <>
+            {/* Breaking chains animation */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.8 }}
+              className="flex justify-center mb-8"
+            >
+              <div className="relative w-24 h-24 mb-4">
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
-                  onClick={handleDebtPlannerClose}
+                  initial={{ rotate: 0 }}
+                  animate={{ rotate: [-10, 10, -10] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] rounded-full opacity-20"
                 />
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="fixed inset-4 md:inset-10 z-50 overflow-auto"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                  className="absolute inset-0 flex items-center justify-center"
                 >
-                  <Suspense fallback={<SectionLoader />}>
-                    <DebtPlannerPreview
-                      onClose={handleDebtPlannerClose}
-                      onContinue={handleDebtPlannerContinue}
-                    />
-                  </Suspense>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-[#88B04B]">
+                    <path d="M4 13a4 4 0 014-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M12 12l3-3m0 0l3-3m-3 3l-3-3m3 3l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M20 13a4 4 0 01-4 4h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
                 </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+              </div>
+            </motion.div>
 
-          {/* Hero Section */}
-          <header className="flex flex-col justify-center items-center min-h-screen pt-16 md:pt-20 pb-8 md:py-12 relative scroll-section">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6">
+              <motion.span
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent inline-block"
+              >
+                Break Free From
+              </motion.span>
+              <br />
+              <motion.span
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="text-white inline-block relative"
+              >
+                The Weight of Debt
+                <motion.div
+                  className="absolute -bottom-4 left-0 right-0 h-1 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D]"
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ delay: 1, duration: 1 }}
+                />
+              </motion.span>
+            </h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="text-xl md:text-2xl text-gray-300 mb-8"
+            >
+              Transform your financial burden into a clear path to freedom with AI-powered guidance
+            </motion.p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button
+                onClick={() => navigate('/signup')}
+                className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white px-8 py-3 rounded-lg text-lg group transition-transform hover:scale-105"
+              >
+                Start Free Trial
+              </Button>
+              <Button
+                onClick={handleDebtPlannerClick}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10 px-8 py-3 rounded-lg text-lg group"
+              >
+                Try Demo
+              </Button>
+            </div>
+
+            {/* Enhanced stats with animations */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+              className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto"
+            >
+              <div className="text-center relative">
+                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-lg transform -rotate-3"></div>
+                <div className="relative bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm">
+                  <h3 className="text-3xl font-bold text-[#88B04B]">50k+</h3>
+                  <p className="text-gray-400">Active Users</p>
+                </div>
+              </div>
+              <div className="text-center relative">
+                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-lg transform rotate-3"></div>
+                <div className="relative bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm">
+                  <h3 className="text-3xl font-bold text-[#88B04B]">$2M+</h3>
+                  <p className="text-gray-400">Debt Eliminated</p>
+                </div>
+              </div>
+              <div className="text-center relative">
+                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-lg transform -rotate-2"></div>
+                <div className="relative bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm">
+                  <h3 className="text-3xl font-bold text-[#88B04B]">4.9/5</h3>
+                  <p className="text-gray-400">User Rating</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </Section>
+
+      {/* Reviews Section */}
+      <Section className="py-20 bg-white/5">
+        <div className="container mx-auto px-4">
+          <h2 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+            What Our Users Say
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <motion.div
-              initial="hidden"
-              animate="visible"
               variants={fadeInUpVariants}
               custom={0}
-              className="text-center relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:mt-0"
+              className="bg-white/5 p-6 rounded-xl border border-white/10"
             >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-                className="relative"
-              >
-                <motion.div
-                  className="absolute -inset-x-20 -inset-y-10 bg-gradient-to-r from-[#88B04B]/20 to-[#6A9A2D]/20 blur-3xl rounded-full hidden sm:block"
-                  animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.3, 0.5, 0.3],
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#88B04B] to-[#6A9A2D]">
-                  Your Path to<br className="sm:hidden" /> Debt Freedom
-                </h1>
-              </motion.div>
-
-              <motion.p
-                variants={fadeInUpVariants}
-                custom={1}
-                className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed"
-              >
-                Take control of your debt with our proven strategies and tools. Start your journey to becoming debt-free today.
-              </motion.p>
-
-              <motion.div
-                variants={fadeInUpVariants}
-                custom={2}
-                className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
-              >
-                <Button
-                  onClick={() => handleGetStarted('basic')}
-                  size="lg"
-                  className="w-full sm:w-auto bg-[#88B04B] hover:bg-[#7a9d43] text-white px-6 sm:px-8 py-3 text-base sm:text-lg rounded-xl"
-                >
-                  Become Debt Free
-                </Button>
-                <Button
-                  onClick={handleSignIn}
-                  variant="outline"
-                  size="lg"
-                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 px-6 sm:px-8 py-3 text-base sm:text-lg rounded-xl"
-                >
-                  Sign In
-                </Button>
-              </motion.div>
-
-              {/* Trust Indicators - Mobile Optimized */}
-              <motion.div
-                variants={fadeInUpVariants}
-                custom={3}
-                className="flex flex-col sm:flex-row gap-4 justify-center items-center text-xs sm:text-sm text-gray-400"
-              >
-                <span className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-[#88B04B]" />
-                  256-bit SSL Encryption
-                </span>
-                <span className="hidden sm:flex items-center gap-2">•</span>
-                <span className="flex items-center gap-2">
-                  <Star className="w-4 h-4 text-[#88B04B]" />
-                  4.9/5 User Rating
-                </span>
-                <span className="hidden sm:flex items-center gap-2">•</span>
-                <span className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-[#88B04B]" />
-                  SOC 2 Certified
-                </span>
-              </motion.div>
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-5 h-5 text-[#88B04B] fill-current" />
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                "Smart Debt Flow helped me create a realistic plan to become debt-free. The AI suggestions are incredibly helpful!"
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#88B04B]/20 flex items-center justify-center">
+                  <span className="text-[#88B04B] font-semibold">JD</span>
+                </div>
+                <div>
+                  <p className="font-medium text-white">John Doe</p>
+                  <p className="text-sm text-gray-400">Debt-free in 18 months</p>
+                </div>
+              </div>
             </motion.div>
-          </header>
-
-          {/* Stats Section - Mobile Optimized */}
-          <section className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 relative scroll-section">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-              {statsData.map((stat, index) => (
-                <motion.div
-                  key={stat.label}
-                  variants={fadeInUpVariants}
-                  custom={index * 0.2}
-                  className="relative p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 text-center transform hover:scale-105 transition-transform duration-300"
-                >
-                  <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#88B04B] mb-2">
-                    {stat.value}
-                  </h3>
-                  <p className="text-white font-medium mb-2">{stat.label}</p>
-                  <p className="text-gray-400 text-sm">{stat.description}</p>
-                </motion.div>
-              ))}
-            </div>
-          </section>
-
-          {/* Features and other sections */}
-          <div className="relative space-y-12 sm:space-y-16 lg:space-y-24 pb-12 sm:pb-16 lg:pb-24">
-            <Section 
-              id="features-heading"
-              className="relative pt-12 sm:pt-16 lg:pt-24"
+            <motion.div
+              variants={fadeInUpVariants}
+              custom={1}
+              className="bg-white/5 p-6 rounded-xl border border-white/10"
             >
-              <Suspense fallback={<SectionLoader />}>
-                <Features />
-              </Suspense>
-            </Section>
-
-            <Section 
-              id="visualization-heading"
-              className="relative pt-12 sm:pt-16 lg:pt-24"
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-5 h-5 text-[#88B04B] fill-current" />
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                "The personalized insights and debt strategies have saved me thousands in interest. Absolutely worth it!"
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#88B04B]/20 flex items-center justify-center">
+                  <span className="text-[#88B04B] font-semibold">SM</span>
+                </div>
+                <div>
+                  <p className="font-medium text-white">Sarah Miller</p>
+                  <p className="text-sm text-gray-400">Saved $3,200 in interest</p>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div
+              variants={fadeInUpVariants}
+              custom={2}
+              className="bg-white/5 p-6 rounded-xl border border-white/10"
             >
-              <Suspense fallback={<SectionLoader />}>
-                <DebtManagementVisualization />
-              </Suspense>
-            </Section>
-
-            <Section
-              id="pricing-heading"
-              className="relative pt-12 sm:pt-16 lg:pt-24"
-            >
-              <Suspense fallback={<SectionLoader />}>
-                <Pricing onGetStarted={handleGetStarted} />
-              </Suspense>
-            </Section>
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-5 h-5 text-[#88B04B] fill-current" />
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                "The AI analysis of my spending patterns opened my eyes to savings opportunities I never knew existed."
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#88B04B]/20 flex items-center justify-center">
+                  <span className="text-[#88B04B] font-semibold">RJ</span>
+                </div>
+                <div>
+                  <p className="font-medium text-white">Robert Johnson</p>
+                  <p className="text-sm text-gray-400">Reduced debt by 40%</p>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </div>
-      </main>
+      </Section>
+
+      <Suspense fallback={<SectionLoader />}>
+        <Features />
+      </Suspense>
+
+      <Suspense fallback={<SectionLoader />}>
+        <DebtManagementVisualization />
+      </Suspense>
+
+      <Suspense fallback={<SectionLoader />}>
+        <Pricing onGetStarted={handleGetStarted} />
+      </Suspense>
 
       <Suspense fallback={<SectionLoader />}>
         <Footer />
       </Suspense>
+
+      <AnimatePresence>
+        {showDebtPlanner && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <Suspense fallback={<SectionLoader />}>
+              <DebtPlannerPreview
+                onClose={handleDebtPlannerClose}
+                onContinue={handleDebtPlannerContinue}
+              />
+            </Suspense>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-
-export default Landing;

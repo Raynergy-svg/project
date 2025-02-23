@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   motion,
@@ -7,16 +7,17 @@ import {
   useTransform,
 } from "framer-motion";
 import { Menu, X } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
+import { cn } from "@/lib/utils";
 
 interface NavbarProps {
   onSignIn: () => void;
-  onNavigate: (sectionId: string) => void;
+  onNavigate: (id: string) => void;
   isAuthenticated: boolean;
   userName?: string;
-  onDebtPlannerClick?: () => void;
-  onDashboardClick?: () => void;
+  onDebtPlannerClick: () => void;
+  onDashboardClick: () => void;
 }
 
 export default function Navbar({
@@ -25,10 +26,13 @@ export default function Navbar({
   isAuthenticated,
   userName,
   onDebtPlannerClick,
-  onDashboardClick,
+  onDashboardClick
 }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { scrollY } = useScroll();
+  const location = useLocation();
+  const navigate = useNavigate();
   
   const backgroundColor = useTransform(
     scrollY,
@@ -36,183 +40,166 @@ export default function Navbar({
     ["rgba(30, 30, 30, 0)", "rgba(30, 30, 30, 0.98)"]
   );
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const navItems = [
-    { label: "Features", id: "features-heading" },
-    { label: "Methods", id: "visualization-heading" },
-    { label: "Pricing", id: "pricing-heading" },
+    { id: 'features-heading', label: 'Features', type: 'scroll' },
+    { id: 'visualization-heading', label: 'Methods', type: 'scroll' },
+    { id: 'pricing-heading', label: 'Pricing', type: 'scroll' }
   ];
 
-  return (
-    <>
-      {/* Desktop Navigation */}
-      <motion.nav
-        style={{ backgroundColor }}
-        className="fixed top-0 left-0 right-0 z-50 hidden md:block"
-      >
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <motion.div 
-            whileHover={{ scale: 1.05 }} 
-            className="flex items-center gap-2"
-          >
-            <Logo size="sm" />
-          </motion.div>
+  const handleNavigation = (item: { id: string, type: string }) => {
+    if (location.pathname !== '/') {
+      navigate('/');
+      // Add a small delay to allow the page to load before scrolling
+      setTimeout(() => {
+        const element = document.getElementById(item.id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    } else if (item.type === 'scroll') {
+      onNavigate(item.id);
+    }
+  };
 
-          <div className="flex items-center gap-6">
-            <button
-              onClick={onDebtPlannerClick}
-              className="text-white/90 hover:text-[#88B04B] transition-colors text-sm font-medium"
-            >
-              Debt Planner
-            </button>
+  return (
+    <nav className={cn(
+      'fixed top-0 left-0 right-0 z-40 transition-all duration-300',
+      isScrolled ? 'bg-black/80 backdrop-blur-lg shadow-lg' : 'bg-transparent'
+    )}>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          {/* Logo */}
+          <div className="flex items-center">
+            <Logo />
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => onNavigate(item.id)}
-                className="text-white/90 hover:text-[#88B04B] transition-colors text-sm font-medium"
+                onClick={() => handleNavigation(item)}
+                className="text-gray-300 hover:text-white transition-colors"
               >
                 {item.label}
               </button>
             ))}
+            <button
+              onClick={onDebtPlannerClick}
+              className="text-gray-300 hover:text-white transition-colors"
+            >
+              Debt Planner
+            </button>
+          </div>
 
+          {/* Sign In / Dashboard Button */}
+          <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
-              <>
-                <span className="text-white/80 text-sm">Welcome, {userName}</span>
-                <Button
-                  onClick={onDashboardClick}
-                  className="bg-[#88B04B] hover:bg-[#7a9d43] text-white px-4 py-2 text-sm"
-                >
-                  Dashboard
-                </Button>
-              </>
+              <Button
+                onClick={onDashboardClick}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Dashboard
+              </Button>
             ) : (
               <Button
                 onClick={onSignIn}
-                className="bg-[#88B04B] hover:bg-[#7a9d43] text-white px-4 py-2 text-sm"
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
               >
                 Sign In
               </Button>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-white"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+          </div>
         </div>
-      </motion.nav>
+      </div>
 
-      {/* Mobile Navigation */}
-      <motion.nav
-        style={{ backgroundColor }}
-        className="fixed top-0 left-0 right-0 z-50 md:hidden"
-      >
-        <div className="px-4 h-16 flex items-center justify-between">
-          <motion.div 
-            whileHover={{ scale: 1.05 }} 
-            className="flex items-center gap-2 z-50"
-          >
-            <Logo size="sm" />
-          </motion.div>
-
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 text-white hover:text-[#88B04B] transition-colors z-50"
-            aria-label="Toggle menu"
-          >
-            <AnimatePresence mode="wait">
-              {isMenuOpen ? (
-                <motion.div
-                  key="close"
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40"
+              onClick={() => setIsMenuOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-16 left-0 right-0 bg-black/90 border-t border-white/10 p-4 space-y-4 z-50"
+            >
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    handleNavigation(item);
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-4 py-2 text-gray-300 hover:text-white transition-colors"
                 >
-                  <X size={24} />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="menu"
-                  initial={{ rotate: 90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: -90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Menu size={24} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </button>
-        </div>
-
-        <AnimatePresence>
-          {isMenuOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-                onClick={() => setIsMenuOpen(false)}
-              />
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.2 }}
-                className="absolute top-[64px] left-0 right-0 bg-[#1E1E1E] border-t border-b border-white/10 z-40 px-4 py-6 shadow-lg"
+                  {item.label}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  onDebtPlannerClick();
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full text-left px-4 py-2 text-gray-300 hover:text-white transition-colors"
               >
-                <div className="flex flex-col gap-4">
-                  <button
-                    onClick={() => {
-                      onDebtPlannerClick?.();
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full text-left text-white/90 hover:text-[#88B04B] py-2 transition-colors text-lg font-medium"
-                  >
-                    Debt Planner
-                  </button>
-                  {navItems.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        onNavigate(item.id);
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full text-left text-white/90 hover:text-[#88B04B] py-2 transition-colors text-lg font-medium"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                  {isAuthenticated ? (
-                    <div className="pt-4 border-t border-white/10">
-                      <p className="text-white/60 mb-3">Welcome back, {userName}</p>
-                      <Button
-                        onClick={() => {
-                          onDashboardClick?.();
-                          setIsMenuOpen(false);
-                        }}
-                        className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3"
-                      >
-                        Dashboard
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => {
-                        onSignIn();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 mt-4"
-                    >
-                      Sign In
-                    </Button>
-                  )}
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </motion.nav>
-
-      {/* Add top spacing for content */}
-      <div className="h-16" />
-    </>
+                Debt Planner
+              </button>
+              {isAuthenticated ? (
+                <Button
+                  onClick={() => {
+                    onDashboardClick();
+                    setIsMenuOpen(false);
+                  }}
+                  variant="outline"
+                  className="w-full border-white/20 text-white hover:bg-white/10"
+                >
+                  Dashboard
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    onSignIn();
+                    setIsMenuOpen(false);
+                  }}
+                  variant="outline"
+                  className="w-full border-white/20 text-white hover:bg-white/10"
+                >
+                  Sign In
+                </Button>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </nav>
   );
 }

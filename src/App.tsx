@@ -18,6 +18,18 @@ const Landing = lazy(() => import("@/pages/Landing"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const DebtPlanner = lazy(() => import("@/pages/DebtPlanner"));
 const Settings = lazy(() => import("@/pages/Settings"));
+const About = lazy(() => import("@/pages/About"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const Security = lazy(() => import("@/pages/Security"));
+const Blog = lazy(() => import("@/pages/Blog"));
+const Press = lazy(() => import("@/pages/Press"));
+const Help = lazy(() => import("@/pages/Help"));
+const Docs = lazy(() => import("@/pages/Docs"));
+const Api = lazy(() => import("@/pages/Api"));
+const Status = lazy(() => import("@/pages/Status"));
+const Careers = lazy(() => import("@/pages/Careers"));
+const Compliance = lazy(() => import("@/pages/Compliance"));
 const SignUp = lazy(() => 
   import("@/pages/SignUp").catch(error => {
     console.error("Error loading SignUp component:", error);
@@ -31,6 +43,18 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/signin" element={<SignIn />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/security" element={<Security />} />
+      <Route path="/blog" element={<Blog />} />
+      <Route path="/press" element={<Press />} />
+      <Route path="/help" element={<Help />} />
+      <Route path="/docs" element={<Docs />} />
+      <Route path="/api" element={<Api />} />
+      <Route path="/status" element={<Status />} />
+      <Route path="/careers" element={<Careers />} />
+      <Route path="/compliance" element={<Compliance />} />
       <Route
         path="/signup"
         element={

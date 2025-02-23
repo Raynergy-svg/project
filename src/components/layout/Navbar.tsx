@@ -65,8 +65,7 @@ export default function Navbar({
       items: [
         { label: 'About Us', href: '/about' },
         { label: 'Careers', href: '/careers' },
-        { label: 'Blog', href: '/blog' },
-        { label: 'Press', href: '/press' }
+        { label: 'Blog', href: '/blog' }
       ]
     },
     { 

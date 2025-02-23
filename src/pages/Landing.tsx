@@ -293,7 +293,7 @@ export default function Landing() {
                 onClick={() => navigate('/signup')}
                 className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white px-8 py-3 rounded-lg text-lg group transition-transform hover:scale-105"
                 >
-                Start My Journey
+                Start Your Journey
                 </Button>
             </div>
 

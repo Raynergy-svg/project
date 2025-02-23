@@ -76,7 +76,6 @@ export default function Navbar({
       items: [
         { label: 'Help Center', href: '/help' },
         { label: 'Documentation', href: '/docs' },
-        { label: 'API Reference', href: '/api' },
         { label: 'Status', href: '/status' }
       ]
     },

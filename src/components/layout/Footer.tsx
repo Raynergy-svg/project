@@ -21,7 +21,6 @@ export default function Footer() {
     resources: [
       { label: 'Help Center', href: '/help' },
       { label: 'Documentation', href: '/docs' },
-      { label: 'API Reference', href: '/api' },
       { label: 'Status', href: '/status' },
     ],
     legal: [

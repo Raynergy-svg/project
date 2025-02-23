@@ -10,17 +10,27 @@ const __dirname = dirname(__filename);
 async function generateFavicon() {
   try {
     // Read the SVG file
-    const svgBuffer = await fs.readFile(join(__dirname, "../public/logo.svg"));
+    const svgBuffer = await fs.readFile(
+      join(__dirname, "../src/assets/logo.svg")
+    );
 
-    // Convert SVG to PNG (32x32)
-    const pngBuffer = await svg2png(svgBuffer, { width: 32, height: 32 });
+    // Convert SVG to PNG with higher quality settings
+    const pngBuffer = await svg2png(svgBuffer, {
+      width: 64,
+      height: 64,
+      preserveAspectRatio: true,
+      backgroundColor: "transparent",
+    });
 
     // Save temporary PNG
     const tempPngPath = join(__dirname, "../public/temp-favicon.png");
     await fs.writeFile(tempPngPath, pngBuffer);
 
-    // Convert PNG to ICO
-    const icoBuffer = await pngToIco(tempPngPath);
+    // Convert PNG to ICO with multiple sizes for better quality
+    const icoBuffer = await pngToIco([tempPngPath], {
+      sizes: [16, 32, 48, 64],
+      quality: 100,
+    });
 
     // Save ICO file
     await fs.writeFile(join(__dirname, "../public/favicon.ico"), icoBuffer);

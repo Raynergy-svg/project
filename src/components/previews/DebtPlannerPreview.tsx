@@ -99,7 +99,7 @@ export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerP
                     <div className="flex items-center gap-3 mb-4">
                       <Building2 className="w-6 h-6 text-[#88B04B]" />
                       <h3 className="text-lg font-semibold text-white">Connect Your Accounts</h3>
-                    </div>
+              </div>
                     <p className="text-gray-400 mb-6">
                       Securely connect your bank accounts for real-time tracking and personalized insights
                     </p>

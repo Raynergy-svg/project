@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Logo } from "@/components/Logo";
 
 interface LoadingSpinnerProps {
@@ -13,20 +12,16 @@ export function LoadingSpinner({ className = '', fullScreen = false }: LoadingSp
         <div className="mb-8">
           <Logo size="lg" showText={true} />
         </div>
-        <motion.div
-          className="w-16 h-16 border-4 border-[#88B04B] border-t-transparent rounded-full"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
+        <div className="w-16 h-16 flex items-center justify-center">
+          <div className="text-[#88B04B] text-lg">Loading...</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <motion.div
-      className={`border-4 border-[#88B04B] border-t-transparent rounded-full ${className}`}
-      animate={{ rotate: 360 }}
-      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-    />
+    <div className={`flex items-center justify-center ${className}`}>
+      <div className="text-[#88B04B] text-sm">Loading...</div>
+    </div>
   );
 }

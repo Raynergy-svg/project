@@ -1,4 +1,4 @@
-import { ArrowRight, Shield, Star, Lock } from "lucide-react";
+import { ArrowRight, Shield, Star, Lock, CheckCircle } from "lucide-react";
 import { Suspense, lazy, useCallback, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useScroll, useSpring, useInView } from "framer-motion";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeviceContext } from "@/hooks/useDeviceContext";
 import Navbar from "@/components/layout/Navbar";
+import DebtManagementVisualization from "@/components/landing/DebtManagementVisualization";
 
 // Optimized lazy loading with prefetch and error handling
 const Features = lazy(() => {
@@ -15,10 +16,7 @@ const Features = lazy(() => {
     import("@/components/landing/Features")
       .then(module => {
         // Prefetch next components in the background
-        Promise.all([
-          import("@/components/landing/DebtManagementVisualization"),
-          import("@/components/layout/Footer")
-        ]).catch(() => {});
+        import("@/components/layout/Footer").catch(() => {});
         resolve(module);
       })
       .catch(error => {
@@ -26,37 +24,7 @@ const Features = lazy(() => {
         resolve({
           default: () => (
             <div className="py-20 text-center">
-              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-                Powerful Features to Manage Your Debt
-              </h2>
-              <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                Take control of your financial future with our comprehensive suite of debt management tools
-              </p>
-            </div>
-          )
-        });
-      });
-  });
-});
-
-// Optimized lazy loading with error boundaries and retry logic
-const DebtManagementVisualization = lazy(() => {
-  return new Promise<{ default: React.ComponentType }>(resolve => {
-    import("@/components/landing/DebtManagementVisualization")
-      .then(module => {
-        resolve(module);
-      })
-      .catch(error => {
-        console.error("Error loading DebtManagementVisualization:", error);
-        resolve({
-          default: () => (
-            <div className="py-20 text-center">
-              <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-                Methods For Your Debt-Free Journey
-              </h2>
-              <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                Choose between proven debt management strategies tailored to your financial situation.
-              </p>
+              <LoadingSpinner className="mx-auto" />
             </div>
           )
         });
@@ -275,7 +243,7 @@ export default function Landing() {
       <BackgroundElements />
       <Navbar onDebtPlannerClick={handleDebtPlannerClick} />
 
-          {/* Hero Section */}
+      {/* Hero Section */}
       <Section className="pt-32 pb-20">
         <div className="container mx-auto px-4">
             <motion.div
@@ -283,7 +251,42 @@ export default function Landing() {
               animate="visible"
               variants={fadeInUpVariants}
             className="text-center max-w-4xl mx-auto relative"
-          >
+            >
+              <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1 }}
+              className="relative mb-12"
+            >
+              <div className="text-center">
+                <h1 className="text-5xl md:text-7xl font-bold mb-6">
+                  <motion.span
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent inline-block"
+                  >
+                    Break Free From
+                  </motion.span>
+                  <br />
+                  <motion.span
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-white inline-block relative"
+                  >
+                    The Weight of Debt
+                    <motion.div
+                      className="absolute -bottom-4 left-0 right-0 h-1 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D]"
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ delay: 1, duration: 1 }}
+                    />
+                  </motion.span>
+                </h1>
+              </div>
+                </motion.div>
+                
             {/* Decorative elements */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -298,31 +301,6 @@ export default function Landing() {
               className="absolute -bottom-20 -right-20 w-40 h-40 bg-[#88B04B] rounded-full blur-[100px] pointer-events-none"
             />
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6">
-              <motion.span
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent inline-block"
-              >
-                Break Free From
-              </motion.span>
-              <br />
-              <motion.span
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="text-white inline-block relative"
-              >
-                The Weight of Debt
-                <motion.div
-                  className="absolute -bottom-4 left-0 right-0 h-1 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D]"
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ delay: 1, duration: 1 }}
-                />
-              </motion.span>
-            </h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -332,16 +310,16 @@ export default function Landing() {
               Transform your financial burden into a clear path to freedom with AI-powered guidance
             </motion.p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
+                <Button
                 onClick={() => navigate('/signup')}
                 className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white px-8 py-3 rounded-lg text-lg group transition-transform hover:scale-105"
-                  >
-                      Start My Journey
-                  </Button>
+                >
+                Start My Journey
+                </Button>
             </div>
 
             {/* Enhanced stats with animations */}
-              <motion.div
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
@@ -369,101 +347,194 @@ export default function Landing() {
                 </div>
               </div>
             </motion.div>
-          </motion.div>
+              </motion.div>
         </div>
       </Section>
 
-      {/* Reviews Section */}
+      {/* Reviews Section with Photos */}
       <Section className="py-20 bg-white/5">
         <div className="container mx-auto px-4">
           <h2 className="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
             What Our Users Say
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <motion.div
-              variants={fadeInUpVariants}
+              <motion.div
+                variants={fadeInUpVariants}
               custom={0}
               className="bg-white/5 p-6 rounded-xl border border-white/10"
             >
-              <div className="flex items-center gap-1 mb-4">
+              <img
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=200"
+                alt="John Doe"
+                className="w-20 h-20 rounded-full mx-auto mb-6 object-cover"
+              />
+              <div className="flex items-center gap-1 mb-4 justify-center">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-5 h-5 text-[#88B04B] fill-current" />
                 ))}
               </div>
-              <p className="text-gray-300 mb-4">
+              <p className="text-gray-300 mb-4 text-center">
                 "Smart Debt Flow helped me create a realistic plan to become debt-free. The AI suggestions are incredibly helpful!"
               </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#88B04B]/20 flex items-center justify-center">
-                  <span className="text-[#88B04B] font-semibold">JD</span>
-                </div>
-                <div>
-                  <p className="font-medium text-white">John Doe</p>
-                  <p className="text-sm text-gray-400">Debt-free in 18 months</p>
-                </div>
+              <div className="text-center">
+                <p className="font-medium text-white">John Doe</p>
+                <p className="text-sm text-gray-400">Debt-free in 18 months</p>
               </div>
             </motion.div>
-                  <motion.div
-                    variants={fadeInUpVariants}
+
+            <motion.div
+              variants={fadeInUpVariants}
               custom={1}
               className="bg-white/5 p-6 rounded-xl border border-white/10"
             >
-              <div className="flex items-center gap-1 mb-4">
+              <img
+                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=200"
+                alt="Sarah Miller"
+                className="w-20 h-20 rounded-full mx-auto mb-6 object-cover"
+              />
+              <div className="flex items-center gap-1 mb-4 justify-center">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-5 h-5 text-[#88B04B] fill-current" />
                 ))}
               </div>
-              <p className="text-gray-300 mb-4">
+              <p className="text-gray-300 mb-4 text-center">
                 "The personalized insights and debt strategies have saved me thousands in interest. Absolutely worth it!"
               </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#88B04B]/20 flex items-center justify-center">
-                  <span className="text-[#88B04B] font-semibold">SM</span>
-                </div>
-                <div>
-                  <p className="font-medium text-white">Sarah Miller</p>
-                  <p className="text-sm text-gray-400">Saved $3,200 in interest</p>
-                </div>
+              <div className="text-center">
+                <p className="font-medium text-white">Sarah Miller</p>
+                <p className="text-sm text-gray-400">Saved $3,200 in interest</p>
               </div>
             </motion.div>
-            <motion.div
-              variants={fadeInUpVariants}
+
+                  <motion.div
+                    variants={fadeInUpVariants}
               custom={2}
               className="bg-white/5 p-6 rounded-xl border border-white/10"
             >
-              <div className="flex items-center gap-1 mb-4">
+              <img
+                src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=200"
+                alt="Robert Johnson"
+                className="w-20 h-20 rounded-full mx-auto mb-6 object-cover"
+              />
+              <div className="flex items-center gap-1 mb-4 justify-center">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="w-5 h-5 text-[#88B04B] fill-current" />
                 ))}
               </div>
-              <p className="text-gray-300 mb-4">
+              <p className="text-gray-300 mb-4 text-center">
                 "The AI analysis of my spending patterns opened my eyes to savings opportunities I never knew existed."
               </p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#88B04B]/20 flex items-center justify-center">
-                  <span className="text-[#88B04B] font-semibold">RJ</span>
-                </div>
-                <div>
-                  <p className="font-medium text-white">Robert Johnson</p>
-                  <p className="text-sm text-gray-400">Reduced debt by 40%</p>
-                </div>
+              <div className="text-center">
+                <p className="font-medium text-white">Robert Johnson</p>
+                <p className="text-sm text-gray-400">Reduced debt by 40%</p>
               </div>
             </motion.div>
           </div>
         </div>
       </Section>
 
-              <Suspense fallback={<SectionLoader />}>
-                <Features />
-              </Suspense>
+      {/* Features Section with Illustrations */}
+      <Section className="py-20">
+        <div className="container mx-auto px-4">
+          {/* AI-Powered Analysis */}
+          <div className="grid md:grid-cols-2 gap-12 items-center mb-24">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="order-2 md:order-1"
+            >
+              <h3 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+                AI-Powered Analysis
+              </h3>
+              <p className="text-gray-300 text-lg mb-6">
+                Our advanced AI system analyzes your financial data in real-time to provide personalized recommendations and insights.
+              </p>
+              <ul className="space-y-4">
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="w-5 h-5 text-[#88B04B]" />
+                  <span>Real-time financial analysis</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="w-5 h-5 text-[#88B04B]" />
+                  <span>Personalized debt strategies</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="w-5 h-5 text-[#88B04B]" />
+                  <span>Smart payment optimization</span>
+                </li>
+              </ul>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="order-1 md:order-2"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1639322537228-f710d846310a?auto=format&fit=crop&q=80&w=800"
+                alt="AI-Powered Analysis"
+                className="rounded-2xl shadow-2xl"
+              />
+            </motion.div>
+          </div>
 
-              <Suspense fallback={<SectionLoader />}>
-                <DebtManagementVisualization />
-              </Suspense>
+          {/* Smart Financial Tools */}
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="order-1"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800"
+                alt="Smart Financial Tools"
+                className="rounded-2xl shadow-2xl"
+              />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="order-2"
+            >
+              <h3 className="text-3xl font-bold mb-4 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+                Smart Financial Tools
+              </h3>
+              <p className="text-gray-300 text-lg mb-6">
+                Leverage our comprehensive suite of tools designed to help you manage and eliminate debt effectively.
+              </p>
+              <ul className="space-y-4">
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="w-5 h-5 text-[#88B04B]" />
+                  <span>Debt payoff calculator</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="w-5 h-5 text-[#88B04B]" />
+                  <span>Budget optimization</span>
+                </li>
+                <li className="flex items-center gap-3 text-gray-300">
+                  <CheckCircle className="w-5 h-5 text-[#88B04B]" />
+                  <span>Progress tracking</span>
+                </li>
+              </ul>
+            </motion.div>
+          </div>
+        </div>
+      </Section>
 
-              <Suspense fallback={<SectionLoader />}>
-                <Pricing onGetStarted={handleGetStarted} />
-              </Suspense>
+      <Suspense fallback={<SectionLoader />}>
+        <Features />
+      </Suspense>
+
+      <div className="relative scroll-section" id="visualization-heading">
+        <DebtManagementVisualization />
+      </div>
+
+      <Suspense fallback={<SectionLoader />}>
+        <Pricing onGetStarted={handleGetStarted} />
+      </Suspense>
 
       <Suspense fallback={<SectionLoader />}>
         <Footer />

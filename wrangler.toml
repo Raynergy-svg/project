@@ -1,6 +1,42 @@
-[main]
 name = "project"
+main = "workers-site/index.js"
 compatibility_date = "2024-02-22"
 
 [site]
-bucket = "./dist" 
+bucket = "./dist"
+
+# Non-sensitive environment variables
+[vars]
+ENVIRONMENT = "development"
+STRIPE_MODE = "test"
+S3_REGION = "local"
+SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+STRIPE_MODE = "test"
+S3_REGION = "local"
+SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
+
+# The following secrets should be set using:
+# npx wrangler secret put SECRET_NAME
+# - SUPABASE_URL
+# - SUPABASE_ANON_KEY
+# - JWT_SECRET
+# - STRIPE_WEBHOOK_SECRET
+# - STRIPE_PUBLISHABLE_KEY
+# - STRIPE_SECRET_KEY
+# - OPENAI_API_KEY
+# - S3_Access_Key
+# - S3_Secret_Key
+
+[build]
+command = "npm run build"
+watch_dir = "src"
+
+[build.upload]
+format = "service-worker"
+
+[[routes]]
+pattern = "/*"
+zone_name = "project.dcertan84.workers.dev" 

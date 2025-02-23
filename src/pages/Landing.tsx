@@ -318,7 +318,7 @@ function Landing() {
   ], []);
 
   return (
-    <div className="relative w-full">
+    <div className="relative w-full overflow-x-hidden">
       <BackgroundElements />
 
       <main className="relative z-10 min-h-screen">
@@ -332,13 +332,13 @@ function Landing() {
           />
 
           {/* Hero Section */}
-          <header className="flex flex-col justify-center items-center min-h-[calc(100vh-4rem)] py-8 md:py-12 relative scroll-section">
+          <header className="flex flex-col justify-center items-center min-h-screen pt-16 md:pt-20 pb-8 md:py-12 relative scroll-section">
             <motion.div
               initial="hidden"
               animate="visible"
               variants={fadeInUpVariants}
               custom={0}
-              className="text-center relative z-10 max-w-4xl mx-auto mt-16 md:mt-0"
+              className="text-center relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 md:mt-0"
             >
               <motion.div
                 initial={{ scale: 0.95, opacity: 0 }}
@@ -347,7 +347,7 @@ function Landing() {
                 className="relative"
               >
                 <motion.div
-                  className="absolute -inset-x-20 -inset-y-10 bg-gradient-to-r from-[#88B04B]/20 to-[#6A9A2D]/20 blur-3xl rounded-full"
+                  className="absolute -inset-x-20 -inset-y-10 bg-gradient-to-r from-[#88B04B]/20 to-[#6A9A2D]/20 blur-3xl rounded-full hidden sm:block"
                   animate={{
                     scale: [1, 1.1, 1],
                     opacity: [0.3, 0.5, 0.3],
@@ -358,15 +358,15 @@ function Landing() {
                     ease: "easeInOut",
                   }}
                 />
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold text-white mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] px-4 sm:px-0">
-                  Your Path to Debt Freedom
+                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-white mb-6 bg-clip-text text-transparent bg-gradient-to-r from-[#88B04B] to-[#6A9A2D]">
+                  Your Path to<br className="sm:hidden" /> Debt Freedom
                 </h1>
               </motion.div>
 
               <motion.p
                 variants={fadeInUpVariants}
                 custom={1}
-                className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed px-4 sm:px-0"
+                className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed"
               >
                 Take control of your debt with our proven strategies and tools. Start your journey to becoming debt-free today.
               </motion.p>
@@ -374,111 +374,74 @@ function Landing() {
               <motion.div
                 variants={fadeInUpVariants}
                 custom={2}
-                className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 px-4 sm:px-0"
+                className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12"
               >
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Button
-                    onClick={() => handleGetStarted('basic')}
-                    className="w-full sm:w-auto bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white px-6 sm:px-10 py-4 sm:py-6 rounded-xl text-base sm:text-lg font-semibold tracking-wide relative overflow-hidden group"
-                  >
-                    <motion.div
-                      className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"
-                      initial={false}
-                    />
-                    <span className="relative z-10 flex items-center gap-2">
-                      Start Free Trial
-                      <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-                    </span>
-                  </Button>
-                </motion.div>
-                
                 <Button
-                  onClick={() => handleGetStarted('pro')}
-                  variant="outline"
-                  className="w-full sm:w-auto text-white border-2 border-white/20 hover:bg-white/10 px-6 sm:px-10 py-4 sm:py-6 text-base sm:text-lg font-medium backdrop-blur-sm"
+                  onClick={() => handleGetStarted('basic')}
+                  size="lg"
+                  className="w-full sm:w-auto bg-[#88B04B] hover:bg-[#7a9d43] text-white px-6 sm:px-8 py-3 text-base sm:text-lg rounded-xl"
                 >
-                  Choose Pro Plan
+                  Become Debt Free
+                </Button>
+                <Button
+                  onClick={handleSignIn}
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto border-white/20 text-white hover:bg-white/10 px-6 sm:px-8 py-3 text-base sm:text-lg rounded-xl"
+                >
+                  Sign In
                 </Button>
               </motion.div>
 
-              {/* Trust Indicators */}
+              {/* Trust Indicators - Mobile Optimized */}
               <motion.div
                 variants={fadeInUpVariants}
                 custom={3}
-                className="flex flex-wrap justify-center gap-4 sm:gap-6 items-center text-xs sm:text-sm text-gray-400 mb-12 px-4 sm:px-0"
+                className="flex flex-col sm:flex-row gap-4 justify-center items-center text-xs sm:text-sm text-gray-400"
               >
                 <span className="flex items-center gap-2">
                   <Shield className="w-4 h-4 text-[#88B04B]" />
                   256-bit SSL Encryption
                 </span>
+                <span className="hidden sm:flex items-center gap-2">•</span>
                 <span className="flex items-center gap-2">
                   <Star className="w-4 h-4 text-[#88B04B]" />
                   4.9/5 User Rating
                 </span>
+                <span className="hidden sm:flex items-center gap-2">•</span>
                 <span className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-[#88B04B]" />
                   SOC 2 Certified
                 </span>
               </motion.div>
             </motion.div>
-
-            {/* Stats Section */}
-            <motion.section
-              variants={fadeInUpVariants}
-              custom={4}
-              initial="hidden"
-              animate="visible"
-              className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8"
-            >
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-                {statsData.map((stat, index) => (
-                  <motion.div
-                    key={stat.label}
-                    variants={fadeInUpVariants}
-                    custom={index + 5}
-                    whileHover={{ scale: 1.02, y: -5 }}
-                    className="bg-white/5 rounded-lg p-4 sm:p-6 backdrop-blur-sm border border-white/10 transition-colors hover:border-[#88B04B]/30 hover:bg-white/10"
-                  >
-                    <motion.h3 
-                      className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#88B04B] mb-2"
-                      initial={{ opacity: 0, y: 20 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                    >
-                      {stat.value}
-                    </motion.h3>
-                    <motion.p 
-                      className="text-white font-medium mb-2"
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.2 }}
-                    >
-                      {stat.label}
-                    </motion.p>
-                    <motion.p 
-                      className="text-xs sm:text-sm text-gray-400"
-                      initial={{ opacity: 0 }}
-                      whileInView={{ opacity: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.3 }}
-                    >
-                      {stat.description}
-                    </motion.p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.section>
           </header>
 
+          {/* Stats Section - Mobile Optimized */}
+          <section className="py-12 md:py-20 px-4 sm:px-6 lg:px-8 relative scroll-section">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+              {statsData.map((stat, index) => (
+                <motion.div
+                  key={stat.label}
+                  variants={fadeInUpVariants}
+                  custom={index * 0.2}
+                  className="relative p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 text-center transform hover:scale-105 transition-transform duration-300"
+                >
+                  <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold text-[#88B04B] mb-2">
+                    {stat.value}
+                  </h3>
+                  <p className="text-white font-medium mb-2">{stat.label}</p>
+                  <p className="text-gray-400 text-sm">{stat.description}</p>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+
           {/* Features and other sections */}
-          <div className="relative space-y-16 sm:space-y-24 lg:space-y-32 pb-16 sm:pb-24 lg:pb-32">
+          <div className="relative space-y-12 sm:space-y-16 lg:space-y-24 pb-12 sm:pb-16 lg:pb-24">
             <Section 
               id="features-heading"
-              className="relative pt-16 sm:pt-24 lg:pt-32"
+              className="relative pt-12 sm:pt-16 lg:pt-24"
             >
               <Suspense fallback={<SectionLoader />}>
                 <Features />
@@ -487,7 +450,7 @@ function Landing() {
 
             <Section 
               id="visualization-heading"
-              className="relative pt-16 sm:pt-24 lg:pt-32"
+              className="relative pt-12 sm:pt-16 lg:pt-24"
             >
               <Suspense fallback={<SectionLoader />}>
                 <DebtManagementVisualization />
@@ -496,7 +459,7 @@ function Landing() {
 
             <Section
               id="pricing-heading"
-              className="relative pt-16 sm:pt-24 lg:pt-32"
+              className="relative pt-12 sm:pt-16 lg:pt-24"
             >
               <Suspense fallback={<SectionLoader />}>
                 <Pricing onGetStarted={handleGetStarted} />

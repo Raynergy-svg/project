@@ -77,8 +77,9 @@ function FeatureCard({ title, description, icon: Icon, sections, index }: Featur
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         whileInView={{ scale: 1, opacity: 1 }}
+        viewport={{ once: true }}
         transition={{ duration: 0.5, delay: index * 0.2 }}
-        className="relative bg-white/5 rounded-2xl p-6 md:p-8 border border-white/10 hover:border-[#88B04B]/30 transition-colors overflow-hidden"
+        className="relative bg-white/5 rounded-2xl p-5 sm:p-6 md:p-8 border border-white/10 hover:border-[#88B04B]/30 transition-colors overflow-hidden h-full"
       >
         <motion.div
           className="absolute inset-0 bg-gradient-to-br from-[#88B04B]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -86,27 +87,28 @@ function FeatureCard({ title, description, icon: Icon, sections, index }: Featur
         />
         
         <div className="relative z-10">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-[#88B04B]/20 flex items-center justify-center group-hover:bg-[#88B04B]/30 transition-colors">
+          <div className="flex flex-col sm:flex-row items-start gap-4 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-[#88B04B]/20 flex items-center justify-center group-hover:bg-[#88B04B]/30 transition-colors flex-shrink-0">
               <Icon className="w-6 h-6 text-[#88B04B]" />
             </div>
             <div>
               <h3 className="text-xl md:text-2xl font-semibold text-white mb-2">{title}</h3>
-              <p className="text-gray-400 leading-relaxed">{description}</p>
+              <p className="text-gray-400 leading-relaxed text-sm sm:text-base">{description}</p>
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {sections.map((section, i) => (
               <motion.div
                 key={section.title}
                 initial={{ opacity: 0, x: -20 }}
                 whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors"
+                className="bg-white/5 rounded-lg p-3 sm:p-4 hover:bg-white/10 transition-colors"
               >
-                <h4 className="text-white font-medium mb-2">{section.title}</h4>
-                <p className="text-sm text-gray-400">{section.content}</p>
+                <h4 className="text-white font-medium mb-1 sm:mb-2 text-sm sm:text-base">{section.title}</h4>
+                <p className="text-xs sm:text-sm text-gray-400">{section.content}</p>
               </motion.div>
             ))}
           </div>
@@ -118,22 +120,22 @@ function FeatureCard({ title, description, icon: Icon, sections, index }: Featur
 
 export default function Features() {
   return (
-    <div className="relative py-16 md:py-24">
+    <div className="relative py-12 md:py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        className="relative text-center mb-16"
+        className="relative text-center mb-12 md:mb-16 px-4"
       >
-        <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
           Powerful Features to Manage Your Debt
         </h2>
-        <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+        <p className="text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto">
           Take control of your financial future with our comprehensive suite of debt management tools
         </p>
       </motion.div>
 
-      <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+      <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8 px-4 sm:px-6">
         {FEATURES.map((feature, index) => (
           <FeatureCard key={feature.title} {...feature} index={index} />
         ))}

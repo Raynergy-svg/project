@@ -242,35 +242,35 @@ export default function SignUp() {
         </Link>
       </div>
 
-      <div className="max-w-xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+      <div className="max-w-xl mx-auto pt-16 sm:pt-20">
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
             Create Your Account
           </h1>
-          <p className="text-base text-gray-300 max-w-2xl mx-auto">
-            Set up your account to continue with the {formData.selectedTier === 'basic' ? 'Basic' : 'Pro'} plan
+          <p className="text-sm sm:text-base text-gray-300 max-w-2xl mx-auto px-4">
+            Set up your account to continue with the {formData.selectedTier === 'basic' ? '7-day free trial' : 'Pro'} plan
           </p>
         </div>
 
-        <div className="bg-white/5 p-6 rounded-xl border border-white/10">
+        <div className="bg-white/5 p-4 sm:p-6 rounded-xl border border-white/10">
           {errors.general && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg" role="alert">
-              <p className="text-red-400">{errors.general}</p>
+              <p className="text-red-400 text-sm">{errors.general}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-2">
+              <label htmlFor="name" className="block text-sm font-medium mb-1.5">
                 Full Name
               </label>
               <input
                 type="text"
                 id="name"
                 name="name"
-                className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
                   errors.name ? "border-red-500" : "border-white/10"
-                } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
+                } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="John Doe"
@@ -280,23 +280,23 @@ export default function SignUp() {
                 disabled={isSubmitting}
               />
               {errors.name && (
-                <p id="name-error" className="mt-2 text-red-400 text-sm" role="alert">
+                <p id="name-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
                   {errors.name}
                 </p>
               )}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
+              <label htmlFor="email" className="block text-sm font-medium mb-1.5">
                 Email Address
               </label>
               <input
                 type="email"
                 id="email"
                 name="email"
-                className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
                   errors.email ? "border-red-500" : "border-white/10"
-                } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
+                } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="you@example.com"
@@ -307,83 +307,85 @@ export default function SignUp() {
                 required
               />
               {errors.email && (
-                <p id="email-error" className="mt-2 text-red-400 text-sm" role="alert">
+                <p id="email-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
                   {errors.email}
                 </p>
               )}
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  name="password"
-                  className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
-                    errors.password ? "border-red-500" : "border-white/10"
-                  } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  autoComplete="new-password"
-                  aria-invalid={Boolean(errors.password)}
-                  aria-describedby={errors.password ? "password-error" : undefined}
-                  disabled={isSubmitting}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                >
-                  {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
-                </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <label htmlFor="password" className="block text-sm font-medium mb-1.5">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
+                      errors.password ? "border-red-500" : "border-white/10"
+                    } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    autoComplete="new-password"
+                    aria-invalid={Boolean(errors.password)}
+                    aria-describedby={errors.password ? "password-error" : undefined}
+                    disabled={isSubmitting}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
+                  >
+                    {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p id="password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
+                    {errors.password}
+                  </p>
+                )}
               </div>
-              {errors.password && (
-                <p id="password-error" className="mt-2 text-red-400 text-sm" role="alert">
-                  {errors.password}
-                </p>
-              )}
+
+              <div className="flex-1">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1.5">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
+                      errors.confirmPassword ? "border-red-500" : "border-white/10"
+                    } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    autoComplete="new-password"
+                    aria-invalid={Boolean(errors.confirmPassword)}
+                    aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+                    disabled={isSubmitting}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
+                  >
+                    {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p id="confirm-password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
+                    {errors.confirmPassword}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
-                    errors.confirmPassword ? "border-red-500" : "border-white/10"
-                  } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
-                  value={formData.confirmPassword}
-                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  autoComplete="new-password"
-                  aria-invalid={Boolean(errors.confirmPassword)}
-                  aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
-                  disabled={isSubmitting}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                >
-                  {showConfirmPassword ? <Eye size={20} /> : <EyeOff size={20} />}
-                </button>
-              </div>
-              {errors.confirmPassword && (
-                <p id="confirm-password-error" className="mt-2 text-red-400 text-sm" role="alert">
-                  {errors.confirmPassword}
-                </p>
-              )}
-            </div>
-
-            <div className="flex items-start gap-2">
+            <div className="flex items-start gap-2 mt-2">
               <input
                 type="checkbox"
                 id="acceptTerms"
@@ -392,30 +394,30 @@ export default function SignUp() {
                 onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
                 className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
               />
-              <label htmlFor="acceptTerms" className="text-sm text-gray-300">
+              <label htmlFor="acceptTerms" className="text-xs sm:text-sm text-gray-300">
                 I accept the <Link to="/terms" className="text-[#88B04B] hover:text-[#7a9d43]">Terms of Service</Link> and{' '}
                 <Link to="/privacy" className="text-[#88B04B] hover:text-[#7a9d43]">Privacy Policy</Link>
               </label>
             </div>
             {errors.acceptTerms && (
-              <p className="text-red-400 text-sm" role="alert">{errors.acceptTerms}</p>
+              <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">{errors.acceptTerms}</p>
             )}
 
             <div className="flex gap-4 mt-6">
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-1 bg-[#88B04B] hover:bg-[#7a9d43] text-white py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-2.5 sm:py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 size={18} className="animate-spin" />
+                    <Loader2 size={16} className="animate-spin" />
                     Processing...
                   </>
                 ) : (
                   <>
-                    Continue
-                    <ArrowRight size={18} />
+                    Start Free Trial
+                    <ArrowRight size={16} />
                   </>
                 )}
               </button>
@@ -423,11 +425,11 @@ export default function SignUp() {
           </form>
         </div>
 
-        <div className="mt-8 pt-8 border-t border-white/10">
+        <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-white/10">
           <div className="flex items-start gap-3 text-gray-300">
             <Shield className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1" />
             <div className="space-y-2">
-              <span className="text-sm block">Your information is secured with:</span>
+              <span className="text-xs sm:text-sm block">Your information is secured with:</span>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="flex items-center gap-2">
                   <Lock className="w-4 h-4 text-[#88B04B]" />

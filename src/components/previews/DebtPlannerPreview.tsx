@@ -8,7 +8,7 @@ import {
   Target, 
   Lock,
   X,
-  Bank,
+  Building2,
   ChevronRight,
   Calendar,
   PieChart,
@@ -54,7 +54,7 @@ export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerP
         {/* Progress Steps */}
         <div className="flex justify-between items-center mb-8 relative">
           {[
-            { id: 'connect', icon: Bank, label: 'Connect Banks' },
+            { id: 'connect', icon: Building2, label: 'Connect Banks' },
             { id: 'analysis', icon: Brain, label: 'AI Analysis' },
             { id: 'plan', icon: Target, label: 'Custom Plan' }
           ].map((s, index) => (
@@ -97,9 +97,9 @@ export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerP
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="bg-white/5 p-6 rounded-lg border border-white/10">
                     <div className="flex items-center gap-3 mb-4">
-                      <Bank className="w-6 h-6 text-[#88B04B]" />
+                      <Building2 className="w-6 h-6 text-[#88B04B]" />
                       <h3 className="text-lg font-semibold text-white">Connect Your Accounts</h3>
-              </div>
+                    </div>
                     <p className="text-gray-400 mb-6">
                       Securely connect your bank accounts for real-time tracking and personalized insights
                     </p>

@@ -275,13 +275,13 @@ export default function Landing() {
       <BackgroundElements />
       <Navbar onDebtPlannerClick={handleDebtPlannerClick} />
 
-      {/* Hero Section */}
+          {/* Hero Section */}
       <Section className="pt-32 pb-20">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={fadeInUpVariants}
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={fadeInUpVariants}
             className="text-center max-w-4xl mx-auto relative"
           >
             {/* Decorative elements */}
@@ -297,35 +297,6 @@ export default function Landing() {
               transition={{ duration: 1, delay: 0.2 }}
               className="absolute -bottom-20 -right-20 w-40 h-40 bg-[#88B04B] rounded-full blur-[100px] pointer-events-none"
             />
-
-            {/* Breaking chains animation */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
-              className="flex justify-center mb-8"
-            >
-              <div className="relative w-24 h-24 mb-4">
-                <motion.div
-                  initial={{ rotate: 0 }}
-                  animate={{ rotate: [-10, 10, -10] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] rounded-full opacity-20"
-                />
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.8 }}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" className="text-[#88B04B]">
-                    <path d="M4 13a4 4 0 014-4h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M12 12l3-3m0 0l3-3m-3 3l-3-3m3 3l3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    <path d="M20 13a4 4 0 01-4 4h-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </motion.div>
-              </div>
-            </motion.div>
 
             <h1 className="text-5xl md:text-7xl font-bold mb-6">
               <motion.span
@@ -361,23 +332,16 @@ export default function Landing() {
               Transform your financial burden into a clear path to freedom with AI-powered guidance
             </motion.p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
+                  <Button
                 onClick={() => navigate('/signup')}
                 className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white px-8 py-3 rounded-lg text-lg group transition-transform hover:scale-105"
-              >
-                Start Free Trial
-              </Button>
-              <Button
-                onClick={handleDebtPlannerClick}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10 px-8 py-3 rounded-lg text-lg group"
-              >
-                Try Demo
-              </Button>
+                  >
+                      Start My Journey
+                  </Button>
             </div>
 
             {/* Enhanced stats with animations */}
-            <motion.div 
+              <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.9 }}
@@ -439,8 +403,8 @@ export default function Landing() {
                 </div>
               </div>
             </motion.div>
-            <motion.div
-              variants={fadeInUpVariants}
+                  <motion.div
+                    variants={fadeInUpVariants}
               custom={1}
               className="bg-white/5 p-6 rounded-xl border border-white/10"
             >
@@ -489,17 +453,17 @@ export default function Landing() {
         </div>
       </Section>
 
-      <Suspense fallback={<SectionLoader />}>
-        <Features />
-      </Suspense>
+              <Suspense fallback={<SectionLoader />}>
+                <Features />
+              </Suspense>
 
-      <Suspense fallback={<SectionLoader />}>
-        <DebtManagementVisualization />
-      </Suspense>
+              <Suspense fallback={<SectionLoader />}>
+                <DebtManagementVisualization />
+              </Suspense>
 
-      <Suspense fallback={<SectionLoader />}>
-        <Pricing onGetStarted={handleGetStarted} />
-      </Suspense>
+              <Suspense fallback={<SectionLoader />}>
+                <Pricing onGetStarted={handleGetStarted} />
+              </Suspense>
 
       <Suspense fallback={<SectionLoader />}>
         <Footer />

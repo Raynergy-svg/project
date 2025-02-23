@@ -31,7 +31,7 @@ interface DebtPlannerPreviewProps {
 export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerPreviewProps) {
   const [step, setStep] = useState<'connect' | 'analysis' | 'plan'>('connect');
 
-  return (
+    return (
     <div className="w-full max-w-5xl mx-auto bg-[#1A1A1A] rounded-xl shadow-2xl overflow-hidden">
       <button
         onClick={onClose}
@@ -85,7 +85,7 @@ export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerP
 
         {/* Content */}
         <AnimatePresence mode="wait">
-          <motion.div
+          <motion.div 
             key={step}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -99,7 +99,7 @@ export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerP
                     <div className="flex items-center gap-3 mb-4">
                       <Bank className="w-6 h-6 text-[#88B04B]" />
                       <h3 className="text-lg font-semibold text-white">Connect Your Accounts</h3>
-                    </div>
+              </div>
                     <p className="text-gray-400 mb-6">
                       Securely connect your bank accounts for real-time tracking and personalized insights
                     </p>
@@ -173,8 +173,8 @@ export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerP
                         </li>
                       </ul>
                     </div>
-                  </div>
-                </div>
+              </div>
+            </div>
               </div>
             )}
 
@@ -324,7 +324,7 @@ export default function DebtPlannerPreview({ onClose, onContinue }: DebtPlannerP
               </div>
             )}
           </motion.div>
-        </AnimatePresence>
+          </AnimatePresence>
 
         {/* Actions */}
         <div className="flex justify-between items-center mt-8">

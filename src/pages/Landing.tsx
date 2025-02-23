@@ -205,6 +205,10 @@ export default function Landing() {
     navigate('/signin');
   }, [navigate]);
 
+  const handleSignUp = useCallback(() => {
+    navigate('/signup');
+  }, [navigate]);
+
   const handleDashboardClick = useCallback(() => {
     navigate('/dashboard');
   }, [navigate]);
@@ -218,6 +222,7 @@ export default function Landing() {
       <BackgroundElements />
       <Navbar 
         onSignIn={handleSignIn}
+        onSignUp={handleSignUp}
         isAuthenticated={isAuthenticated}
         onDashboardClick={handleDashboardClick}
       />

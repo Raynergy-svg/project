@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 interface NavbarProps {
   onSignIn: () => void;
+  onSignUp: () => void;
   isAuthenticated: boolean;
   userName?: string;
   onDashboardClick: () => void;
@@ -31,6 +32,7 @@ interface NavItem {
 
 export default function Navbar({
   onSignIn,
+  onSignUp,
   isAuthenticated,
   userName,
   onDashboardClick
@@ -174,13 +176,21 @@ export default function Navbar({
                 Dashboard
               </Button>
             ) : (
-              <Button
-                onClick={onSignIn}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
-              >
-                Sign In
-              </Button>
+              <>
+                <Button
+                  onClick={onSignIn}
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  onClick={onSignUp}
+                  className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                >
+                  Sign Up
+                </Button>
+              </>
             )}
           </div>
 
@@ -239,16 +249,27 @@ export default function Navbar({
                   Dashboard
                 </Button>
               ) : (
-                <Button
-                  onClick={() => {
-                    onSignIn();
-                    setIsMenuOpen(false);
-                  }}
-                  variant="outline"
-                  className="w-full border-white/20 text-white hover:bg-white/10"
-                >
-                  Sign In
-                </Button>
+                <>
+                  <Button
+                    onClick={() => {
+                      onSignIn();
+                      setIsMenuOpen(false);
+                    }}
+                    variant="outline"
+                    className="w-full border-white/20 text-white hover:bg-white/10"
+                  >
+                    Sign In
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      onSignUp();
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                  >
+                    Sign Up
+                  </Button>
+                </>
               )}
             </motion.div>
           </>

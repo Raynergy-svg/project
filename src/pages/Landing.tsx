@@ -365,25 +365,40 @@ export default function Landing() {
               transition={{ delay: 0.9 }}
               className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto"
             >
-              <div className="text-center relative">
-                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-lg transform -rotate-3"></div>
-                <div className="relative bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm">
-                  <h3 className="text-3xl font-bold text-[#88B04B]">50k+</h3>
-                  <p className="text-gray-400">Active Users</p>
+              <div className="text-center relative group">
+                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform -rotate-3"></div>
+                <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="flex items-baseline">
+                      <span className="text-4xl font-bold text-white">50k</span>
+                      <span className="text-4xl font-bold text-[#88B04B]">+</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-400 mt-2">Active Users</p>
                 </div>
               </div>
-              <div className="text-center relative">
-                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-lg transform rotate-3"></div>
-                <div className="relative bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm">
-                  <h3 className="text-3xl font-bold text-[#88B04B]">$2M+</h3>
-                  <p className="text-gray-400">Debt Eliminated</p>
+              <div className="text-center relative group">
+                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform rotate-3"></div>
+                <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="flex items-baseline">
+                      <span className="text-4xl font-bold text-white">$2M</span>
+                      <span className="text-4xl font-bold text-[#88B04B]">+</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-400 mt-2">Debt Eliminated</p>
                 </div>
               </div>
-              <div className="text-center relative">
-                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-lg transform -rotate-2"></div>
-                <div className="relative bg-white/5 p-6 rounded-lg border border-white/10 backdrop-blur-sm">
-                  <h3 className="text-3xl font-bold text-[#88B04B]">4.9/5</h3>
-                  <p className="text-gray-400">User Rating</p>
+              <div className="text-center relative group">
+                <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform -rotate-2"></div>
+                <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="flex items-baseline">
+                      <span className="text-4xl font-bold text-white">4.9</span>
+                      <span className="text-4xl font-bold text-[#88B04B]">/5</span>
+                    </div>
+                  </div>
+                  <p className="text-gray-400 mt-2">User Rating</p>
                 </div>
               </div>
             </motion.div>

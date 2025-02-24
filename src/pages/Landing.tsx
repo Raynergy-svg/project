@@ -369,11 +369,11 @@ export default function Landing() {
                 <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform -rotate-3"></div>
                 <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
                   <div className="flex flex-col items-center justify-center">
-                    <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold text-white tracking-tight">50k</span>
-                      <span className="text-4xl font-bold text-[#88B04B] ml-0.5">+</span>
-                    </div>
-                    <p className="text-gray-400 mt-2 text-sm">Active Users</p>
+                    <h3 className="inline-flex items-center text-4xl font-bold">
+                      <span className="text-white">50k</span>
+                      <span className="text-[#88B04B] ml-0.5 translate-y-0">+</span>
+                    </h3>
+                    <span className="text-gray-400 mt-2 text-sm font-medium">Active Users</span>
                   </div>
                 </div>
               </div>
@@ -381,11 +381,11 @@ export default function Landing() {
                 <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform rotate-3"></div>
                 <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
                   <div className="flex flex-col items-center justify-center">
-                    <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold text-white tracking-tight">$2M</span>
-                      <span className="text-4xl font-bold text-[#88B04B] ml-0.5">+</span>
-                    </div>
-                    <p className="text-gray-400 mt-2 text-sm">Debt Eliminated</p>
+                    <h3 className="inline-flex items-center text-4xl font-bold">
+                      <span className="text-white">$2M</span>
+                      <span className="text-[#88B04B] ml-0.5 translate-y-0">+</span>
+                    </h3>
+                    <span className="text-gray-400 mt-2 text-sm font-medium">Debt Eliminated</span>
                   </div>
                 </div>
               </div>
@@ -393,11 +393,11 @@ export default function Landing() {
                 <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform -rotate-2"></div>
                 <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
                   <div className="flex flex-col items-center justify-center">
-                    <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold text-white tracking-tight">4.9</span>
-                      <span className="text-4xl font-bold text-[#88B04B] ml-0.5">/5</span>
-                    </div>
-                    <p className="text-gray-400 mt-2 text-sm">User Rating</p>
+                    <h3 className="inline-flex items-center text-4xl font-bold">
+                      <span className="text-white">4.9</span>
+                      <span className="text-[#88B04B] ml-0.5 translate-y-0">/5</span>
+                    </h3>
+                    <span className="text-gray-400 mt-2 text-sm font-medium">User Rating</span>
                   </div>
                 </div>
               </div>

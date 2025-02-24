@@ -256,7 +256,7 @@ export default function DebtManagementVisualization() {
                 transition={{ duration: 0.2 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-[#88B04B]/5 via-[#88B04B]/2 to-transparent" />
-                <div className="absolute inset-0 bg-[url('/patterns/grid.svg')] opacity-5" />
+                <div className="absolute inset-0 bg-[url('/patterns/grid.svg')] bg-[length:32px_32px] bg-repeat opacity-5 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
                 
                 <div className="relative">
                   <h3 className="text-2xl font-semibold text-white mb-8 flex items-center gap-3">
@@ -400,7 +400,7 @@ export default function DebtManagementVisualization() {
               whileHover={{ y: -5 }}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-[#88B04B]/5 via-[#88B04B]/2 to-transparent" />
-              <div className="absolute inset-0 bg-[url('/patterns/grid.svg')] opacity-5" />
+              <div className="absolute inset-0 bg-[url('/patterns/grid.svg')] bg-[length:32px_32px] bg-repeat opacity-5 [mask-image:linear-gradient(to_bottom,white,transparent)]" />
               
               <div className="relative">
                 <div className="flex items-center gap-3 mb-8">

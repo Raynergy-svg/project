@@ -154,11 +154,11 @@ export default function Security() {
               <p className="text-gray-300 mb-4">
                 If you believe you've found a security vulnerability, please report it to our security team:
               </p>
-              <a 
-                href="mailto:security@smartdebtflow.com"
-                className="text-[#88B04B] hover:underline"
+              <a
+                href="mailto:support@smartdebtflow.com"
+                className="text-[#88B04B] hover:text-[#7a9d43] transition-colors"
               >
-                security@smartdebtflow.com
+                support@smartdebtflow.com
               </a>
             </div>
           </motion.section>

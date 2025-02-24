@@ -101,20 +101,30 @@ export default function JobApplication() {
         }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to submit application');
+      let errorMessage;
+      try {
+        const data = await response.json();
+        if (!response.ok) {
+          errorMessage = data.error || 'Failed to submit application';
+          throw new Error(errorMessage);
+        }
+        
+        toast({
+          title: "Application submitted",
+          description: "We'll review your application and get back to you soon!",
+          variant: "default"
+        });
+
+        navigate('/careers');
+      } catch (parseError) {
+        // If we can't parse the response as JSON, use the response text
+        if (parseError instanceof SyntaxError) {
+          const textResponse = await response.text();
+          errorMessage = textResponse || 'Failed to submit application';
+          throw new Error(errorMessage);
+        }
+        throw parseError;
       }
-
-      const data = await response.json();
-
-      toast({
-        title: "Application submitted",
-        description: "We'll review your application and get back to you soon!",
-        variant: "default"
-      });
-
-      navigate('/careers');
     } catch (error) {
       console.error('Error submitting application:', error);
       toast({

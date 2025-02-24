@@ -155,13 +155,20 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error processing application:', error);
     
+    // Ensure error message is properly formatted
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process application';
+    
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to process application. Please try again later.' 
+        error: errorMessage,
+        details: error instanceof Error ? error.stack : undefined
       }),
       { 
         status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json'
+        } 
       }
     );
   }

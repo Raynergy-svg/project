@@ -6,6 +6,21 @@ import fs from 'fs';
 // Get Supabase URL from environment variable
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://gnwdahoiauduyncppbdb.supabase.co';
 
+// Helper function to safely load SSL certificates
+const loadSSLCertificates = () => {
+  try {
+    return {
+      key: fs.readFileSync('certs/key.pem'),
+      cert: fs.readFileSync('certs/cert.pem'),
+    };
+  } catch (error) {
+    console.warn('SSL certificates not found, falling back to HTTP');
+    return false;
+  }
+};
+
+const sslCertificates = loadSSLCertificates();
+
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
@@ -17,11 +32,10 @@ export default defineConfig({
     },
   },
   server: {
-    https: {
-      key: fs.readFileSync('certs/key.pem'),
-      cert: fs.readFileSync('certs/cert.pem'),
-    },
-    host: 'localhost',
+    ...(sslCertificates && {
+      https: sslCertificates
+    }),
+    host: true,
     port: 5173,
     strictPort: true,
     proxy: {
@@ -51,13 +65,15 @@ export default defineConfig({
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
+    watch: {
+      usePolling: true,
+    },
   },
   preview: {
-    https: {
-      key: fs.readFileSync('certs/key.pem'),
-      cert: fs.readFileSync('certs/cert.pem'),
-    },
-    host: 'localhost',
+    ...(sslCertificates && {
+      https: sslCertificates
+    }),
+    host: true,
     port: 5173,
     strictPort: true,
   },

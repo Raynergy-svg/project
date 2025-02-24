@@ -369,36 +369,36 @@ export default function Landing() {
                 <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform -rotate-3"></div>
                 <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
                   <div className="flex flex-col items-center justify-center">
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-bold text-white">50k</span>
-                      <span className="text-4xl font-bold text-[#88B04B]">+</span>
+                    <div className="flex items-baseline justify-center">
+                      <span className="text-4xl font-bold text-white tracking-tight">50k</span>
+                      <span className="text-4xl font-bold text-[#88B04B] ml-0.5">+</span>
                     </div>
+                    <p className="text-gray-400 mt-2 text-sm">Active Users</p>
                   </div>
-                  <p className="text-gray-400 mt-2">Active Users</p>
                 </div>
               </div>
               <div className="text-center relative group">
                 <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform rotate-3"></div>
                 <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
                   <div className="flex flex-col items-center justify-center">
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-bold text-white">$2M</span>
-                      <span className="text-4xl font-bold text-[#88B04B]">+</span>
+                    <div className="flex items-baseline justify-center">
+                      <span className="text-4xl font-bold text-white tracking-tight">$2M</span>
+                      <span className="text-4xl font-bold text-[#88B04B] ml-0.5">+</span>
                     </div>
+                    <p className="text-gray-400 mt-2 text-sm">Debt Eliminated</p>
                   </div>
-                  <p className="text-gray-400 mt-2">Debt Eliminated</p>
                 </div>
               </div>
               <div className="text-center relative group">
                 <div className="absolute inset-0 bg-[#88B04B]/5 rounded-xl transform -rotate-2"></div>
                 <div className="relative bg-white/5 p-6 rounded-xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:border-[#88B04B]/30">
                   <div className="flex flex-col items-center justify-center">
-                    <div className="flex items-baseline">
-                      <span className="text-4xl font-bold text-white">4.9</span>
-                      <span className="text-4xl font-bold text-[#88B04B]">/5</span>
+                    <div className="flex items-baseline justify-center">
+                      <span className="text-4xl font-bold text-white tracking-tight">4.9</span>
+                      <span className="text-4xl font-bold text-[#88B04B] ml-0.5">/5</span>
                     </div>
+                    <p className="text-gray-400 mt-2 text-sm">User Rating</p>
                   </div>
-                  <p className="text-gray-400 mt-2">User Rating</p>
                 </div>
               </div>
             </motion.div>

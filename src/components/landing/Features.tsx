@@ -63,7 +63,18 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
         <img 
           src={image} 
           alt={title}
+          width={800}
+          height={400}
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          onLoad={(e) => {
+            const img = e.target as HTMLImageElement;
+            if (img.complete) {
+              img.style.opacity = '1';
+            }
+          }}
+          style={{ opacity: 0, transition: 'opacity 0.3s' }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
       </div>

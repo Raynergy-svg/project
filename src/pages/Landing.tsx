@@ -8,8 +8,52 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeviceContext } from "@/hooks/useDeviceContext";
 import Navbar from "@/components/layout/Navbar";
-import DebtManagementVisualization from "@/components/landing/DebtManagementVisualization";
-import Features from "@/components/landing/Features";
+
+// Optimize imports with dynamic imports for non-critical components
+const DebtManagementVisualization = lazy(() => 
+  import("@/components/landing/DebtManagementVisualization")
+    .then(module => ({
+      default: module.default
+    }))
+    .catch(error => {
+      console.error("Error loading DebtManagementVisualization:", error);
+      return {
+        default: () => null
+      };
+    })
+);
+
+const Features = lazy(() => 
+  import("@/components/landing/Features")
+    .then(module => ({
+      default: module.default
+    }))
+    .catch(error => {
+      console.error("Error loading Features:", error);
+      return {
+        default: () => null
+      };
+    })
+);
+
+// Preload critical assets
+const preloadAssets = () => {
+  // Preload critical images
+  const imagesToPreload = [
+    "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?auto=format&fit=crop&q=80&w=200",
+    // Add other critical images
+  ];
+
+  imagesToPreload.forEach(src => {
+    const img = new Image();
+    img.src = src;
+  });
+};
+
+// Call preload function
+if (typeof window !== 'undefined') {
+  preloadAssets();
+}
 
 // Optimized lazy loading with prefetch and error handling
 const Footer = lazy(() => {
@@ -217,9 +261,17 @@ export default function Landing() {
     navigate(`/signup?plan=${planId}`);
   }, [navigate]);
 
+  const prefersReducedMotion = useReducedMotion();
+  const { performanceLevel } = useDeviceContext();
+
+  // Optimize background elements rendering
+  const shouldRenderBackgrounds = useMemo(() => {
+    return !prefersReducedMotion && performanceLevel !== 'low';
+  }, [prefersReducedMotion, performanceLevel]);
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white overflow-x-hidden">
-      <BackgroundElements />
+      {shouldRenderBackgrounds && <BackgroundElements />}
       <Navbar 
         onSignIn={handleSignIn}
         onSignUp={handleSignUp}
@@ -227,16 +279,20 @@ export default function Landing() {
         onDashboardClick={handleDashboardClick}
       />
 
-      {/* Hero Section */}
+      {/* Hero Section - Optimized for quick paint */}
       <Section className="pt-32 pb-20">
         <div className="container mx-auto px-4">
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={fadeInUpVariants}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={fadeInUpVariants}
             className="text-center max-w-4xl mx-auto relative"
-            >
-              <motion.div
+            style={{ 
+              willChange: 'transform, opacity',
+              contain: 'layout style paint'
+            }}
+          >
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1 }}
@@ -269,8 +325,8 @@ export default function Landing() {
                   </motion.span>
                 </h1>
               </div>
-                </motion.div>
-                
+            </motion.div>
+            
             {/* Decorative elements */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -294,12 +350,12 @@ export default function Landing() {
               Transform your financial burden into a clear path to freedom with AI-powered guidance
             </motion.p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button
+              <Button
                 onClick={() => navigate('/signup')}
                 className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white px-8 py-3 rounded-lg text-lg group transition-transform hover:scale-105"
-                >
+              >
                 Start Your Journey
-                </Button>
+              </Button>
             </div>
 
             {/* Enhanced stats with animations */}
@@ -331,15 +387,20 @@ export default function Landing() {
                 </div>
               </div>
             </motion.div>
-              </motion.div>
+          </motion.div>
         </div>
       </Section>
 
-      <Features id="features" />
+      {/* Lazy load non-critical sections */}
+      <Suspense fallback={<SectionLoader />}>
+        <Features id="features" />
+      </Suspense>
 
-      <div className="relative scroll-section" id="debt-management">
-        <DebtManagementVisualization />
-      </div>
+      <Suspense fallback={<SectionLoader />}>
+        <div className="relative scroll-section" id="debt-management">
+          <DebtManagementVisualization />
+        </div>
+      </Suspense>
 
       <Suspense fallback={<SectionLoader />}>
         <div id="pricing">
@@ -357,86 +418,86 @@ export default function Landing() {
             Join thousands of people who have transformed their financial future with Smart Debt Flow
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              <motion.div
-                variants={fadeInUpVariants}
-                custom={0}
-                className="bg-white/5 p-6 rounded-xl border border-white/10"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <img
-                    src="https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?auto=format&fit=crop&q=80&w=200"
-                    alt="Michael R."
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <div>
-                    <h4 className="font-medium text-white">Michael R.</h4>
-                    <p className="text-sm text-gray-400">Student Loan Debt</p>
-                  </div>
+            <motion.div
+              variants={fadeInUpVariants}
+              custom={0}
+              className="bg-white/5 p-6 rounded-xl border border-white/10"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <img
+                  src="https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?auto=format&fit=crop&q=80&w=200"
+                  alt="Michael R."
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+                <div>
+                  <h4 className="font-medium text-white">Michael R.</h4>
+                  <p className="text-sm text-gray-400">Student Loan Debt</p>
                 </div>
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-[#88B04B] fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-300 mb-4">
-                  "I was drowning in $45K of student loans. The app helped me create a realistic payment plan that worked with my budget. After 14 months, I've paid off $12K and actually have savings for the first time."
-                </p>
-                <p className="text-sm text-[#88B04B]">$12,000 paid off in 14 months</p>
-              </motion.div>
+              </div>
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 text-[#88B04B] fill-current" />
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                "I was drowning in $45K of student loans. The app helped me create a realistic payment plan that worked with my budget. After 14 months, I've paid off $12K and actually have savings for the first time."
+              </p>
+              <p className="text-sm text-[#88B04B]">$12,000 paid off in 14 months</p>
+            </motion.div>
 
-              <motion.div
-                variants={fadeInUpVariants}
-                custom={1}
-                className="bg-white/5 p-6 rounded-xl border border-white/10"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <img
-                    src="https://images.unsplash.com/photo-1598550874175-4d0ef436c909?auto=format&fit=crop&q=80&w=200"
-                    alt="Emily K."
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <div>
-                    <h4 className="font-medium text-white">Emily K.</h4>
-                    <p className="text-sm text-gray-400">Credit Card Debt</p>
-                  </div>
+            <motion.div
+              variants={fadeInUpVariants}
+              custom={1}
+              className="bg-white/5 p-6 rounded-xl border border-white/10"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <img
+                  src="https://images.unsplash.com/photo-1598550874175-4d0ef436c909?auto=format&fit=crop&q=80&w=200"
+                  alt="Emily K."
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+                <div>
+                  <h4 className="font-medium text-white">Emily K.</h4>
+                  <p className="text-sm text-gray-400">Credit Card Debt</p>
                 </div>
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-[#88B04B] fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-300 mb-4">
-                  "The debt avalanche strategy suggested by the AI saved me over $2,300 in interest. I was skeptical at first, but seeing my credit card balances actually going down each month is incredible."
-                </p>
-                <p className="text-sm text-[#88B04B]">Saved $2,300+ in interest charges</p>
-              </motion.div>
+              </div>
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 text-[#88B04B] fill-current" />
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                "The debt avalanche strategy suggested by the AI saved me over $2,300 in interest. I was skeptical at first, but seeing my credit card balances actually going down each month is incredible."
+              </p>
+              <p className="text-sm text-[#88B04B]">Saved $2,300+ in interest charges</p>
+            </motion.div>
 
-              <motion.div
-                variants={fadeInUpVariants}
-                custom={2}
-                className="bg-white/5 p-6 rounded-xl border border-white/10"
-              >
-                <div className="flex items-center gap-4 mb-6">
-                  <img
-                    src="https://images.unsplash.com/photo-1618077360395-f3068be8e001?auto=format&fit=crop&q=80&w=200"
-                    alt="David & Maria L."
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <div>
-                    <h4 className="font-medium text-white">David & Maria L.</h4>
-                    <p className="text-sm text-gray-400">Multiple Debts</p>
-                  </div>
+            <motion.div
+              variants={fadeInUpVariants}
+              custom={2}
+              className="bg-white/5 p-6 rounded-xl border border-white/10"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <img
+                  src="https://images.unsplash.com/photo-1618077360395-f3068be8e001?auto=format&fit=crop&q=80&w=200"
+                  alt="David & Maria L."
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+                <div>
+                  <h4 className="font-medium text-white">David & Maria L.</h4>
+                  <p className="text-sm text-gray-400">Multiple Debts</p>
                 </div>
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-[#88B04B] fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-300 mb-4">
-                  "Managing multiple debts was overwhelming. The app's debt consolidation analysis showed us how to save $436/month in payments. We're now on track to be debt-free in 3 years instead of 7."
-                </p>
-                <p className="text-sm text-[#88B04B]">Reduced monthly payments by $436</p>
-              </motion.div>
+              </div>
+              <div className="flex items-center gap-1 mb-4">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 text-[#88B04B] fill-current" />
+                ))}
+              </div>
+              <p className="text-gray-300 mb-4">
+                "Managing multiple debts was overwhelming. The app's debt consolidation analysis showed us how to save $436/month in payments. We're now on track to be debt-free in 3 years instead of 7."
+              </p>
+              <p className="text-sm text-[#88B04B]">Reduced monthly payments by $436</p>
+            </motion.div>
           </div>
         </div>
       </Section>

@@ -29,6 +29,7 @@ const Docs = lazy(() => import("@/pages/Docs"));
 const Api = lazy(() => import("@/pages/Api"));
 const Status = lazy(() => import("@/pages/Status"));
 const Careers = lazy(() => import("@/pages/Careers"));
+const JobApplication = lazy(() => import("@/pages/JobApplication"));
 const Compliance = lazy(() => import("@/pages/Compliance"));
 const SignUp = lazy(() => 
   import("@/pages/SignUp").catch(error => {
@@ -54,6 +55,7 @@ function AppRoutes() {
       <Route path="/api" element={<Api />} />
       <Route path="/status" element={<Status />} />
       <Route path="/careers" element={<Careers />} />
+      <Route path="/apply" element={<JobApplication />} />
       <Route path="/compliance" element={<Compliance />} />
       <Route
         path="/signup"

@@ -1,8 +1,15 @@
 import { motion } from 'framer-motion';
 import { Briefcase, Heart, Users, Zap, GraduationCap, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export default function Careers() {
+  const navigate = useNavigate();
+
+  const handleApply = (position: string, department: string) => {
+    navigate(`/apply?position=${encodeURIComponent(position)}&department=${encodeURIComponent(department)}`);
+  };
+
   const positions = [
     {
       title: "Senior Full Stack Engineer",
@@ -17,8 +24,8 @@ export default function Careers() {
       type: "Full-time",
     },
     {
-      title: "Product Manager",
-      department: "Product",
+      title: "HR Manager",
+      department: "Human Resources",
       location: "Remote (US)",
       type: "Full-time",
     },
@@ -130,7 +137,8 @@ export default function Careers() {
                     </div>
                   </div>
                   <Button
-                    className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white"
+                    onClick={() => handleApply(position.title, position.department)}
+                    className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white transition-colors"
                   >
                     Apply Now
                   </Button>

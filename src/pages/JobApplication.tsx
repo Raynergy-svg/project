@@ -101,6 +101,9 @@ export default function JobApplication() {
         }),
       });
 
+      // Clone the response before reading it
+      const responseClone = response.clone();
+      
       let errorMessage;
       try {
         const data = await response.json();
@@ -117,9 +120,9 @@ export default function JobApplication() {
 
         navigate('/careers');
       } catch (parseError) {
-        // If we can't parse the response as JSON, use the response text
+        // If we can't parse the response as JSON, use the response text from the clone
         if (parseError instanceof SyntaxError) {
-          const textResponse = await response.text();
+          const textResponse = await responseClone.text();
           errorMessage = textResponse || 'Failed to submit application';
           throw new Error(errorMessage);
         }

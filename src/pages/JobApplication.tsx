@@ -75,9 +75,38 @@ export default function JobApplication() {
     setIsSubmitting(true);
 
     try {
-      // Here you would typically send the form data to your backend
-      // For now, we'll simulate an API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Convert resume to base64
+      let resumeFile = '';
+      if (formData.resume) {
+        const reader = new FileReader();
+        resumeFile = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(reader.error);
+          reader.readAsDataURL(formData.resume);
+        });
+      }
+
+      // Send application to API
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/job-application`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          ...formData,
+          position,
+          department,
+          resumeFile,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit application');
+      }
+
+      const data = await response.json();
 
       toast({
         title: "Application submitted",
@@ -87,9 +116,10 @@ export default function JobApplication() {
 
       navigate('/careers');
     } catch (error) {
+      console.error('Error submitting application:', error);
       toast({
         title: "Error",
-        description: "Failed to submit application. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to submit application. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -225,17 +255,19 @@ export default function JobApplication() {
               <Button
                 type="button"
                 onClick={() => navigate('/careers')}
-                className="flex-1 bg-white/10 hover:bg-white/20 text-white transition-colors"
+                variant="outline"
+                className="flex-1"
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                className="flex-1"
                 disabled={isSubmitting}
+                isLoading={isSubmitting}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                Submit Application
               </Button>
             </div>
           </form>

@@ -13,25 +13,24 @@ import Navbar from "@/components/layout/Navbar";
 const DebtManagementVisualization = lazy(() => 
   import("@/components/landing/DebtManagementVisualization")
     .then(module => ({
-      default: module.default
+      default: module.default as React.ComponentType
     }))
     .catch(error => {
       console.error("Error loading DebtManagementVisualization:", error);
       return {
-        default: () => null
+        default: () => null as unknown as React.ReactElement
       };
     })
 );
-
 const Features = lazy(() => 
   import("@/components/landing/Features")
     .then(module => ({
-      default: module.default
+      default: module.default as React.ComponentType<FeaturesProps>
     }))
     .catch(error => {
       console.error("Error loading Features:", error);
       return {
-        default: () => null
+        default: () => null as unknown as React.ReactElement
       };
     })
 );

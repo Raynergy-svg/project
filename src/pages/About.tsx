@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Shield, Users, Target, Award, BarChart, Brain, Globe, Heart } from 'lucide-react';
+import { Shield, Users, Target, BarChart, Brain, Globe, Heart } from 'lucide-react';
 
 export default function About() {
   return (

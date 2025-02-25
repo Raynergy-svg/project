@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Briefcase, Heart, Users, Zap, GraduationCap, Globe } from 'lucide-react';
+import { Heart, Users, Zap, GraduationCap, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
@@ -191,6 +191,7 @@ export default function Careers() {
             Don't see a position that matches your skills?
           </p>
           <Button
+            onClick={() => handleApply("General Application", "Open Application")}
             className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white"
           >
             Send us your resume

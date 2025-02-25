@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Shield, Lock, FileCheck, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { Shield, Lock, FileCheck, CheckCircle, Clock } from 'lucide-react';
 
 export default function Compliance() {
   const certifications = [

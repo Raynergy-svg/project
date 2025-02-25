@@ -82,57 +82,102 @@ export default function JobApplication() {
         resumeFile = await new Promise((resolve, reject) => {
           reader.onload = () => resolve(reader.result as string);
           reader.onerror = () => reject(reader.error);
-          reader.readAsDataURL(formData.resume);
+          reader.readAsDataURL(formData.resume as Blob);
         });
+      } else {
+        throw new Error('Resume file is required');
       }
 
       // Send application to API
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/job-application`, {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Supabase configuration is missing');
+      }
+
+      // Use the proxy endpoint in development, direct URL in production
+      const functionUrl = process.env.NODE_ENV === 'development'
+        ? '/functions/v1/job-application'
+        : `${supabaseUrl}/functions/v1/job-application`;
+
+      console.log('Submitting application to:', functionUrl, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey
+        },
+        data: {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          linkedIn: formData.linkedIn,
+          portfolio: formData.portfolio,
+          coverLetter: formData.coverLetter,
+          position,
+          department,
+          resumeFile: formData.resume ? 'Base64 PDF data (truncated)' : null
+        }
+      });
+
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
+          'x-client-info': '@supabase/auth-helpers-nextjs'
         },
         body: JSON.stringify({
-          ...formData,
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          linkedIn: formData.linkedIn,
+          portfolio: formData.portfolio,
+          coverLetter: formData.coverLetter,
           position,
           department,
           resumeFile,
         }),
       });
 
-      // Clone the response before reading it
-      const responseClone = response.clone();
-      
-      let errorMessage;
-      try {
-        const data = await response.json();
-        if (!response.ok) {
-          errorMessage = data.error || 'Failed to submit application';
-          throw new Error(errorMessage);
+      if (!response.ok) {
+        let errorMessage = 'Failed to submit application';
+        try {
+          const errorData = await response.json();
+          console.error('Error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData,
+            headers: Object.fromEntries(response.headers.entries())
+          });
+          errorMessage = errorData.error || errorData.details || `${errorMessage}: ${response.status} ${response.statusText}`;
+        } catch (parseError) {
+          console.error('Error parsing error response:', parseError);
+          const textResponse = await response.text().catch(() => 'No response text available');
+          console.error('Raw response:', textResponse);
+          errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
         }
-        
-        toast({
-          title: "Application submitted",
-          description: "We'll review your application and get back to you soon!",
-          variant: "default"
-        });
-
-        navigate('/careers');
-      } catch (parseError) {
-        // If we can't parse the response as JSON, use the response text from the clone
-        if (parseError instanceof SyntaxError) {
-          const textResponse = await responseClone.text();
-          errorMessage = textResponse || 'Failed to submit application';
-          throw new Error(errorMessage);
-        }
-        throw parseError;
+        throw new Error(errorMessage);
       }
+
+      const data = await response.json();
+      console.log('Application submission response:', data);
+      
+      toast({
+        title: "Application submitted",
+        description: "We'll review your application and get back to you soon!",
+        variant: "default"
+      });
+
+      navigate('/careers');
     } catch (error) {
       console.error('Error submitting application:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to submit application. Please try again.",
+        description: error instanceof Error 
+          ? error.message 
+          : "Failed to submit application. Please try again.",
         variant: "destructive"
       });
     } finally {

@@ -1,7 +1,8 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
+import { getCSP } from './src/config/csp';
 
 // Get Supabase URL from environment variable
 const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://gnwdahoiauduyncppbdb.supabase.co';
@@ -21,73 +22,106 @@ const loadSSLCertificates = () => {
 
 const sslCertificates = loadSSLCertificates();
 
-export default defineConfig({
-  plugins: [react()],
-  optimizeDeps: {
-    exclude: ['lucide-react'],
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const supabaseUrl = env.VITE_SUPABASE_URL;
+
+  if (!supabaseUrl) {
+    throw new Error('VITE_SUPABASE_URL environment variable is required');
+  }
+
+  return {
+    plugins: [react()],
+    optimizeDeps: {
+      exclude: ['lucide-react'],
     },
-  },
-  server: {
-    ...(sslCertificates && {
-      https: sslCertificates
-    }),
-    host: true,
-    port: 5173,
-    strictPort: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false,
-      }
-    },
-    cors: {
-      origin: '*',
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true
-    },
-    headers: {
-      'Content-Security-Policy': [
-        "default-src 'self'",
-        "connect-src 'self' https://gnwdahoiauduyncppbdb.supabase.co https://api.stripe.com https://js.stripe.com wss://gnwdahoiauduyncppbdb.supabase.co",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com",
-        "frame-src 'self' https://js.stripe.com",
-        "img-src 'self' data: blob: https://gnwdahoiauduyncppbdb.supabase.co https://images.unsplash.com"
-      ].join('; '),
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-    watch: {
-      usePolling: true,
-    },
-  },
-  preview: {
-    ...(sslCertificates && {
-      https: sslCertificates
-    }),
-    host: true,
-    port: 5173,
-    strictPort: true,
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          animations: ['framer-motion'],
-          ui: ['lucide-react', '@supabase/supabase-js'],
-        },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
       },
     },
-    target: 'esnext',
-    minify: 'esbuild',
-  },
+    server: {
+      ...(sslCertificates && {
+        https: sslCertificates
+      }),
+      host: true,
+      port: 5173,
+      strictPort: true,
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/functions/v1': {
+          target: 'https://gnwdahoiauduyncppbdb.supabase.co',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/functions\/v1/, '/functions/v1'),
+          configure: (proxy, options) => {
+            proxy.on('proxyReq', (proxyReq, req) => {
+              // Forward the authorization and apikey headers from the original request
+              const authHeader = req.headers['authorization'];
+              const apiKey = req.headers['apikey'];
+              
+              if (authHeader) {
+                proxyReq.setHeader('Authorization', authHeader);
+              }
+              if (apiKey) {
+                proxyReq.setHeader('apikey', apiKey);
+              }
+            });
+          }
+        }
+      },
+      cors: {
+        origin: '*',
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        credentials: true
+      },
+      headers: {
+        'Content-Security-Policy': getCSP(supabaseUrl),
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey, x-supabase-auth',
+        'Access-Control-Allow-Credentials': 'true'
+      },
+      watch: {
+        usePolling: true,
+      },
+    },
+    preview: {
+      ...(sslCertificates && {
+        https: sslCertificates
+      }),
+      host: true,
+      port: 5173,
+      strictPort: true,
+      headers: {
+        'Content-Security-Policy': getCSP(supabaseUrl),
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
+      }
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            animations: ['framer-motion'],
+            ui: ['lucide-react', '@supabase/supabase-js'],
+          },
+        },
+      },
+      target: 'esnext',
+      minify: 'esbuild',
+    },
+  };
 });

@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 
 interface Props {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
   hasError: boolean;
-  error?: Error;
+  error: Error | null;
   errorInfo?: ErrorInfo;
   showThankYou: boolean;
 }
@@ -24,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public static getDerivedStateFromError(error: Error): State {
     // Update state so the next render will show the fallback UI.
-    return { hasError: true, error: error };
+    return { hasError: true, error };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -73,7 +74,8 @@ export class ErrorBoundary extends Component<Props, State> {
     }
   }
 
-  private handleReload = () => {
+  private handleReset = () => {
+    this.setState({ hasError: false, error: null });
     window.location.reload();
   };
 
@@ -83,59 +85,17 @@ export class ErrorBoundary extends Component<Props, State> {
         "Missing Supabase credentials"
       );
 
-      return (
-        <div
-          className="min-h-screen flex items-center justify-center bg-[#1E1E1E] p-4"
-          role="alert"
-          aria-live="assertive"
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="max-w-md w-full bg-white/5 backdrop-blur-lg rounded-xl p-8 text-center relative"
-          >
-            <div className="mb-6">
-              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto" />
-            </div>
-
-            <h2 className="text-2xl font-bold text-white mb-4">
-              {isSupabaseError
-                ? "Database Connection Required"
-                : "Oops! Something went wrong"}
-            </h2>
-
-            <p className="text-white/80 mb-6">
-              {isSupabaseError
-                ? 'Please click the "Connect to Supabase" button in the top right corner to set up your database connection.'
-                : "We've been notified and will investigate the issue. Please try refreshing the page."}
+      return this.props.fallback || (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <div className="max-w-md w-full p-6 text-center">
+            <h2 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h2>
+            <p className="text-muted-foreground mb-6">
+              {this.state.error?.message || 'An unexpected error occurred'}
             </p>
-
-            <div className="space-y-3">
-              <Button
-                onClick={this.handleReload}
-                className="w-full h-12 bg-[#88B04B] hover:bg-[#88B04B]/90 text-white"
-              >
-                <div className="flex items-center justify-center w-full gap-3">
-                  <RefreshCw className="w-5 h-5 flex-shrink-0" />
-                  <span>Refresh Page</span>
-                </div>
-              </Button>
-            </div>
-
-            {process.env.NODE_ENV === "development" && this.state.error && (
-              <div className="mt-6 text-left">
-                <details className="text-white/60 text-sm">
-                  <summary className="cursor-pointer hover:text-white/80">
-                    Error Details
-                  </summary>
-                  <pre className="mt-2 p-4 bg-black/30 rounded-lg whitespace-pre-wrap break-words max-w-full">
-                    {this.state.error?.toString()}
-                    {this.state.errorInfo?.componentStack}
-                  </pre>
-                </details>
-              </div>
-            )}
-          </motion.div>
+            <Button onClick={this.handleReset} variant="default">
+              Try again
+            </Button>
+          </div>
         </div>
       );
     }

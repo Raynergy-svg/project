@@ -4,122 +4,140 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 
-// Preload only critical fonts
-const preloadCriticalFonts = () => {
-  // Check if the Soehne font is used in any stylesheet
-  const isFontUsed = () => {
-    if (!document.styleSheets) return false;
-    
-    try {
-      return Array.from(document.styleSheets).some(sheet => {
-        try {
-          // Check if the font is referenced in any CSS rules
-          const rules = Array.from(sheet.cssRules || []);
-          return rules.some(rule => 
-            rule.cssText && rule.cssText.includes('Soehne')
-          );
-        } catch (e) {
-          // Skip checking inaccessible stylesheets (e.g., cross-origin)
-          return false;
-        }
-      });
-    } catch (e) {
-      return false;
-    }
-  };
+// Initialize performance monitoring
+const initializePerformanceMonitoring = () => {
+  // Report Web Vitals
+  if ('web-vitals' in window) {
+    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
+      getCLS(console.log);
+      getFID(console.log);
+      getFCP(console.log);
+      getLCP(console.log);
+      getTTFB(console.log);
+    });
+  }
 
-  // Only preload if the font is actually used
-  if (isFontUsed()) {
-    const link = document.createElement("link");
-    link.rel = "preload";
-    link.href = "/src/assets/fonts/soehne-buch.woff2";
-    link.as = "font";
-    link.type = "font/woff2";
-    link.crossOrigin = "anonymous";
-    document.head.appendChild(link);
+  // Monitor network conditions
+  if ('connection' in navigator) {
+    // @ts-ignore
+    const connection = navigator.connection;
+    if (connection) {
+      console.log(`Network Information:
+        - Effective Type: ${connection.effectiveType}
+        - Downlink: ${connection.downlink} Mbps
+        - RTT: ${connection.rtt} ms
+      `);
+
+      connection.addEventListener('change', () => {
+        console.log('Network conditions changed');
+      });
+    }
   }
 };
 
-// Add scroll event listener for auto-hiding scrollbar with debounce
-let scrollTimer: number;
-let isScrolling = false;
+// Preload critical resources
+const preloadResources = () => {
+  // Preload critical fonts
+  const preloadFont = (href: string) => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'font';
+    link.type = 'font/woff2';
+    link.href = href;
+    link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  };
 
-function handleScroll() {
-  if (!isScrolling) {
-    document.body.classList.add("scrolling");
-    isScrolling = true;
-  }
+  // Preload critical images
+  const preloadImage = (src: string) => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = src;
+    document.head.appendChild(link);
+  };
 
-  // Clear any existing timer
-  if (scrollTimer) {
-    window.clearTimeout(scrollTimer);
-  }
+  // Add resource hints
+  const addResourceHint = (href: string, rel: 'preconnect' | 'dns-prefetch') => {
+    const link = document.createElement('link');
+    link.rel = rel;
+    link.href = href;
+    if (rel === 'preconnect') link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  };
 
-  // Set new timer to remove the class after 1 second of no scrolling
-  scrollTimer = window.setTimeout(() => {
-    document.body.classList.remove("scrolling");
-    isScrolling = false;
-  }, 1000);
-}
+  // Preload critical resources
+  preloadFont('/src/assets/fonts/soehne-buch.woff2');
+  preloadImage('/assets/images/hero-bg.webp');
 
-// Add scroll event listener with passive flag for better performance
-window.addEventListener("scroll", handleScroll, { passive: true });
+  // Add resource hints for external services
+  addResourceHint('https://gnwdahoiauduyncppbdb.supabase.co', 'preconnect');
+  addResourceHint('https://gnwdahoiauduyncppbdb.supabase.co', 'dns-prefetch');
+};
 
-// Show scrollbar on mouse move near the edges with debounce
-let mouseMoveTimer: number;
-let isNearEdge = false;
-
-function handleMouseMove(e: MouseEvent) {
-  const edgeThreshold = 50; // pixels from the edge
-  const { clientX, clientY } = e;
-  const { innerWidth, innerHeight } = window;
-
-  const nearEdge =
-    clientX > innerWidth - edgeThreshold ||
-    clientY > innerHeight - edgeThreshold;
-
-  if (nearEdge && !isNearEdge) {
-    document.body.classList.add("scrolling");
-    isNearEdge = true;
-
-    if (mouseMoveTimer) {
-      window.clearTimeout(mouseMoveTimer);
+// Initialize service worker
+const initializeServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      // Let Vite PWA handle the service worker registration
+      const { registerSW } = await import('virtual:pwa-register');
+      
+      registerSW({
+        immediate: true,
+        onRegistered(registration) {
+          console.log('Service worker registration successful');
+        },
+        onRegisterError(error) {
+          console.warn('Service worker registration failed:', error);
+        }
+      });
+    } catch (error) {
+      console.warn('Service worker initialization failed:', error);
+      // Continue without service worker
     }
-
-    mouseMoveTimer = window.setTimeout(() => {
-      document.body.classList.remove("scrolling");
-      isNearEdge = false;
-    }, 1000);
   }
-}
+};
 
-window.addEventListener("mousemove", handleMouseMove, { passive: true });
-
-// Initialize performance monitoring
-if ("connection" in navigator) {
-  // @ts-ignore
-  const connection = navigator.connection;
-  if (connection) {
-    console.log(`Network Information:
-      - Effective Type: ${connection.effectiveType}
-      - Downlink: ${connection.downlink} Mbps
-      - RTT: ${connection.rtt} ms
-    `);
+// Remove initial loader
+const removeInitialLoader = () => {
+  const loader = document.getElementById('initial-loader');
+  if (loader) {
+    loader.style.opacity = '0';
+    setTimeout(() => loader.remove(), 300);
   }
-}
+};
 
-// Initialize font preloading after stylesheets are loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', preloadCriticalFonts);
-} else {
-  preloadCriticalFonts();
-}
+// Initialize the application
+const initializeApp = () => {
+  const root = document.getElementById('root');
+  if (!root) throw new Error('Root element not found');
 
-// Initialize the app
-createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <App />
-    </BrowserRouter>
-  </StrictMode>
-);
+  createRoot(root).render(
+    <StrictMode>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <App />
+      </BrowserRouter>
+    </StrictMode>
+  );
+
+  // Remove loader after app is mounted
+  removeInitialLoader();
+};
+
+// Initialize everything in the correct order
+const initialize = async () => {
+  // Start preloading resources immediately
+  preloadResources();
+
+  // Initialize monitoring
+  initializePerformanceMonitoring();
+
+  // Initialize service worker
+  await initializeServiceWorker();
+
+  // Initialize the app
+  initializeApp();
+};
+
+// Start initialization
+initialize();

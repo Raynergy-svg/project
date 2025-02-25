@@ -57,7 +57,7 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.1 }}
-      className="group relative bg-white/5 rounded-xl overflow-hidden border border-white/10 hover:border-[#88B04B]/30 transition-all"
+      className="relative bg-white/5 rounded-xl overflow-hidden border border-white/10"
     >
       <div className="relative h-48 overflow-hidden">
         <img 
@@ -67,7 +67,7 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
           height={400}
           loading="lazy"
           decoding="async"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover"
           onLoad={(e) => {
             const img = e.target as HTMLImageElement;
             if (img.complete) {
@@ -119,7 +119,7 @@ export default function Features({ id }: FeaturesProps) {
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.1 }}
-          transition={{ duration: 1 }}
+          transition={{ duration: 0.3 }}
           className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-[#88B04B] rounded-full blur-[120px]" 
         />
       </div>
@@ -151,11 +151,11 @@ export default function Features({ id }: FeaturesProps) {
         >
           <Button
             onClick={handleExploreClick}
-            className="group px-6 py-3 bg-[#88B04B] hover:bg-[#88B04B]/90 text-white rounded-xl font-semibold text-lg"
+            className="px-6 py-3 bg-[#88B04B] hover:bg-[#88B04B]/90 text-white rounded-xl font-semibold text-lg"
           >
             <span className="flex items-center gap-2">
               Explore All Features
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="w-5 h-5" />
             </span>
           </Button>
         </motion.div>

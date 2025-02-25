@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Shield, Check, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useDeviceContext } from "@/components/DeviceProvider";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 import { Button } from "@/components/ui/button";
 import type { SubscriptionTier } from "@/types";
 

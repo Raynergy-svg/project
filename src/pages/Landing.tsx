@@ -6,8 +6,13 @@ import { useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useDeviceContext } from "@/hooks/useDeviceContext";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 import Navbar from "@/components/layout/Navbar";
+
+interface FeaturesProps {
+  onFeatureClick?: (featureId: string) => void;
+  id?: string;
+}
 
 // Optimize imports with dynamic imports for non-critical components
 const DebtManagementVisualization = lazy(() => 
@@ -172,12 +177,11 @@ const floatingVariants = {
 
 // Background elements with visibility optimization
 const BackgroundElements = () => {
-  const prefersReducedMotion = useReducedMotion();
-  const { performanceLevel } = useDeviceContext();
+  const { isReducedMotion, type: deviceType } = useDeviceContext();
   const elementRef = useRef(null);
   const isInView = useInView(elementRef, { margin: "-10%" });
 
-  if (prefersReducedMotion || performanceLevel === 'low') {
+  if (isReducedMotion || deviceType === 'mobile') {
     return null;
   }
 
@@ -243,6 +247,7 @@ export default function Landing() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [showDebtPlanner, setShowDebtPlanner] = useState(false);
+  const { isReducedMotion, type: deviceType } = useDeviceContext();
 
   const handleSignIn = useCallback(() => {
     navigate('/signin');
@@ -260,13 +265,10 @@ export default function Landing() {
     navigate(`/signup?plan=${planId}`);
   }, [navigate]);
 
-  const prefersReducedMotion = useReducedMotion();
-  const { performanceLevel } = useDeviceContext();
-
   // Optimize background elements rendering
   const shouldRenderBackgrounds = useMemo(() => {
-    return !prefersReducedMotion && performanceLevel !== 'low';
-  }, [prefersReducedMotion, performanceLevel]);
+    return !isReducedMotion && deviceType !== 'mobile';
+  }, [isReducedMotion, deviceType]);
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white overflow-x-hidden">

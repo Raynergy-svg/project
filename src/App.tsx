@@ -3,7 +3,8 @@ import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
-import { DeviceProvider, useDeviceContext } from "@/components/DeviceProvider";
+import { DeviceProvider } from "@/contexts/DeviceContext";
+import { useDeviceContext } from "@/contexts/DeviceContext";
 import { usePerformanceMonitoring } from "@/hooks/usePerformanceMonitoring";
 import { useErrorTracking } from "@/hooks/useErrorTracking";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
@@ -83,7 +84,7 @@ function AppRoutes() {
 function AppNavbar() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { performanceLevel, isMobile } = useDeviceContext();
+  const { isMobile } = useDeviceContext();
 
   const handleSignIn = () => {
     navigate("/signin", { state: { returnTo: window.location.pathname, animation: "slide-in" } });
@@ -107,6 +108,7 @@ function AppNavbar() {
       isAuthenticated={isAuthenticated}
       userName={user?.name}
       onDashboardClick={handleDashboardClick}
+      isMobile={isMobile}
     />
   );
 }

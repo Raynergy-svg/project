@@ -4,9 +4,6 @@ import path from 'path';
 import fs from 'fs';
 import { getCSP } from './src/config/csp';
 
-// Get Supabase URL from environment variable
-const supabaseUrl = process.env.VITE_SUPABASE_URL || 'https://gnwdahoiauduyncppbdb.supabase.co';
-
 // Helper function to safely load SSL certificates
 const loadSSLCertificates = () => {
   try {
@@ -23,11 +20,19 @@ const loadSSLCertificates = () => {
 const sslCertificates = loadSSLCertificates();
 
 export default defineConfig(({ mode }) => {
+  // Load env file based on mode
   const env = loadEnv(mode, process.cwd(), '');
-  const supabaseUrl = env.VITE_SUPABASE_URL;
+  
+  // Get Supabase URL from environment variable or use a default for development
+  const supabaseUrl = env.VITE_SUPABASE_URL || (
+    mode === 'development' 
+      ? 'http://localhost:54321'
+      : 'https://gnwdahoiauduyncppbdb.supabase.co'
+  );
 
-  if (!supabaseUrl) {
-    throw new Error('VITE_SUPABASE_URL environment variable is required');
+  // Warn about missing environment variable in production
+  if (!env.VITE_SUPABASE_URL && mode === 'production') {
+    console.warn('Warning: VITE_SUPABASE_URL environment variable is not set. Using default value.');
   }
 
   return {
@@ -54,7 +59,7 @@ export default defineConfig(({ mode }) => {
           secure: false,
         },
         '/functions/v1': {
-          target: 'https://gnwdahoiauduyncppbdb.supabase.co',
+          target: supabaseUrl,
           changeOrigin: true,
           secure: true,
           rewrite: (path) => path.replace(/^\/functions\/v1/, '/functions/v1'),

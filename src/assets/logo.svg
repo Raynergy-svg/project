@@ -1,7 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="512" height="512" viewBox="0 0 512 512" fill="none"
+<svg width="70" height="50" viewBox="0 0 70 50" fill="none"
     xmlns="http://www.w3.org/2000/svg">
-    <rect width="512" height="512" fill="#0A0A0A"/>
-    <path d="M256 96C167.635 96 96 167.635 96 256C96 344.365 167.635 416 256 416C344.365 416 416 344.365 416 256C416 167.635 344.365 96 256 96ZM256 384C185.307 384 128 326.693 128 256C128 185.307 185.307 128 256 128C326.693 128 384 185.307 384 256C384 326.693 326.693 384 256 384Z" fill="#00FF00"/>
-    <path d="M272 176V240H336V272H272V336H240V272H176V240H240V176H272Z" fill="#00FF00"/>
+    <defs>
+        <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#88B04B"/>
+            <stop offset="100%" stop-color="#6A9A2D"/>
+        </linearGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
+            <feOffset dx="0" dy="1"/>
+            <feComponentTransfer>
+                <feFuncA type="linear" slope="0.1"/>
+            </feComponentTransfer>
+            <feMerge>
+                <feMergeNode/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+    <g transform="translate(35, 25) perspective(500) rotateX(-10) translate(-35, -25)">
+        <!-- Bar 1 (30px) -->
+        <g filter="url(#shadow)">
+            <rect x="8" y="19" width="12" height="30" fill="url(#gradient)"/>
+            <rect x="20" y="19" width="2" height="30" fill="#4A7A2A"/>
+            <rect x="8" y="17" width="12" height="2" fill="#A8D06B"/>
+        </g>
+        <!-- Bar 2 (45px) -->
+        <g filter="url(#shadow)">
+            <rect x="22" y="4" width="12" height="45" fill="url(#gradient)"/>
+            <rect x="34" y="4" width="2" height="45" fill="#4A7A2A"/>
+            <rect x="22" y="2" width="12" height="2" fill="#A8D06B"/>
+        </g>
+        <!-- Bar 3 (35px) -->
+        <g filter="url(#shadow)">
+            <rect x="36" y="14" width="12" height="35" fill="url(#gradient)"/>
+            <rect x="48" y="14" width="2" height="35" fill="#4A7A2A"/>
+            <rect x="36" y="12" width="12" height="2" fill="#A8D06B"/>
+        </g>
+        <!-- Bar 4 (55px) -->
+        <g filter="url(#shadow)">
+            <rect x="50" y="-5" width="12" height="55" fill="url(#gradient)"/>
+            <rect x="62" y="-5" width="2" height="55" fill="#4A7A2A"/>
+            <rect x="50" y="-7" width="12" height="2" fill="#A8D06B"/>
+        </g>
+    </g>
 </svg> 

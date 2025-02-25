@@ -30,10 +30,21 @@ export default defineConfig(({ mode }) => {
       : 'https://gnwdahoiauduyncppbdb.supabase.co'
   );
 
-  // Warn about missing environment variable in production
-  if (!env.VITE_SUPABASE_URL && mode === 'production') {
-    console.warn('Warning: VITE_SUPABASE_URL environment variable is not set. Using default value.');
+  // Get Supabase Anon Key
+  const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
+
+  // Warn about missing environment variables in production
+  if (mode === 'production') {
+    if (!env.VITE_SUPABASE_URL) {
+      console.warn('Warning: VITE_SUPABASE_URL environment variable is not set');
+    }
+    if (!env.VITE_SUPABASE_ANON_KEY) {
+      console.warn('Warning: VITE_SUPABASE_ANON_KEY environment variable is not set');
+    }
   }
+
+  // Generate CSP based on environment
+  const csp = getCSP(supabaseUrl);
 
   return {
     plugins: [react()],
@@ -82,11 +93,11 @@ export default defineConfig(({ mode }) => {
       cors: {
         origin: '*',
         methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey', 'x-supabase-auth'],
         credentials: true
       },
       headers: {
-        'Content-Security-Policy': getCSP(supabaseUrl),
+        'Content-Security-Policy': csp,
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -108,7 +119,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: true,
       headers: {
-        'Content-Security-Policy': getCSP(supabaseUrl),
+        'Content-Security-Policy': csp,
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
@@ -128,5 +139,9 @@ export default defineConfig(({ mode }) => {
       target: 'esnext',
       minify: 'esbuild',
     },
+    define: {
+      'process.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),
+      'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnonKey),
+    }
   };
 });

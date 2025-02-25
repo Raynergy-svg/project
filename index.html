@@ -77,7 +77,14 @@
     <!-- Critical CSS -->
     <style>
       /* Inline critical CSS here */
-      body { background: #1E1E1E; }
+      body { 
+        background: #1E1E1E;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
       .loading { 
         display: flex;
         justify-content: center;
@@ -86,6 +93,7 @@
         color: #88B04B;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       }
+      
       .initial-loader {
         position: fixed;
         top: 0;
@@ -93,11 +101,13 @@
         right: 0;
         bottom: 0;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         background: #0A0A0A;
         z-index: 9999;
       }
+      
       .initial-loader__spinner {
         width: 40px;
         height: 40px;
@@ -106,8 +116,28 @@
         border-radius: 50%;
         animation: spin 1s linear infinite;
       }
+
+      .initial-loader__text {
+        margin-top: 16px;
+        color: #88B04B;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+        font-size: 14px;
+      }
+      
       @keyframes spin {
         to { transform: rotate(360deg); }
+      }
+
+      @media (max-width: 768px) {
+        .initial-loader__spinner {
+          width: 32px;
+          height: 32px;
+          border-width: 2px;
+        }
+        
+        .initial-loader__text {
+          font-size: 12px;
+        }
       }
     </style>
     
@@ -121,6 +151,7 @@
     <!-- Initial loading state -->
     <div id="initial-loader" class="initial-loader">
       <div class="initial-loader__spinner"></div>
+      <div class="initial-loader__text">Loading Smart Debt Flow...</div>
     </div>
   </body>
 </html>

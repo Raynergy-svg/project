@@ -8,7 +8,7 @@ import fs from 'fs';
 // Helper function to safely load SSL certificates
 const loadSSLCertificates = () => {
   try {
-    const certPath = path.resolve(process.cwd(), 'certs');
+    const certPath = path.resolve(process.cwd(), '.cert');
     return {
       key: fs.readFileSync(path.join(certPath, 'key.pem')),
       cert: fs.readFileSync(path.join(certPath, 'cert.pem')),

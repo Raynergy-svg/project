@@ -1,5 +1,5 @@
 import { ArrowRight, Shield, Star, Lock, CheckCircle } from "lucide-react";
-import { Suspense, lazy, useCallback, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence, useScroll, useSpring, useInView } from "framer-motion";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import Navbar from "@/components/layout/Navbar";
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface FeaturesProps {
   onFeatureClick?: (featureId: string) => void;
@@ -40,24 +41,9 @@ const Features = lazy(() =>
     })
 );
 
-// Preload critical assets
-const preloadAssets = () => {
-  // Preload critical images
-  const imagesToPreload = [
-    "https://images.unsplash.com/photo-1607990281513-2c110a25bd8c?auto=format&fit=crop&q=80&w=200",
-    // Add other critical images
-  ];
-
-  imagesToPreload.forEach(src => {
-    const img = new Image();
-    img.src = src;
-  });
-};
-
-// Call preload function
-if (typeof window !== 'undefined') {
-  preloadAssets();
-}
+// Preload critical assets with mobile optimization
+// const preloadAssets = () => { ... }
+// if (typeof window !== 'undefined') { ... }
 
 // Optimized lazy loading with prefetch and error handling
 const Footer = lazy(() => {
@@ -136,18 +122,24 @@ const Pricing = lazy(() => {
 // Add DebtPlannerPreview to lazy imports
 const DebtPlannerPreview = lazy(() => import("@/components/previews/DebtPlannerPreview"));
 
-// Loading component with fade transition
-const SectionLoader = () => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    transition={{ duration: 0.2 }}
-    className="flex items-center justify-center py-12 min-h-[400px]"
-  >
-    <LoadingSpinner className="w-8 h-8" />
-  </motion.div>
-);
+// Loading component with fade transition and mobile optimization
+const SectionLoader = () => {
+  const { type: deviceType } = useDeviceContext();
+  const minHeight = deviceType === 'mobile' ? '200px' : '400px';
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="flex items-center justify-center py-6"
+      style={{ minHeight }}
+    >
+      <LoadingSpinner size={deviceType === 'mobile' ? "sm" : "md"} />
+    </motion.div>
+  );
+};
 
 // Optimized animation variants
 const fadeInUpVariants = {
@@ -243,12 +235,58 @@ const Section = ({ children, id = "", className = "" }: SectionProps) => {
   );
 };
 
-export default function Landing() {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const [showDebtPlanner, setShowDebtPlanner] = useState(false);
-  const { isReducedMotion, type: deviceType } = useDeviceContext();
+function FeatureCard({ title, description, icon: Icon, image, benefits, index }: any) {
+  const { type: deviceType } = useDeviceContext();
+  const imageWidth = deviceType === 'mobile' ? 400 : 800;
+  const imageUrl = `${image}?auto=format&fit=crop&q=80&w=${imageWidth}`;
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: deviceType === 'mobile' ? 0 : index * 0.1 }}
+      className="relative bg-white/5 rounded-xl overflow-hidden border border-white/10"
+    >
+      <div className="relative h-48 overflow-hidden">
+        <img 
+          src={imageUrl}
+          alt={title}
+          width={imageWidth}
+          height={deviceType === 'mobile' ? 200 : 400}
+          loading={index === 0 ? "eager" : "lazy"}
+          decoding="async"
+          className="w-full h-full object-cover"
+          onLoad={(e) => {
+            const img = e.target as HTMLImageElement;
+            if (img.complete) {
+              img.style.opacity = '1';
+            }
+          }}
+          style={{ opacity: 0, transition: 'opacity 0.3s' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+      </div>
+      
+      {/* ... rest of the component ... */}
+    </motion.div>
+  );
+}
 
+const Landing = () => {
+  // 1. Context hooks
+  const { isReducedMotion, type: deviceType } = useDeviceContext();
+  const { isAuthenticated } = useAuth();
+  
+  // 2. State hooks
+  const [isLoading, setIsLoading] = useState(true);
+  const [showDebtPlanner, setShowDebtPlanner] = useState(false);
+  
+  // 3. Other hooks
+  const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+
+  // 4. Callback hooks
   const handleSignIn = useCallback(() => {
     navigate('/signin');
   }, [navigate]);
@@ -265,10 +303,69 @@ export default function Landing() {
     navigate(`/signup?plan=${planId}`);
   }, [navigate]);
 
-  // Optimize background elements rendering
+  // 5. Memo hooks
   const shouldRenderBackgrounds = useMemo(() => {
     return !isReducedMotion && deviceType !== 'mobile';
   }, [isReducedMotion, deviceType]);
+
+  // 6. Effect hooks
+  useEffect(() => {
+    const initialLoader = document.getElementById('initial-loader');
+    if (initialLoader) {
+      initialLoader.style.display = 'none';
+    }
+
+    const preloadAssets = async () => {
+      const imageWidth = deviceType === 'mobile' ? 400 : 800;
+      
+      const imagesToPreload = [
+        `/pwa-192x192.png`,
+        `/pwa-512x512.png`,
+        `/src/assets/logo.svg`,
+        `/src/assets/hero-bg.webp`
+      ].filter(Boolean);
+
+      try {
+        await Promise.all(
+          imagesToPreload.map(src => {
+            return new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => resolve(undefined);
+              img.onerror = () => {
+                console.warn(`Failed to preload image: ${src}`);
+                resolve(undefined); // Don't reject on individual image load failure
+              };
+              img.src = src;
+            });
+          })
+        );
+      } catch (error) {
+        console.warn('Image preloading encountered some issues:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    preloadAssets();
+  }, [deviceType]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="loading"
+        style={{
+          minHeight: isMobile ? '100dvh' : '100vh',
+          background: '#0A0A0A'
+        }}
+      >
+        <div className="initial-loader__spinner" />
+      </motion.div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white overflow-x-hidden">
@@ -523,4 +620,6 @@ export default function Landing() {
       </Suspense>
     </div>
   );
-}
+};
+
+export default Landing;

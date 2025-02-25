@@ -5,14 +5,12 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.warn(
-    'Missing Supabase credentials. Please click "Connect to Supabase" button to configure your project.'
-  );
+  throw new Error('Missing Supabase credentials. Please check your environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
 }
 
 export const supabase = createClient<Database>(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseKey || 'placeholder-key',
+  supabaseUrl,
+  supabaseKey,
   {
     auth: {
       persistSession: true,
@@ -27,3 +25,18 @@ export const supabase = createClient<Database>(
     },
   }
 );
+
+// Helper function to check if Supabase is properly configured
+export const checkSupabaseConnection = async () => {
+  try {
+    const { error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Supabase connection error:', error);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('Failed to check Supabase connection:', error);
+    return false;
+  }
+};

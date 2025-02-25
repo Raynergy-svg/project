@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/lib/supabase/client';
+import { checkSupabaseConnection } from '@/lib/supabase/client';
 
 interface FormData {
   fullName: string;
@@ -36,6 +38,23 @@ export default function JobApplication() {
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check Supabase connection on component mount
+  useEffect(() => {
+    const verifySupabaseConnection = async () => {
+      const isConnected = await checkSupabaseConnection();
+      if (!isConnected) {
+        toast({
+          title: "Connection Error",
+          description: "Unable to establish connection to our services. Please try again later.",
+          variant: "destructive"
+        });
+        navigate('/careers');
+      }
+    };
+
+    verifySupabaseConnection();
+  }, [navigate, toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -75,6 +94,12 @@ export default function JobApplication() {
     setIsSubmitting(true);
 
     try {
+      // Verify Supabase connection again before submission
+      const isConnected = await checkSupabaseConnection();
+      if (!isConnected) {
+        throw new Error('Unable to connect to our services. Please try again later.');
+      }
+
       // Convert resume to base64
       let resumeFile = '';
       if (formData.resume) {
@@ -88,45 +113,20 @@ export default function JobApplication() {
         throw new Error('Resume file is required');
       }
 
-      // Send application to API
+      // Get function URL from environment
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error('Supabase configuration is missing');
+      if (!supabaseUrl) {
+        throw new Error('Supabase URL configuration is missing');
       }
+      const functionUrl = `${supabaseUrl}/functions/v1/job-application`;
 
-      // Use the proxy endpoint in development, direct URL in production
-      const functionUrl = process.env.NODE_ENV === 'development'
-        ? '/functions/v1/job-application'
-        : `${supabaseUrl}/functions/v1/job-application`;
-
-      console.log('Submitting application to:', functionUrl, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'apikey': supabaseAnonKey
-        },
-        data: {
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          linkedIn: formData.linkedIn,
-          portfolio: formData.portfolio,
-          coverLetter: formData.coverLetter,
-          position,
-          department,
-          resumeFile: formData.resume ? 'Base64 PDF data (truncated)' : null
-        }
-      });
-
+      // Send application
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'apikey': supabaseAnonKey,
-          'x-client-info': '@supabase/auth-helpers-nextjs'
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
         },
         body: JSON.stringify({
           fullName: formData.fullName,
@@ -142,23 +142,8 @@ export default function JobApplication() {
       });
 
       if (!response.ok) {
-        let errorMessage = 'Failed to submit application';
-        try {
-          const errorData = await response.json();
-          console.error('Error response:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorData,
-            headers: Object.fromEntries(response.headers.entries())
-          });
-          errorMessage = errorData.error || errorData.details || `${errorMessage}: ${response.status} ${response.statusText}`;
-        } catch (parseError) {
-          console.error('Error parsing error response:', parseError);
-          const textResponse = await response.text().catch(() => 'No response text available');
-          console.error('Raw response:', textResponse);
-          errorMessage = `${errorMessage}: ${response.status} ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to submit application');
       }
 
       const data = await response.json();

@@ -21,10 +21,25 @@ if (missingVars.length > 0) {
   throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
 }
 
-const supabase = createClient(
-  requiredEnvVars.SUPABASE_URL!,
-  requiredEnvVars.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Supabase client with error handling
+let supabase;
+try {
+  supabase = createClient(
+    requiredEnvVars.SUPABASE_URL!,
+    requiredEnvVars.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+        detectSessionInUrl: false
+      }
+    }
+  );
+  console.log('Supabase client initialized successfully');
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error);
+  throw new Error('Supabase configuration error');
+}
 
 interface JobApplication {
   fullName: string;
@@ -51,6 +66,15 @@ serve(async (req) => {
   }
 
   try {
+    if (!supabase) {
+      throw new Error('Supabase client not initialized');
+    }
+
+    const { data, error: authError } = await supabase.auth.getUser(req);
+    if (authError) {
+      throw new Error(`Authentication error: ${authError.message}`);
+    }
+
     // Log request details
     const requestHeaders = Object.fromEntries(req.headers.entries());
     console.log('Received job application request:', {
@@ -299,15 +323,14 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Unhandled error processing application:', error);
+    console.error('Error processing job application:', error);
     return new Response(
-      JSON.stringify({ 
-        error: 'Failed to process application',
-        details: error instanceof Error ? error.message : 'An unexpected error occurred'
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
       }),
-      { 
+      {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   }

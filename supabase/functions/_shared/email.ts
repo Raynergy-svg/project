@@ -4,6 +4,7 @@ import { delay } from "https://deno.land/std@0.168.0/async/delay.ts";
 
 interface EmailOptions {
   to: string;
+  from?: string;
   subject: string;
   html: string;
 }
@@ -66,7 +67,7 @@ class SmtpConnection {
     await this.sendCommand("DATA");
     
     const message = [
-      `From: ${from}`,
+      `From: Smart Debt Flow <${from}>`,
       `To: ${to}`,
       `Subject: ${subject}`,
       "MIME-Version: 1.0",
@@ -117,21 +118,20 @@ async function retryWithBackoff<T>(
   throw lastError || new Error('Operation failed after retries');
 }
 
-export async function sendEmail({ to, subject, html }: EmailOptions) {
+export async function sendEmail({ to, from, subject, html }: EmailOptions) {
   const smtpHost = Deno.env.get("SMTP_HOST");
-  const smtpUser = Deno.env.get("SMTP_USER");
-  const smtpPass = Deno.env.get("SMTP_PASS");
+  const smtpPass = "ragxe9-goBzow-jujvub"; // Same password for all accounts
 
-  if (!smtpHost || !smtpUser || !smtpPass) {
-    throw new Error(`Missing SMTP configuration: ${JSON.stringify({
-      hasHost: !!smtpHost,
-      hasUser: !!smtpUser,
-      hasPass: !!smtpPass
-    })}`);
+  if (!smtpHost) {
+    throw new Error('Missing SMTP host configuration');
   }
+
+  // Use the appropriate email account
+  const smtpUser = from || "hiring@smartdebtflow.com"; // Default to hiring if no from address specified
 
   console.log('Starting email send attempt:', {
     to,
+    from: smtpUser,
     subject,
     smtpHost,
     smtpPort: 587,

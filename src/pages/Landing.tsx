@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import Navbar from "@/components/layout/Navbar";
-import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { useMediaQuery } from "../hooks/useMediaQuery";
 
 interface FeaturesProps {
   onFeatureClick?: (featureId: string) => void;

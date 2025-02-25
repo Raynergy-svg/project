@@ -17,7 +17,8 @@ export const getCSP = (supabaseUrl: string) => {
       'data:',
       'blob:',
       supabaseUrl,
-      'https://raw.githubusercontent.com'
+      'https://raw.githubusercontent.com',
+      'https://images.unsplash.com'
     ],
     'font-src': [
       "'self'",

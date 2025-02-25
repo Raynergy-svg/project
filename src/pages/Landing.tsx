@@ -9,6 +9,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDeviceContext } from "@/hooks/useDeviceContext";
 import Navbar from "@/components/layout/Navbar";
 
+interface FeaturesProps {
+  id?: string;
+}
+
 // Optimize imports with dynamic imports for non-critical components
 const DebtManagementVisualization = lazy(() => 
   import("@/components/landing/DebtManagementVisualization")

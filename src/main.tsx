@@ -115,8 +115,14 @@ if (document.readyState === 'loading') {
   preloadCriticalFonts();
 }
 
-// Initialize the app
-createRoot(document.getElementById("root")!).render(
+// Initialize the app with React 19 features
+const rootElement = document.getElementById("root");
+if (!rootElement) throw new Error("Root element not found");
+
+const root = createRoot(rootElement);
+
+// Use React 19's new concurrent features and automatic batching
+root.render(
   <StrictMode>
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <App />

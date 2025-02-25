@@ -1,39 +1,19 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import fs from 'fs';
 import { getCSP } from './src/config/csp';
 
-// Helper function to safely load SSL certificates
-const loadSSLCertificates = () => {
-  try {
-    return {
-      key: fs.readFileSync('certs/key.pem'),
-      cert: fs.readFileSync('certs/cert.pem'),
-    };
-  } catch (error) {
-    console.warn('SSL certificates not found, falling back to HTTP');
-    return false;
-  }
-};
-
-const sslCertificates = loadSSLCertificates();
-
 export default defineConfig(({ mode }) => {
-  // Load env file based on mode
   const env = loadEnv(mode, process.cwd(), '');
   
-  // Get Supabase URL from environment variable or use a default for development
   const supabaseUrl = env.VITE_SUPABASE_URL || (
     mode === 'development' 
       ? 'http://localhost:54321'
       : 'https://gnwdahoiauduyncppbdb.supabase.co'
   );
 
-  // Get Supabase Anon Key
   const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
 
-  // Warn about missing environment variables in production
   if (mode === 'production') {
     if (!env.VITE_SUPABASE_URL) {
       console.warn('Warning: VITE_SUPABASE_URL environment variable is not set');
@@ -43,11 +23,17 @@ export default defineConfig(({ mode }) => {
     }
   }
 
-  // Generate CSP based on environment
   const csp = getCSP(supabaseUrl);
 
   return {
-    plugins: [react()],
+    plugins: [
+      react({
+        jsxRuntime: 'automatic',
+        babel: {
+          plugins: ['@emotion/babel-plugin']
+        }
+      })
+    ],
     optimizeDeps: {
       exclude: ['lucide-react'],
     },
@@ -57,67 +43,64 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      ...(sslCertificates && {
-        https: sslCertificates
-      }),
-      host: true,
+      host: 'localhost',
       port: 5173,
       strictPort: true,
+      origin: 'http://localhost:5173',
+      hmr: {
+        protocol: 'ws',
+        host: 'localhost',
+        port: 5173,
+        clientPort: 5173
+      },
+      watch: {
+        usePolling: true
+      },
       proxy: {
         '/api': {
           target: 'http://localhost:3000',
           changeOrigin: true,
           secure: false,
+          ws: true
         },
         '/functions/v1': {
           target: supabaseUrl,
           changeOrigin: true,
-          secure: true,
+          secure: false,
+          ws: true,
           rewrite: (path) => path.replace(/^\/functions\/v1/, '/functions/v1'),
           configure: (proxy, options) => {
             proxy.on('proxyReq', (proxyReq, req) => {
-              // Forward the authorization and apikey headers from the original request
               const authHeader = req.headers['authorization'];
               const apiKey = req.headers['apikey'];
-              
-              if (authHeader) {
-                proxyReq.setHeader('Authorization', authHeader);
-              }
-              if (apiKey) {
-                proxyReq.setHeader('apikey', apiKey);
-              }
+              if (authHeader) proxyReq.setHeader('Authorization', authHeader);
+              if (apiKey) proxyReq.setHeader('apikey', apiKey);
             });
           }
         }
       },
-      cors: {
-        origin: '*',
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization', 'x-client-info', 'apikey', 'x-supabase-auth'],
-        credentials: true
-      },
+      cors: true,
       headers: {
         'Content-Security-Policy': csp,
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
         'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-client-info, apikey, x-supabase-auth',
-        'Access-Control-Allow-Credentials': 'true'
-      },
-      watch: {
-        usePolling: true,
-      },
+      }
     },
     preview: {
-      ...(sslCertificates && {
-        https: sslCertificates
-      }),
-      host: true,
+      host: 'localhost',
       port: 5173,
       strictPort: true,
+      origin: 'http://localhost:5173',
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false,
+          ws: true
+        }
+      },
       headers: {
         'Content-Security-Policy': csp,
         'X-Frame-Options': 'DENY',
@@ -138,6 +121,12 @@ export default defineConfig(({ mode }) => {
       },
       target: 'esnext',
       minify: 'esbuild',
+      cssMinify: 'lightningcss',
+      modulePreload: {
+        polyfill: true
+      },
+      sourcemap: true,
+      chunkSizeWarningLimit: 1000,
     },
     define: {
       'process.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),

@@ -28,8 +28,7 @@ body {
   *:focus-visible {
     outline: none;
     @apply ring-2 ring-offset-2 ring-[#00CC88];
-    transition-property: box-shadow;
-    transition-duration: 200ms;
+    transition: box-shadow 200ms ease;
   }
 }
 
@@ -52,11 +51,11 @@ body {
 }
 
 /* Custom easing curves */
-@keyframes customEaseInOut {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0); }
-  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+@keyframes float {
+  0% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-15px) rotate(-1deg); }
+  75% { transform: translateY(-5px) rotate(1deg); }
+  100% { transform: translateY(0) rotate(0deg); }
 }
 
 /* Touch device optimizations */
@@ -109,21 +108,9 @@ body {
   scroll-margin-top: var(--scroll-padding, 0px);
 }
 
-/* Floating animation with custom easing */
-@keyframes float {
-  0%, 100% { 
-    transform: translateY(0px) rotate(0deg); 
-  }
-  25% { 
-    transform: translateY(-15px) rotate(-1deg); 
-  }
-  75% { 
-    transform: translateY(-5px) rotate(1deg); 
-  }
-}
-
+/* Floating animation */
 .floating-element {
-  animation: float 6s var(--custom-easing) infinite;
+  animation: float 6s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -187,7 +174,7 @@ body.scrolling {
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #00CC88;
   border-radius: 4px;
-  transition: background-color 0.3s var(--custom-easing);
+  transition: background-color 0.3s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
@@ -235,8 +222,8 @@ body.scrolling {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Hide horizontal scrollbars */
@@ -244,14 +231,18 @@ body {
   overflow-x: hidden;
 }
 
+/* Animations */
 @keyframes slideIn {
-  from {
+  0% { 
     transform: translateY(100%);
     opacity: 0;
   }
-  to {
+  100% { 
     transform: translateY(0);
     opacity: 1;
-    animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
+}
+
+.slide-in {
+  animation: slideIn 0.3s var(--custom-easing);
 }

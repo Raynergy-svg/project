@@ -48,7 +48,6 @@ const generateCSP = (mode: string) => {
     'base-uri': ["'self'"]
   };
 
-  // Add development-specific sources
   if (mode === 'development') {
     directives['connect-src'].push('ws://localhost:*', 'wss://localhost:*');
     directives['script-src'].push('https://localhost:*', 'http://localhost:*');
@@ -74,6 +73,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
+      // Handle "use client" directives
+      {
+        name: 'handle-client-directive',
+        transform(code, id) {
+          if (id.includes('node_modules')) {
+            return code.replace(/"use client";?/g, '');
+          }
+        },
+      },
       react(),
       VitePWA({
         registerType: 'autoUpdate',
@@ -125,11 +133,47 @@ export default defineConfig(({ mode }) => {
           ]
         }
       }),
-      ViteImageOptimizer()
+      ViteImageOptimizer({
+        test: /\.(jpe?g|png|gif|svg)$/i,
+        includePublic: true,
+        logStats: true,
+        webp: {
+          quality: 80,
+          effort: 6,
+        },
+        png: {
+          quality: 70,
+          dither: 1
+        },
+        jpg: {
+          quality: 80,
+          progressive: true,
+        },
+        svg: {
+          multipass: true,
+          plugins: [
+            {
+              name: 'preset-default',
+              params: {
+                overrides: {
+                  removeViewBox: false,
+                  removeTitle: false,
+                  cleanupNumericValues: {
+                    floatPrecision: 2,
+                  },
+                },
+              },
+            },
+          ],
+        },
+      })
     ],
     optimizeDeps: {
       include: ['lucide-react'],
       exclude: [],
+      esbuildOptions: {
+        target: 'esnext',
+      }
     },
     resolve: {
       alias: {
@@ -194,18 +238,43 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-            'ui-vendor': ['framer-motion', '@radix-ui/react-dialog', '@radix-ui/react-toast'],
-            'utils-vendor': ['class-variance-authority', 'clsx', 'tailwind-merge'],
-            'icons': ['lucide-react']
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+                return 'react-vendor';
+              }
+              if (id.includes('framer-motion') || id.includes('@radix-ui')) {
+                return 'ui-vendor';
+              }
+              if (id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
+                return 'utils-vendor';
+              }
+              if (id.includes('recharts')) {
+                return 'chart-vendor';
+              }
+              if (id.includes('lucide-react')) {
+                return 'icons';
+              }
+            }
           },
         },
       },
       target: 'esnext',
       minify: 'esbuild',
       sourcemap: true,
-      chunkSizeWarningLimit: 1000
+      chunkSizeWarningLimit: 500,
+      assetsInlineLimit: 4096,
+      cssCodeSplit: true,
+      modulePreload: true,
+      reportCompressedSize: true,
+      emptyOutDir: true,
+      cssMinify: true,
+      terserOptions: {
+        compress: {
+          drop_console: !isDev,
+          drop_debugger: !isDev,
+        },
+      },
     },
     define: {
       'process.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),

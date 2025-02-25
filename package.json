@@ -39,6 +39,8 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@babel/plugin-transform-react-jsx": "^7.25.9",
+    "@jridgewell/sourcemap-codec": "^1.4.15",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",
     "@types/node": "^20.11.16",
@@ -55,7 +57,6 @@
     "glob": "^10.3.10",
     "jsdom": "^24.0.0",
     "lru-cache": "^10.2.0",
-    "@jridgewell/sourcemap-codec": "^1.4.15",
     "postcss": "^8.4.35",
     "rimraf": "^5.0.5",
     "sharp": "^0.33.2",

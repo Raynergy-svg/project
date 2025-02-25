@@ -37,27 +37,6 @@ const initializePerformanceMonitoring = () => {
 
 // Preload critical resources
 const preloadResources = () => {
-  // Preload critical fonts
-  const preloadFont = (href: string) => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'font';
-    link.type = 'font/woff2';
-    link.href = href;
-    link.crossOrigin = 'anonymous';
-    document.head.appendChild(link);
-  };
-
-  // Preload critical images
-  const preloadImage = (src: string) => {
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = src;
-    document.head.appendChild(link);
-  };
-
-  // Add resource hints
   const addResourceHint = (href: string, rel: 'preconnect' | 'dns-prefetch') => {
     const link = document.createElement('link');
     link.rel = rel;
@@ -65,10 +44,6 @@ const preloadResources = () => {
     if (rel === 'preconnect') link.crossOrigin = 'anonymous';
     document.head.appendChild(link);
   };
-
-  // Preload critical resources
-  preloadFont('/src/assets/fonts/soehne-buch.woff2');
-  preloadImage('/assets/images/hero-bg.webp');
 
   // Add resource hints for external services
   addResourceHint('https://gnwdahoiauduyncppbdb.supabase.co', 'preconnect');

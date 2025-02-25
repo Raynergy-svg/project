@@ -321,8 +321,7 @@ const Landing = () => {
       const imagesToPreload = [
         `/pwa-192x192.png`,
         `/pwa-512x512.png`,
-        `/src/assets/logo.svg`,
-        `/src/assets/hero-bg.webp`
+        `/src/assets/logo.svg`
       ].filter(Boolean);
 
       try {

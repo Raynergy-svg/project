@@ -16,10 +16,7 @@ const STATIC_ASSETS = [
 ];
 
 // Assets to prefetch after main assets are loaded
-const PREFETCH_ASSETS = [
-  "/assets/fonts/soehne-buch.woff2",
-  "/assets/images/hero-bg.webp",
-];
+const PREFETCH_ASSETS = [];
 
 // Cache duration in seconds
 const CACHE_DURATION = {

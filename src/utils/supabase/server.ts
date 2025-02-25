@@ -3,20 +3,25 @@ import { cookies } from "next/headers";
 
 export const createClient = (cookieStore: ReturnType<typeof cookies>) => {
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return cookieStore.getAll();
+        get(name: string) {
+          return cookieStore.get(name)?.value;
         },
-        setAll(cookiesToSet) {
+        set(name: string, value: string, options: CookieOptions) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+            cookieStore.set(name, value, options);
           } catch {
-            // The `setAll` method was called from a Server Component.
-            // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // Handle server component cookie setting
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set(name, "", { ...options, maxAge: 0 });
+          } catch {
+            // Handle server component cookie removal
           }
         },
       },
@@ -24,16 +29,17 @@ export const createClient = (cookieStore: ReturnType<typeof cookies>) => {
   );
 };
 
-// Create an admin client for privileged operations
+// Admin client for backend operations (no cookie handling needed)
 export const createAdminClient = () => {
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SERVICE_ROLE_KEY!,
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       cookies: {
         // Admin client doesn't need cookie handling
-        getAll: () => [],
-        setAll: () => {},
+        get: () => undefined,
+        set: () => {},
+        remove: () => {},
       },
     }
   );

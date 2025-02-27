@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { toast as uiToast } from '@/components/ui/use-toast'
 
 type ToastProps = {
   id: string
@@ -39,6 +40,9 @@ const useToast = (): ToastState => {
 
   return { toasts, addToast, removeToast }
 }
+
+// Export the toast function from the UI component for compatibility
+export const toast = uiToast
 
 export { useToast }
 export type { ToastProps }

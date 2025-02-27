@@ -25,7 +25,7 @@ const sslCertificates = loadSSLCertificates();
 const generateCSP = (mode: string) => {
   const directives = {
     'default-src': ["'self'"],
-    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
     'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
     'img-src': ["'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://raw.githubusercontent.com', 'https://*.cloudflare.com', 'https://images.unsplash.com'],
     'font-src': ["'self'", 'https://fonts.gstatic.com'],
@@ -40,9 +40,10 @@ const generateCSP = (mode: string) => {
       'http://localhost:*',
       'https://localhost:*',
       'ws://localhost:*',
-      'wss://localhost:*'
+      'wss://localhost:*',
+      'https://api.stripe.com'
     ],
-    'frame-src': ["'self'"],
+    'frame-src': ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
     'media-src': ["'self'"],
     'object-src': ["'none'"],
     'base-uri': ["'self'"]
@@ -116,8 +117,10 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             'react-vendor': ['react', 'react-dom', 'react-router-dom'],
             'ui-vendor': ['framer-motion', '@radix-ui/react-dialog', '@radix-ui/react-label', '@radix-ui/react-slot', '@radix-ui/react-toast'],
+            'stripe-vendor': ['@stripe/react-stripe-js', '@stripe/stripe-js']
           }
-        }
+        },
+        external: ['next/headers']
       },
       assetsInlineLimit: 4096,
       chunkSizeWarningLimit: 1000,
@@ -139,6 +142,13 @@ export default defineConfig(({ mode }) => {
       } : undefined,
       headers: {
         'Content-Security-Policy': generateCSP(mode),
+      },
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false
+        }
       }
     },
     resolve: {
@@ -156,9 +166,12 @@ export default defineConfig(({ mode }) => {
         '@radix-ui/react-dialog',
         '@radix-ui/react-label',
         '@radix-ui/react-slot',
-        '@radix-ui/react-toast'
+        '@radix-ui/react-toast',
+        'axios',
+        '@stripe/react-stripe-js',
+        '@stripe/stripe-js'
       ],
-      exclude: []
+      exclude: ['next/headers']
     },
     publicDir: 'public',
     base: '/'

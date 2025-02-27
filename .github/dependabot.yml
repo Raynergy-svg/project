@@ -7,6 +7,7 @@ updates:
     # Check for updates once a week
     schedule:
       interval: "weekly"
+<<<<<<< HEAD
     # Specify labels for npm pull requests
     labels:
       - "npm"
@@ -15,11 +16,14 @@ updates:
     versioning-strategy: auto
     # Allow up to 10 open pull requests
     open-pull-requests-limit: 10
+=======
+>>>>>>> 078bb4f850193f2c519458406772ff8725c5808c
     # Group all updates together
     groups:
       dependencies:
         patterns:
           - "*"
+<<<<<<< HEAD
     # Set reviewers for pull requests
     reviewers:
       - "davidcertan"
@@ -42,3 +46,38 @@ updates:
       - "dependencies"
     # Allow up to 10 open pull requests
     open-pull-requests-limit: 10
+=======
+    # Specify labels for pull requests
+    labels:
+      - "dependencies"
+      - "automerge"
+    # Allow up to 10 open pull requests
+    open-pull-requests-limit: 10
+    # Configure version update behavior
+    versioning-strategy: auto
+    # Configure commit message
+    commit-message:
+      prefix: "chore"
+      prefix-development: "chore"
+      include: "scope"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Group all updates together
+    groups:
+      actions:
+        patterns:
+          - "*"
+    # Specify labels for pull requests
+    labels:
+      - "dependencies"
+      - "github_actions"
+      - "automerge"
+    # Configure commit message
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+>>>>>>> 078bb4f850193f2c519458406772ff8725c5808c

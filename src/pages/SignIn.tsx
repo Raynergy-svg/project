@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Eye, EyeOff, ArrowRight, Lock, Shield, ArrowLeft, Loader2 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
-import { useSecurity } from "@/contexts/SecurityContext";
+import { useSecurity } from "@/hooks/useSecurity";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface FormData {
@@ -99,13 +99,19 @@ export default function SignIn() {
 
       if (validateForm()) {
         setIsSubmitting(true);
+        setErrors({});
+        
         try {
           // Sanitize sensitive data before sending
           const sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
           const sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(formData.password);
           
           // Attempt to login
-          await login(sanitizedEmail, sanitizedPassword);
+          const { error } = await login(sanitizedEmail, sanitizedPassword);
+          
+          if (error) {
+            throw error;
+          }
           
           // Save encrypted email if remember me is checked
           if (rememberMe) {
@@ -122,7 +128,8 @@ export default function SignIn() {
           navigate(returnUrl || '/dashboard');
         } catch (error) {
           console.error('Login error:', error);
-          setErrors({ general: "Invalid email or password" });
+          const errorMessage = error instanceof Error ? error.message : "Invalid email or password";
+          setErrors({ general: errorMessage });
           setFailedAttempts(prev => prev + 1);
         } finally {
           setIsSubmitting(false);

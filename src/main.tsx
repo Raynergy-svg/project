@@ -48,9 +48,14 @@ const preloadResources = () => {
   // Add resource hints for external services
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   if (supabaseUrl) {
+    console.log('Preloading Supabase resources from:', supabaseUrl);
     addResourceHint(supabaseUrl, 'preconnect');
     addResourceHint(supabaseUrl, 'dns-prefetch');
   }
+  
+  // We're now handling critical asset preloading in the HTML head
+  // This ensures proper loading with correct 'as' attributes
+  // See index.html for the preload directives
 };
 
 // Initialize service worker

@@ -68,11 +68,31 @@ const generateCSP = (mode: string) => {
     .join('; ');
 };
 */
+import { getCSP } from './src/config/csp';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isDev = mode === 'development';
+  
+  const supabaseUrl = env.VITE_SUPABASE_URL || (
+    mode === 'development' 
+      ? 'http://localhost:54321'
+      : 'https://gnwdahoiauduyncppbdb.supabase.co'
+  );
+
+  const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY;
+
+  if (mode === 'production') {
+    if (!env.VITE_SUPABASE_URL) {
+      console.warn('Warning: VITE_SUPABASE_URL environment variable is not set');
+    }
+    if (!env.VITE_SUPABASE_ANON_KEY) {
+      console.warn('Warning: VITE_SUPABASE_ANON_KEY environment variable is not set');
+    }
+  }
+
+  const csp = getCSP(supabaseUrl);
   
   return {
     plugins: [
@@ -180,11 +200,19 @@ export default defineConfig(({ mode }) => {
       https: false,
       headers: {
         // CSP is defined in index.html only to avoid conflicts
-      }
-    },
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src'),
+      },
+      host: 'localhost',
+      port: 5173,
+      strictPort: true,
+      origin: 'http://localhost:5173',
+      hmr: {
+        protocol: 'ws',
+        host: 'localhost',
+        port: 5173,
+        clientPort: 5173
+      },
+      watch: {
+        usePolling: true
       }
     },
     optimizeDeps: {
@@ -199,9 +227,12 @@ export default defineConfig(({ mode }) => {
         '@radix-ui/react-slot',
         '@radix-ui/react-toast'
       ],
-      exclude: []
+      exclude: ['lucide-react']
     },
-    publicDir: 'public',
-    base: '/'
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+      }
+    }
   };
 });

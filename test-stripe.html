@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stripe Payment Link Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .test-mode {
+            background-color: #f8f9fa;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-mode">
+        <strong>Test Mode:</strong> This page is for testing Stripe payment links. No actual charges will be made.
+    </div>
+    
+    <h1>Stripe Payment Link Test</h1>
+    
+    <div class="card">
+        <h2>Basic Plan</h2>
+        <p>$9.99/month</p>
+        <ul>
+            <li>Basic debt calculator</li>
+            <li>Single debt strategy</li>
+            <li>Monthly payment tracking</li>
+            <li>Basic spending insights</li>
+            <li>Limited AI Tokens (100/mo)</li>
+        </ul>
+        <a href="https://buy.stripe.com/test_4gwcPW1HN8597x64gi" class="btn" target="_blank">Subscribe to Basic Plan</a>
+    </div>
+    
+    <div class="card">
+        <h2>Pro Plan</h2>
+        <p>$19.99/month</p>
+        <ul>
+            <li>Advanced debt calculator</li>
+            <li>All debt strategies</li>
+            <li>Real-time payment tracking</li>
+            <li>Deep financial insights</li>
+            <li>Unlimited AI Tokens</li>
+        </ul>
+        <a href="https://buy.stripe.com/test_8wM5nu72799dbNm6or" class="btn" target="_blank">Subscribe to Pro Plan</a>
+    </div>
+    
+    <h2>Test Card Information</h2>
+    <p>Use the following test card information to complete the payment:</p>
+    <ul>
+        <li><strong>Card Number:</strong> 4242 4242 4242 4242</li>
+        <li><strong>Expiration:</strong> Any future date</li>
+        <li><strong>CVC:</strong> Any 3 digits</li>
+        <li><strong>ZIP:</strong> Any 5 digits</li>
+    </ul>
+    
+    <script>
+        // Log when links are clicked
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                console.log('Payment link clicked:', e.target.href);
+            });
+        });
+    </script>
+</body>
+</html> 

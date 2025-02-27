@@ -10,7 +10,7 @@ const stripeConfig: StripeConstructorOptions = {
 
 // Initialize Stripe with configuration
 export const stripePromise = loadStripe(
-  import.meta.env.VITE_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+  import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY!,
   stripeConfig
 );
 

@@ -1,0 +1,79 @@
+diff --git a/src/components/StripeBuyButton.tsx b/src/components/StripeBuyButton.tsx
+index 4d87722..e8f2181 100644
+--- a/src/components/StripeBuyButton.tsx
++++ b/src/components/StripeBuyButton.tsx
+@@ -1,5 +1,5 @@
+ import { useEffect, useState } from 'react';
+-import { Loader2 } from 'lucide-react';
++import { AccessibleStripeWrapper } from './subscription/AccessibleStripeWrapper';
+ 
+ export default function StripeBuyButton() {
+   const [isLoading, setIsLoading] = useState(true);
+@@ -27,16 +27,16 @@ export default function StripeBuyButton() {
+ 
+   return (
+     <div className="w-full max-w-md mx-auto mt-8">
+-      {isLoading ? (
+-        <div className="flex items-center justify-center p-4">
+-          <Loader2 className="w-6 h-6 text-[#88B04B] animate-spin" />
+-        </div>
+-      ) : (
++      <AccessibleStripeWrapper
++        id="stripe-buy-button-wrapper"
++        isLoading={isLoading}
++        loadingText="Loading payment options..."
++      >
+         <stripe-buy-button
+           buy-button-id="buy_btn_1QvD6LHIL3HWxjaBRT0tTREh"
+           publishable-key="pk_test_51QsepMHIL3HWxjaBWWqTKCYxlHFwe74XXP9DxxNARoEAPdjwjRfPNxzgAKNaPpcEcfY2c7nQc5LUWJsCUiTl9yJX0086z99MwV"
+         ></stripe-buy-button>
+-      )}
++      </AccessibleStripeWrapper>
+     </div>
+   );
+ } 
+\ No newline at end of file
+diff --git a/src/components/subscription/StripeCardInput.tsx b/src/components/subscription/StripeCardInput.tsx
+index f7492c8..2de618e 100644
+--- a/src/components/subscription/StripeCardInput.tsx
++++ b/src/components/subscription/StripeCardInput.tsx
+@@ -1,5 +1,7 @@
+ import { CardElement } from '@stripe/react-stripe-js';
+ import { Lock } from 'lucide-react';
++import { AccessibleStripeWrapper } from './AccessibleStripeWrapper';
++import { useState, useEffect } from 'react';
+ 
+ const CARD_ELEMENT_OPTIONS = {
+   style: {
+@@ -26,11 +28,28 @@ interface StripeCardInputProps {
+ }
+ 
+ export function StripeCardInput({ onChange, className = '' }: StripeCardInputProps) {
++  const [isLoading, setIsLoading] = useState(true);
++  
++  // Simulate a short loading state to ensure Stripe elements are ready
++  useEffect(() => {
++    const timer = setTimeout(() => {
++      setIsLoading(false);
++    }, 500);
++    
++    return () => clearTimeout(timer);
++  }, []);
++  
+   return (
+     <div className={`space-y-4 ${className}`}>
+-      <div className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 focus-within:border-[#88B04B]">
+-        <CardElement options={CARD_ELEMENT_OPTIONS} onChange={onChange} />
+-      </div>
++      <AccessibleStripeWrapper
++        id="stripe-card-element-wrapper"
++        isLoading={isLoading}
++        loadingText="Preparing secure payment form..."
++      >
++        <div className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 focus-within:border-[#88B04B]">
++          <CardElement options={CARD_ELEMENT_OPTIONS} onChange={onChange} />
++        </div>
++      </AccessibleStripeWrapper>
+       
+       <div className="flex items-center gap-2 text-sm text-gray-400">
+         <Lock className="w-4 h-4" />

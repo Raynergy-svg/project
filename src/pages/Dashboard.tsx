@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { 
   Brain, 
   TrendingDown, 
@@ -17,6 +18,7 @@ import { DebtOverview } from '@/components/dashboard/DebtOverview';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/animations/ProgressBar';
 import { CircularProgress } from '@/components/animations/CircularProgress';
+import { useToast } from '@/components/ui/use-toast';
 
 // Define the Debt type to match the expected type in DebtOverview
 type Debt = {
@@ -32,6 +34,43 @@ type Debt = {
 
 export default function Dashboard() {
   const [selectedMethod, setSelectedMethod] = useState<'snowball' | 'avalanche'>('snowball');
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const { toast } = useToast();
+  
+  // Check for Stripe checkout success
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+    
+    if (sessionId) {
+      // Remove the session_id parameter from the URL to prevent issues on refresh
+      // but keep the other parameters if any
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('session_id');
+      
+      // Replace the current URL without the session_id parameter
+      const newLocation = {
+        ...location,
+        search: newSearchParams.toString() ? `?${newSearchParams.toString()}` : ''
+      };
+      
+      // Use history.replaceState to update the URL without triggering a navigation
+      window.history.replaceState({}, '', `${newLocation.pathname}${newLocation.search}`);
+      
+      // Show success toast
+      toast({
+        title: "Payment Successful!",
+        description: "Thank you for your subscription. Your account has been upgraded.",
+        variant: "default",
+        duration: 5000
+      });
+      
+      // Here you could also trigger additional actions like:
+      // - Refreshing user subscription status
+      // - Loading new premium features
+      // - Updating UI based on new subscription
+    }
+  }, [searchParams, location, toast]);
 
   // Mock data with correct type
   const mockDebts: Debt[] = [

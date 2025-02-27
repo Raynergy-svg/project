@@ -8,11 +8,11 @@ import { useDeviceContext } from "@/contexts/DeviceContext";
 import { usePerformanceMonitoring } from "@/hooks/usePerformanceMonitoring";
 import { useErrorTracking } from "@/hooks/useErrorTracking";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { SecurityProvider } from "@/contexts/SecurityContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import Navbar from "@/components/layout/Navbar";
 import { Layout } from "@/components/layout/Layout";
+import SupabaseTest from "@/components/SupabaseTest";
 
 // Lazy load routes with prefetching
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -58,6 +58,7 @@ function AppRoutes() {
       <Route path="/careers" element={<Careers />} />
       <Route path="/apply" element={<JobApplication />} />
       <Route path="/compliance" element={<Compliance />} />
+      <Route path="/test-supabase" element={<SupabaseTest />} />
       <Route
         path="/signup"
         element={
@@ -125,26 +126,24 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <SecurityProvider>
-        <DeviceProvider>
-          <AuthProvider>
-            <Layout>
-              {shouldShowTour && <OnboardingTour />}
-              {!isAuthPage && <AppNavbar />}
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center min-h-[50vh]">
-                    <LoadingSpinner />
-                  </div>
-                }
-              >
-                <AppRoutes />
-              </Suspense>
-              <Toaster />
-            </Layout>
-          </AuthProvider>
-        </DeviceProvider>
-      </SecurityProvider>
+      <DeviceProvider>
+        <AuthProvider>
+          <Layout>
+            {shouldShowTour && <OnboardingTour />}
+            {!isAuthPage && <AppNavbar />}
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center min-h-[50vh]">
+                  <LoadingSpinner />
+                </div>
+              }
+            >
+              <AppRoutes />
+            </Suspense>
+            <Toaster />
+          </Layout>
+        </AuthProvider>
+      </DeviceProvider>
     </ErrorBoundary>
   );
 }

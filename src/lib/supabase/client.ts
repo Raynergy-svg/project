@@ -1,16 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+// Use the proxy server URL for local development
+const supabaseUrl = 'http://localhost:3000/supabase';
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase credentials. Please check your environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
+if (!supabaseKey) {
+  console.error('Missing Supabase credentials. Please check your environment variables.');
+  throw new Error('Missing Supabase credentials. Please check your environment variables: VITE_SUPABASE_ANON_KEY');
 }
 
-// Log the Supabase URL for debugging
-console.log('Connecting to Supabase at:', supabaseUrl);
-
+// Create a single supabase client for the entire application
 export const supabase = createClient<Database>(
   supabaseUrl,
   supabaseKey,
@@ -20,7 +20,6 @@ export const supabase = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
-      debug: true, // Enable debug mode for auth
     },
     global: {
       headers: {
@@ -33,16 +32,31 @@ export const supabase = createClient<Database>(
 // Helper function to check if Supabase is properly configured
 export const checkSupabaseConnection = async () => {
   try {
-    console.log('Checking Supabase connection...');
     const { data, error } = await supabase.auth.getSession();
     if (error) {
       console.error('Supabase connection error:', error);
-      return false;
+      return { success: false, error };
     }
-    console.log('Supabase connection successful:', data);
-    return true;
+    return { success: true, data };
   } catch (error) {
     console.error('Failed to check Supabase connection:', error);
-    return false;
+    return { success: false, error };
   }
+};
+
+// Helper function to handle auth errors
+export const handleAuthError = (error: any) => {
+  if (!error) return null;
+  
+  // Map common Supabase auth errors to user-friendly messages
+  const errorMap: Record<string, string> = {
+    'Invalid login credentials': 'Invalid email or password. Please try again.',
+    'Email not confirmed': 'Please check your email and confirm your account before signing in.',
+    'User already registered': 'An account with this email already exists. Please sign in instead.',
+    'Password should be at least 6 characters': 'Password must be at least 6 characters long.',
+    'Rate limit exceeded': 'Too many attempts. Please try again later.',
+  };
+  
+  const errorMessage = error.message || 'An unexpected error occurred';
+  return errorMap[errorMessage] || errorMessage;
 };

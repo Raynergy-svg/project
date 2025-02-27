@@ -15,6 +15,10 @@ interface FeaturesProps {
   id?: string;
 }
 
+interface FeaturesProps {
+  id?: string;
+}
+
 // Optimize imports with dynamic imports for non-critical components
 const DebtManagementVisualization = lazy(() => 
   import("@/components/landing/DebtManagementVisualization")
@@ -321,25 +325,45 @@ const Landing = () => {
       const imagesToPreload = [
         `/pwa-192x192.png`,
         `/pwa-512x512.png`,
-        `/src/assets/logo.svg`
+        `/src/assets/logo.svg`,
+        `http://localhost:5173/assets/images/hero-bg.webp`
       ].filter(Boolean);
 
+      // Preload the font file
+      const fontToPreload = 'http://localhost:5173/src/assets/fonts/soehne-buch.woff2';
       try {
-        await Promise.all(
-          imagesToPreload.map(src => {
-            return new Promise((resolve) => {
-              const img = new Image();
-              img.onload = () => resolve(undefined);
-              img.onerror = () => {
-                console.warn(`Failed to preload image: ${src}`);
-                resolve(undefined); // Don't reject on individual image load failure
-              };
-              img.src = src;
-            });
-          })
-        );
+        // First preload the font
+        const fontPreloadPromise = new Promise((resolve) => {
+          const link = document.createElement('link');
+          link.rel = 'preload';
+          link.href = fontToPreload;
+          link.as = 'font';
+          link.type = 'font/woff2';
+          link.crossOrigin = 'anonymous';
+          link.onload = () => resolve(undefined);
+          link.onerror = () => {
+            console.warn(`Failed to preload font: ${fontToPreload}`);
+            resolve(undefined);
+          };
+          document.head.appendChild(link);
+        });
+
+        // Then preload the images
+        const imagePreloadPromises = imagesToPreload.map(src => {
+          return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve(undefined);
+            img.onerror = () => {
+              console.warn(`Failed to preload image: ${src}`);
+              resolve(undefined); // Don't reject on individual image load failure
+            };
+            img.src = src;
+          });
+        });
+
+        await Promise.all([fontPreloadPromise, ...imagePreloadPromises]);
       } catch (error) {
-        console.warn('Image preloading encountered some issues:', error);
+        console.warn('Asset preloading encountered some issues:', error);
       } finally {
         setIsLoading(false);
       }

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Brain, 
   TrendingDown, 
@@ -11,12 +12,18 @@ import {
   BarChart2,
   Bell,
   PieChart,
-  Clock
+  Clock,
+  Crown
 } from 'lucide-react';
 import { DebtOverview } from '@/components/dashboard/DebtOverview';
 import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/animations/ProgressBar';
 import { CircularProgress } from '@/components/animations/CircularProgress';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/hooks/use-toast';
+import { SubscriptionBadge } from '@/components/subscription/SubscriptionBadge';
+import { UserOnboarding } from '@/components/onboarding/UserOnboarding';
+import { useOnboarding } from '@/hooks/useOnboarding';
 
 // Define the Debt type to match the expected type in DebtOverview
 type Debt = {
@@ -32,6 +39,41 @@ type Debt = {
 
 export default function Dashboard() {
   const [selectedMethod, setSelectedMethod] = useState<'snowball' | 'avalanche'>('snowball');
+  const { user, isSubscribed, subscriptionStatus, subscriptionPlan, updateUser } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { shouldShowOnboarding, setOnboardingComplete } = useOnboarding(user?.id || null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+  // Handle session_id from URL (for payment redirects)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const sessionId = params.get('session_id');
+
+    if (sessionId) {
+      // Redirect to payment success page if session_id is present
+      navigate(`/payment-success?session_id=${sessionId}`, { replace: true });
+    }
+  }, [location.search, navigate]);
+
+  // Show upgrade prompt after 30 seconds for free users
+  useEffect(() => {
+    if (!isSubscribed && subscriptionStatus === 'free') {
+      const timer = setTimeout(() => {
+        setShowUpgradePrompt(true);
+      }, 30000); // 30 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isSubscribed, subscriptionStatus]);
+
+  const handleOnboardingComplete = () => {
+    setOnboardingComplete();
+  };
+
+  const handleUpgradePromptClose = () => {
+    setShowUpgradePrompt(false);
+  };
 
   // Mock data with correct type
   const mockDebts: Debt[] = [
@@ -110,20 +152,69 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1E1E1E] to-[#121212] text-white py-8">
+      {shouldShowOnboarding && (
+        <UserOnboarding onComplete={handleOnboardingComplete} subscriptionPlan={subscriptionPlan} />
+      )}
+      
       <div className="container mx-auto px-4">
-        {/* Header Section */}
+        {/* Header Section with Subscription Badge */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center"
         >
-          <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-            Welcome Back!
-          </h1>
-          <p className="text-gray-300">
-            Track your progress and optimize your debt-free journey
-          </p>
+          <div>
+            <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+              Welcome Back{user?.name ? `, ${user.name}` : ''}!
+            </h1>
+            <p className="text-gray-300">
+              Track your progress and optimize your debt-free journey
+            </p>
+          </div>
+          
+          <div className="mt-4 sm:mt-0">
+            <SubscriptionBadge 
+              status={subscriptionStatus as any}
+              planName={subscriptionPlan}
+            />
+          </div>
         </motion.div>
+
+        {/* Show upgrade prompt for free users */}
+        {showUpgradePrompt && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-4 border border-amber-500/30 rounded-lg bg-gradient-to-r from-amber-500/10 to-amber-600/10"
+          >
+            <div className="flex items-start gap-4">
+              <div className="hidden sm:flex bg-amber-500/20 p-2 rounded-full">
+                <Crown className="w-6 h-6 text-amber-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-1 text-amber-400">Upgrade to Premium</h3>
+                <p className="text-white/70 mb-3">Get access to advanced debt reduction strategies, unlimited accounts, and AI-powered insights.</p>
+                <div className="flex gap-3">
+                  <Button 
+                    onClick={() => navigate('/signup')}
+                    className="bg-amber-500 hover:bg-amber-600 text-white"
+                    size="sm"
+                  >
+                    Upgrade Now
+                  </Button>
+                  <Button 
+                    onClick={handleUpgradePromptClose}
+                    variant="outline"
+                    size="sm"
+                    className="border-white/20"
+                  >
+                    Maybe Later
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

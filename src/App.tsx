@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import Navbar from "@/components/layout/Navbar";
 import { Layout } from "@/components/layout/Layout";
+import PaymentSuccess from './pages/PaymentSuccess';
 
 // Lazy load routes with prefetching
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -58,14 +59,8 @@ function AppRoutes() {
       <Route path="/careers" element={<Careers />} />
       <Route path="/apply" element={<JobApplication />} />
       <Route path="/compliance" element={<Compliance />} />
-      <Route
-        path="/signup"
-        element={
-          <ErrorBoundary>
-            <SignUp />
-          </ErrorBoundary>
-        }
-      />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route
         path="/dashboard/*"
         element={

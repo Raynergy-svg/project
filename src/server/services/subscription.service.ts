@@ -105,7 +105,7 @@ export const SubscriptionService = {
         },
       ],
       mode: 'subscription',
-      success_url: `${config.app.url}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${config.app.url}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${config.app.url}/signup`,
     });
 

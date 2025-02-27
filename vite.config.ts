@@ -21,7 +21,9 @@ const loadSSLCertificates = () => {
 
 const sslCertificates = loadSSLCertificates();
 
-// Generate CSP
+// CSP is now defined in index.html only to avoid conflicts
+// Commenting out the generateCSP function to ensure it's not used
+/*
 const generateCSP = (mode: string) => {
   const directives = {
     'default-src': ["'self'"],
@@ -31,18 +33,26 @@ const generateCSP = (mode: string) => {
     'font-src': ["'self'", 'https://fonts.gstatic.com'],
     'connect-src': [
       "'self'",
+      'http://localhost:3000',
       'https://*.supabase.co',
       'wss://*.supabase.co',
       'https://api.supabase.com',
+      'https://gnwdahoiauduyncppbdb.supabase.co',
       'https://fonts.googleapis.com',
       'https://fonts.gstatic.com',
       'https://*.cloudflareinsights.com',
+      'https://api.stripe.com',
+      'https://js.stripe.com',
+      'https://m.stripe.com',
+      'https://checkout.stripe.com',
       'http://localhost:*',
       'https://localhost:*',
       'ws://localhost:*',
-      'wss://localhost:*'
+      'wss://localhost:*',
+      'http://127.0.0.1:*',
+      'https://127.0.0.1:*'
     ],
-    'frame-src': ["'self'"],
+    'frame-src': ["'self'", 'https://js.stripe.com', 'https://hooks.stripe.com'],
     'media-src': ["'self'"],
     'object-src': ["'none'"],
     'base-uri': ["'self'"]
@@ -57,6 +67,7 @@ const generateCSP = (mode: string) => {
     .map(([key, values]) => `${key} ${values.join(' ')}`)
     .join('; ');
 };
+*/
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -73,8 +84,11 @@ export default defineConfig(({ mode }) => {
         }
       }),
       VitePWA({
-        registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'logo.svg'],
+        registerType: 'prompt',
+        strategies: 'injectManifest',
+        srcDir: 'src',
+        filename: 'service-worker.ts',
+        injectRegister: false,
         manifest: {
           name: 'Smart Debt Flow',
           short_name: 'SDF',
@@ -100,7 +114,37 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           sourcemap: true,
-          globPatterns: ['**/*.{js,css,html,ico,png,svg}']
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            },
+            {
+              urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'gstatic-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
+            }
+          ]
         }
       }),
       ViteImageOptimizer({
@@ -133,12 +177,9 @@ export default defineConfig(({ mode }) => {
       devSourcemap: true
     },
     server: {
-      https: sslCertificates ? {
-        key: sslCertificates.key,
-        cert: sslCertificates.cert
-      } : undefined,
+      https: false,
       headers: {
-        'Content-Security-Policy': generateCSP(mode),
+        // CSP is defined in index.html only to avoid conflicts
       }
     },
     resolve: {

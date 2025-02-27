@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supabase Signup Test</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' http://localhost:3000; script-src 'self' 'unsafe-inline';">
+</head>
+<body>
+    <h1>Supabase Signup Test</h1>
+    <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" value="real.user@gmail.com">
+    </div>
+    <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" value="Password123!">
+    </div>
+    <div>
+        <button id="signup-btn">Sign Up</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('signup-btn').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.textContent = 'Sending request...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/auth/v1/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        data: {
+                            full_name: 'Test User'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                resultDiv.textContent = 'Response: ' + JSON.stringify(data, null, 2);
+                console.log('Response:', data);
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html> 

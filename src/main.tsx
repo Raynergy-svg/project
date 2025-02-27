@@ -46,16 +46,19 @@ const preloadResources = () => {
   };
 
   // Add resource hints for external services
-  addResourceHint('https://gnwdahoiauduyncppbdb.supabase.co', 'preconnect');
-  addResourceHint('https://gnwdahoiauduyncppbdb.supabase.co', 'dns-prefetch');
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  if (supabaseUrl) {
+    addResourceHint(supabaseUrl, 'preconnect');
+    addResourceHint(supabaseUrl, 'dns-prefetch');
+  }
 };
 
 // Initialize service worker
 const initializeServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {
-      // Let Vite PWA handle the service worker registration
-      const { registerSW } = await import('virtual:pwa-register');
+      // Register service worker using our custom registration
+      const { registerSW } = await import('./registerSW');
       
       registerSW({
         immediate: true,

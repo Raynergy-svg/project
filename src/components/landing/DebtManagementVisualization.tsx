@@ -160,7 +160,7 @@ const getPaymentScenarios = (debtType: string) => {
 };
 
 const DEBT_TYPES = [
-  {
+        {
     type: 'creditCard',
     label: 'Credit Cards',
     icon: CreditCard,
@@ -172,8 +172,8 @@ const DEBT_TYPES = [
       priorityLevel: 'Highest',
       recommendation: 'Pay more than minimum to avoid compound interest'
     }
-  },
-  {
+        },
+        {
     type: 'studentLoan',
     label: 'Student Loans',
     icon: GraduationCap,
@@ -185,8 +185,8 @@ const DEBT_TYPES = [
       priorityLevel: 'Medium',
       recommendation: 'Consider income-driven repayment plans'
     }
-  },
-  {
+        },
+        {
     type: 'autoLoan',
     label: 'Auto Loans',
     icon: Car,
@@ -385,7 +385,7 @@ export default function DebtManagementVisualization() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-white/5 rounded-xl p-6 mb-12 border border-white/10"
-          >
+              >
             <div className="grid md:grid-cols-2 gap-8">
                     <div>
                 <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
@@ -462,7 +462,7 @@ export default function DebtManagementVisualization() {
                   <div className="flex items-center justify-between">
                     <span className="text-white/80">Years to Payoff</span>
                     <span className="text-white font-medium">{plan.yearsToPayoff} years</span>
-                  </div>
+                </div>
                   <div className="flex items-center justify-between">
                     <span className="text-white/80">Total Interest</span>
                     <span className="text-white font-medium">${plan.totalInterest.toLocaleString()}</span>
@@ -474,16 +474,16 @@ export default function DebtManagementVisualization() {
                   </div>
                 </div>
               </motion.button>
-            );
-          })}
-        </div>
+                    );
+                  })}
+                </div>
 
         {/* Amortization Chart */}
-        <motion.div
+                  <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/5 rounded-xl p-6 border border-white/10"
-        >
+                  >
           <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
             <LineChart className="w-5 h-5 text-[#88B04B]" />
             Payment Progress Over Time
@@ -558,18 +558,18 @@ export default function DebtManagementVisualization() {
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
+                </div>
 
           {/* Legend */}
           <div className="mt-8 flex items-center justify-center gap-8 text-sm text-white/60">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-[#88B04B]" />
               <span>Balance Over Time</span>
-            </div>
+                    </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-[#88B04B]/20" />
               <span>Paid Amount</span>
-            </div>
+              </div>
           </div>
         </motion.div>
       </div>

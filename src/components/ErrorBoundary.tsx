@@ -94,8 +94,8 @@ export class ErrorBoundary extends Component<Props, State> {
             </p>
             <Button onClick={this.handleReset} variant="default">
               Try again
-            </Button>
-          </div>
+              </Button>
+            </div>
         </div>
       );
     }

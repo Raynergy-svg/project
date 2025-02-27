@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSP Test</title>
+    <!-- CSP that allows connections to our proxy server -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:3000;">
+</head>
+<body>
+    <h1>CSP Test</h1>
+    <div>
+        <button id="test-btn">Test Connection to Proxy</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('test-btn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = 'Testing connection to proxy server...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/auth/v1/health', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U'
+                    }
+                });
+                
+                const data = await response.json();
+                resultDiv.innerHTML = `<p>Success! Response:</p><pre>${JSON.stringify(data, null, 2)}</pre>`;
+                
+                // Now try a signup request
+                resultDiv.innerHTML += `<h3>Testing signup endpoint...</h3>`;
+                
+                const signupResponse = await fetch('http://localhost:3000/auth/v1/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U'
+                    },
+                    body: JSON.stringify({
+                        email: 'test.user3@gmail.com',
+                        password: 'Password123!',
+                        data: {
+                            full_name: 'Test User'
+                        }
+                    })
+                });
+                
+                const signupData = await signupResponse.json();
+                resultDiv.innerHTML += `<p>Signup Response:</p><pre>${JSON.stringify(signupData, null, 2)}</pre>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html> 

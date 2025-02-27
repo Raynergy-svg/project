@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error Checker</title>
+</head>
+<body>
+    <h1>JavaScript Error Checker</h1>
+    <button id="check-btn">Check Main App</button>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('check-btn').addEventListener('click', async () => {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Checking main application...';
+            
+            try {
+                // Create an iframe to load the main application
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                iframe.src = 'http://localhost:5173/';
+                
+                // Listen for errors from the iframe
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type === 'error') {
+                        resultDiv.innerHTML += `<p>Error: ${event.data.message}</p>`;
+                    }
+                });
+                
+                // Add the iframe to the document
+                document.body.appendChild(iframe);
+                
+                // Check if the iframe loaded successfully
+                iframe.onload = () => {
+                    resultDiv.innerHTML += '<p>Main application loaded successfully!</p>';
+                };
+                
+                iframe.onerror = (error) => {
+                    resultDiv.innerHTML += `<p>Failed to load main application: ${error}</p>`;
+                };
+            } catch (error) {
+                resultDiv.innerHTML += `<p>Error: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html> 

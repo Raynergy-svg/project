@@ -5,28 +5,28 @@ dotenv.config();
 export const config = {
   app: {
     port: process.env.PORT || 3000,
-    url: process.env.APP_URL || 'http://localhost:3000',
+    url: import.meta.env.VITE_APP_URL || 'http://localhost:3000',
     env: process.env.NODE_ENV || 'development',
   },
   supabase: {
-    url: process.env.SUPABASE_URL!,
-    anonKey: process.env.SUPABASE_ANON_KEY!,
-    serviceRoleKey: process.env.SERVICE_ROLE_KEY!,
+    url: import.meta.env.VITE_SUPABASE_URL!,
+    anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY!,
+    serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY!,
   },
   jwt: {
-    secret: process.env.JWT_SECRET!,
+    secret: import.meta.env.VITE_JWT_SECRET!,
     expiresIn: process.env.TOKEN_EXPIRY || '24h',
     refreshTokenExpiry: process.env.REFRESH_TOKEN_EXPIRY || '7d',
   },
   stripe: {
-    secretKey: process.env.VITE_STRIPE_SECRET_KEY || '',
-    publishableKey: process.env.VITE_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
-    basicPlanId: process.env.STRIPE_BASIC_PLAN_ID || '',
-    proPlanId: process.env.STRIPE_PRO_PLAN_ID || '',
+    secretKey: import.meta.env.VITE_STRIPE_SECRET_KEY || '',
+    publishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '',
+    webhookSecret: import.meta.env.VITE_STRIPE_WEBHOOK_SECRET || '',
+    mode: import.meta.env.VITE_STRIPE_MODE || 'test',
   },
   security: {
     bcryptSaltRounds: 12,
     corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],
+    encryptionKey: import.meta.env.VITE_ENCRYPTION_KEY!,
   },
 }; 

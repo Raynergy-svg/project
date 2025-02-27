@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Signup Test</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self' http://localhost:3000; script-src 'self' 'unsafe-inline';">
+</head>
+<body>
+    <h1>Direct Signup Test</h1>
+    <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" value="test.user@gmail.com">
+    </div>
+    <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" value="Password123!">
+    </div>
+    <div>
+        <label for="name">Name:</label>
+        <input type="text" id="name" value="Test User">
+    </div>
+    <div>
+        <button id="signup-btn">Sign Up</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('signup-btn').addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const name = document.getElementById('name').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.textContent = 'Sending request...';
+            
+            try {
+                // First, create the auth user
+                const signupResponse = await fetch('http://localhost:3000/auth/v1/signup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U'
+                    },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        data: {
+                            full_name: name
+                        }
+                    })
+                });
+                
+                const signupData = await signupResponse.json();
+                
+                if (signupResponse.ok) {
+                    resultDiv.innerHTML = `
+                        <h3>Signup Successful!</h3>
+                        <pre>${JSON.stringify(signupData, null, 2)}</pre>
+                        
+                        <h3>User ID:</h3>
+                        <p>${signupData.id}</p>
+                    `;
+                    
+                    // Now create the user profile
+                    try {
+                        const profileResponse = await fetch('http://localhost:3000/rest/v1/users', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U',
+                                'Authorization': `Bearer ${signupData.access_token}`
+                            },
+                            body: JSON.stringify({
+                                id: signupData.id,
+                                email: email,
+                                name: name,
+                                subscription_status: 'trial'
+                            })
+                        });
+                        
+                        const profileData = await profileResponse.json();
+                        resultDiv.innerHTML += `
+                            <h3>Profile Creation:</h3>
+                            <pre>${JSON.stringify(profileData, null, 2)}</pre>
+                        `;
+                    } catch (profileError) {
+                        resultDiv.innerHTML += `
+                            <h3>Profile Creation Error:</h3>
+                            <p>${profileError.message}</p>
+                        `;
+                    }
+                } else {
+                    resultDiv.innerHTML = `
+                        <h3>Signup Failed:</h3>
+                        <pre>${JSON.stringify(signupData, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.textContent = 'Error: ' + error.message;
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html> 

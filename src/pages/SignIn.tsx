@@ -3,6 +3,7 @@ import { Eye, EyeOff, ArrowRight, Lock, Shield, ArrowLeft, Loader2 } from "lucid
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { useSecurity } from "@/contexts/SecurityContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface FormData {
   email: string;
@@ -17,6 +18,7 @@ interface FormErrors {
 
 export default function SignIn() {
   const { sensitiveDataHandler } = useSecurity();
+  const { login } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: ""
@@ -98,22 +100,16 @@ export default function SignIn() {
       if (validateForm()) {
         setIsSubmitting(true);
         try {
-          // Sanitize and encrypt sensitive data before sending
+          // Sanitize sensitive data before sending
           const sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
           const sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(formData.password);
           
-          const { encryptedData: encryptedEmail, iv: emailIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
-          const { encryptedData: encryptedPassword, iv: passwordIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedPassword);
-          
-          // Simulate API call with encrypted data
-          await new Promise(resolve => setTimeout(() => {
-            // Use the encrypted values in the simulated API call
-            console.log('Sending encrypted data:', { encryptedEmail, emailIv, encryptedPassword, passwordIv });
-            resolve(void 0);
-          }, 1000));
+          // Attempt to login
+          await login(sanitizedEmail, sanitizedPassword);
           
           // Save encrypted email if remember me is checked
           if (rememberMe) {
+            const { encryptedData: encryptedEmail, iv: emailIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
             localStorage.setItem('lastUsedEmail', encryptedEmail);
             localStorage.setItem('lastUsedEmail_iv', emailIv);
           } else {
@@ -125,6 +121,7 @@ export default function SignIn() {
           const returnUrl = new URLSearchParams(location.search).get('returnUrl');
           navigate(returnUrl || '/dashboard');
         } catch (error) {
+          console.error('Login error:', error);
           setErrors({ general: "Invalid email or password" });
           setFailedAttempts(prev => prev + 1);
         } finally {
@@ -132,7 +129,7 @@ export default function SignIn() {
         }
       }
     },
-    [formData, validateForm, navigate, location, failedAttempts, rememberMe, sensitiveDataHandler]
+    [formData, validateForm, navigate, location, failedAttempts, rememberMe, sensitiveDataHandler, login]
   );
 
   return (

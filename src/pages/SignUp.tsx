@@ -166,32 +166,36 @@ export default function SignUp() {
     e.preventDefault();
     
     if (validateForm()) {
-      // Payment links configuration based on environment
-      const paymentLinks = {
-        test: {
-          basic: 'https://buy.stripe.com/test_4gwcPW1HN8597x64gi',
-          pro: 'https://buy.stripe.com/test_8wM5nu72799dbNm6or'
-        },
-        live: {
-          basic: 'https://buy.stripe.com/4gwcPW1HN8597x64gi',
-          pro: 'https://buy.stripe.com/8wM5nu72799dbNm6or'
-        }
-      };
-      
-      // Determine environment
-      const isTestMode = import.meta.env.VITE_STRIPE_MODE === 'test';
-      const environment = isTestMode ? 'test' : 'live';
-      
-      const selectedLink = paymentLinks[environment][formData.selectedTier as keyof typeof paymentLinks.test];
-      if (selectedLink) {
-        window.location.href = selectedLink;
-      } else {
-        setErrors({
-          general: "Invalid subscription tier selected. Please try again."
+      setIsSubmitting(true);
+      try {
+        const response = await fetch('/api/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tier: formData.selectedTier,
+            email: formData.email,
+          }),
         });
+
+        const data = await response.json();
+        
+        if (!data.success || !data.url) {
+          throw new Error(data.message || 'Failed to create checkout session');
+        }
+
+        // Redirect to Stripe Checkout
+        window.location.href = data.url;
+      } catch (error) {
+        setErrors({
+          general: error instanceof Error ? error.message : "An error occurred. Please try again."
+        });
+      } finally {
+        setIsSubmitting(false);
       }
     }
-  }, [formData, validateForm, setErrors]);
+  }, [formData, validateForm]);
 
   const handlePaymentComplete = useCallback(async (paymentResult: PaymentResult) => {
     setIsSubmitting(true);

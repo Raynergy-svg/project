@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { Check, ArrowRight, CircleX } from 'lucide-react';
+import { Check, ArrowRight, XCircle } from 'lucide-react';
 
 const steps = [
   {
@@ -126,7 +126,7 @@ export function UserOnboarding({ onComplete, subscriptionPlan = 'Premium' }: Use
                 onClick={handleSkip}
                 className="text-white/50 hover:text-white text-sm flex items-center gap-1"
               >
-                <CircleX className="w-4 h-4" />
+                <XCircle className="w-4 h-4" />
                 <span>Skip Setup</span>
               </button>
             </div>

@@ -462,7 +462,7 @@ export default function DebtManagementVisualization() {
                   <div className="flex items-center justify-between">
                     <span className="text-white/80">Years to Payoff</span>
                     <span className="text-white font-medium">{plan.yearsToPayoff} years</span>
-                  </div>
+                </div>
                   <div className="flex items-center justify-between">
                     <span className="text-white/80">Total Interest</span>
                     <span className="text-white font-medium">${plan.totalInterest.toLocaleString()}</span>
@@ -474,12 +474,12 @@ export default function DebtManagementVisualization() {
                   </div>
                 </div>
               </motion.button>
-            );
-          })}
-        </div>
+                    );
+                  })}
+                </div>
 
         {/* Amortization Chart */}
-        <motion.div
+                  <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/5 rounded-xl p-6 border border-white/10"
@@ -558,18 +558,18 @@ export default function DebtManagementVisualization() {
                 />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
+                </div>
 
           {/* Legend */}
           <div className="mt-8 flex items-center justify-center gap-8 text-sm text-white/60">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-[#88B04B]" />
               <span>Balance Over Time</span>
-            </div>
+                    </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 bg-[#88B04B]/20" />
               <span>Paid Amount</span>
-            </div>
+              </div>
           </div>
         </motion.div>
       </div>

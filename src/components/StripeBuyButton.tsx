@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { AccessibleStripeWrapper } from './subscription/AccessibleStripeWrapper';
 
 export default function StripeBuyButton() {
   const [isLoading, setIsLoading] = useState(true);
@@ -27,16 +27,16 @@ export default function StripeBuyButton() {
 
   return (
     <div className="w-full max-w-md mx-auto mt-8">
-      {isLoading ? (
-        <div className="flex items-center justify-center p-4">
-          <Loader2 className="w-6 h-6 text-[#88B04B] animate-spin" />
-        </div>
-      ) : (
+      <AccessibleStripeWrapper
+        id="stripe-buy-button-wrapper"
+        isLoading={isLoading}
+        loadingText="Loading payment options..."
+      >
         <stripe-buy-button
           buy-button-id="buy_btn_1QvD6LHIL3HWxjaBRT0tTREh"
           publishable-key="pk_test_51QsepMHIL3HWxjaBWWqTKCYxlHFwe74XXP9DxxNARoEAPdjwjRfPNxzgAKNaPpcEcfY2c7nQc5LUWJsCUiTl9yJX0086z99MwV"
         ></stripe-buy-button>
-      )}
+      </AccessibleStripeWrapper>
     </div>
   );
 } 

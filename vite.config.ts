@@ -25,7 +25,7 @@ const sslCertificates = loadSSLCertificates();
 const generateCSP = (mode: string) => {
   const directives = {
     'default-src': ["'self'"],
-    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
+    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://cdn.plaid.com"],
     'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
     'img-src': ["'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://raw.githubusercontent.com', 'https://*.cloudflare.com', 'https://images.unsplash.com'],
     'font-src': ["'self'", 'https://fonts.gstatic.com'],
@@ -41,9 +41,10 @@ const generateCSP = (mode: string) => {
       'https://localhost:*',
       'ws://localhost:*',
       'wss://localhost:*',
-      'https://api.stripe.com'
+      'https://api.stripe.com',
+      'https://*.plaid.com'
     ],
-    'frame-src': ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+    'frame-src': ["'self'", "https://js.stripe.com", "https://hooks.stripe.com", "https://cdn.plaid.com"],
     'media-src': ["'self'"],
     'object-src': ["'none'"],
     'base-uri': ["'self'"]

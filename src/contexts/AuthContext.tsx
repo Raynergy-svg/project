@@ -45,6 +45,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const loadUser = () => {
       try {
+        // For localhost development, automatically authenticate
+        if (window.location.hostname === 'localhost') {
+          const mockUser = {
+            id: 'dev-user',
+            email: 'dev@example.com',
+            name: 'Developer',
+            isPremium: true,
+            createdAt: new Date().toISOString(),
+            subscription: {
+              status: 'active',
+              planName: 'Pro',
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            }
+          };
+          setUser(mockUser);
+          localStorage.setItem('user', JSON.stringify(mockUser));
+          setIsLoading(false);
+          return;
+        }
+
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
           const userData = JSON.parse(storedUser);

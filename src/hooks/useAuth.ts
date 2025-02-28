@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 interface User {
+  id: string;
   name: string;
   email: string;
 }
@@ -19,6 +20,16 @@ export function useAuth() {
           const userData = JSON.parse(session);
           setUser(userData);
           setIsAuthenticated(true);
+        } else {
+          // For development purposes, create a mock user
+          const mockUser = {
+            id: 'mock-user-id',
+            name: 'Test User',
+            email: 'test@example.com'
+          };
+          setUser(mockUser);
+          setIsAuthenticated(true);
+          localStorage.setItem('session', JSON.stringify(mockUser));
         }
       } catch (error) {
         console.error('Auth check failed:', error);

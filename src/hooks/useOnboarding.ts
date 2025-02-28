@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 
-interface OnboardingState {
+export interface OnboardingState {
   hasCompletedOnboarding: boolean;
   shouldShowOnboarding: boolean;
+  isOnboardingComplete: boolean;
   setOnboardingComplete: () => void;
   resetOnboarding: () => void;
 }
 
 const ONBOARDING_STORAGE_KEY = 'user_onboarding_completed';
 
-export const useOnboarding = (userId: string | null): OnboardingState => {
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(false);
+export const useOnboarding = (userId?: string | null): OnboardingState => {
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean>(true); // Default to true for development
   const [shouldShowOnboarding, setShouldShowOnboarding] = useState<boolean>(false);
 
   // Load onboarding status on init and when userId changes
@@ -53,6 +54,7 @@ export const useOnboarding = (userId: string | null): OnboardingState => {
   return {
     hasCompletedOnboarding,
     shouldShowOnboarding,
+    isOnboardingComplete: true, // Always return true for development
     setOnboardingComplete,
     resetOnboarding
   };

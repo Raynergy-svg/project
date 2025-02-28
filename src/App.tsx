@@ -117,6 +117,7 @@ function App() {
   // Show onboarding tour for new users
   const shouldShowTour = !localStorage.getItem("onboardingCompleted");
   const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
+  const isDashboardPage = location.pathname.startsWith('/dashboard');
 
   return (
     <ErrorBoundary>
@@ -125,7 +126,7 @@ function App() {
           <AuthProvider>
             <Layout>
               {shouldShowTour && <OnboardingTour />}
-              {!isAuthPage && <AppNavbar />}
+              {!isAuthPage && !isDashboardPage && <AppNavbar />}
               <Suspense
                 fallback={
                   <div className="flex items-center justify-center min-h-[50vh]">

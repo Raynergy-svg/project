@@ -11,7 +11,7 @@ const subscriptionTiers = [
   {
     id: "basic",
     name: "Basic",
-    price: "Free for 7 days, then $9.99/mo",
+    price: "Free for 7 days, then $20/mo",
     description: "Essential tools to start your debt-free journey with a 7-day free trial",
     features: [
       "7-day free trial",
@@ -21,12 +21,12 @@ const subscriptionTiers = [
       "Basic spending insights",
       "Limited AI Tokens (100/mo)"
     ],
-    paymentLink: 'https://buy.stripe.com/test_4gwcPW1HN8597x64gi'
+    paymentLink: 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ'
   },
   {
     id: "pro",
     name: "Pro",
-    price: "$19.99/mo",
+    price: "$50/mo",
     description: "Advanced features for faster debt elimination",
     recommended: true,
     features: [
@@ -36,7 +36,7 @@ const subscriptionTiers = [
       "Deep financial insights",
       "Unlimited AI Tokens"
     ],
-    paymentLink: 'https://buy.stripe.com/test_8wM5nu72799dbNm6or'
+    paymentLink: 'https://buy.stripe.com/6oE7tnbPrfDecogfYY'
   }
 ];
 

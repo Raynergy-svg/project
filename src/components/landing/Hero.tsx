@@ -9,40 +9,29 @@ import type { SubscriptionTier } from "@/types";
 const tiers: SubscriptionTier[] = [
   {
     name: "Basic",
-    price: 0,
+    price: 20,
     features: [
-      "Basic Budget Analyzer",
-      "Simple Debt Repayment Plans",
-      "Expense Tracking",
-      "Monthly Financial Reports",
+      "7-day free trial",
+      "Basic debt calculator",
+      "Single debt strategy",
+      "Monthly payment tracking",
+      "Basic spending insights",
+      "Limited AI Tokens (100/mo)"
     ],
   },
   {
-    name: "Premium",
-    price: 19.99,
+    name: "Pro",
+    price: 50,
     features: [
-      "Advanced Budget Analysis",
-      "AI-Powered Debt Strategies",
-      "Credit Score Tracking",
-      "Investment Recommendations",
-      "Custom Repayment Plans",
-      "Priority Support",
+      "Advanced debt calculator",
+      "All debt strategies",
+      "Real-time payment tracking",
+      "Deep financial insights",
+      "Unlimited AI Tokens",
+      "Priority Support"
     ],
     isPopular: true,
-  },
-  {
-    name: "Enterprise",
-    price: 29.99,
-    features: [
-      "All Premium Features",
-      "Dedicated Account Manager",
-      "Custom API Integration",
-      "Team Collaboration Tools",
-      "Advanced Analytics",
-      "White-label Solutions",
-      "24/7 Priority Support",
-    ],
-  },
+  }
 ];
 
 interface HeroProps {

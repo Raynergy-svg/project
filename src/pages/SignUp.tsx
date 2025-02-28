@@ -51,7 +51,7 @@ const subscriptionTiers: SubscriptionTier[] = [
   {
     id: "basic",
     name: "Basic",
-    price: "Free for 7 days, then $9.99/mo",
+    price: "Free for 7 days, then $20/mo",
     description: "Essential tools to start your debt-free journey with AI-powered insights",
     features: [
       "AI-powered debt analysis",
@@ -66,7 +66,7 @@ const subscriptionTiers: SubscriptionTier[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "$19.99/mo",
+    price: "$50/mo",
     description: "Advanced features and unlimited AI assistance for faster debt elimination",
     recommended: true,
     features: [

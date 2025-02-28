@@ -89,7 +89,7 @@ const Pricing = lazy(() => {
                   className="bg-white/5 p-6 rounded-xl border border-white/10"
                 >
                   <h3 className="text-2xl font-bold text-white mb-2">Basic Plan</h3>
-                  <p className="text-gray-300 mb-4">Free for 7 days, then $9.99/mo</p>
+                  <p className="text-gray-300 mb-4">Free for 7 days, then $20/mo</p>
                   <Button
                     onClick={() => onGetStarted('basic')}
                     className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white py-3 rounded-lg"
@@ -103,7 +103,7 @@ const Pricing = lazy(() => {
                   className="bg-white/5 p-6 rounded-xl border border-white/10"
                 >
                   <h3 className="text-2xl font-bold text-white mb-2">Pro Plan</h3>
-                  <p className="text-gray-300 mb-4">$19.99/mo</p>
+                  <p className="text-gray-300 mb-4">$50/mo</p>
                   <Button
                     onClick={() => onGetStarted('pro')}
                     className="w-full bg-white/10 text-white py-3 rounded-lg border-2 border-white/20 hover:bg-white/20"

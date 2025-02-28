@@ -1,9 +1,19 @@
 export interface User {
   id: string;
   email: string;
+  emailIv?: string;
+  name?: string;
+  nameIv?: string;
   isPremium: boolean;
   trialEndsAt: string | null;
   createdAt: string;
+}
+
+export interface SignUpData {
+  email: string;
+  name: string;
+  password: string;
+  subscriptionId?: string;
 }
 
 export interface Budget {

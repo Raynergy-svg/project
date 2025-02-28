@@ -1,8 +1,8 @@
-const express = require("express");
-const cors = require("cors");
-const dotenv = require("dotenv");
-const { createServer } = require("http");
-const Stripe = require("stripe");
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import { createServer } from "http";
+import Stripe from "stripe";
 
 // Load environment variables
 dotenv.config();
@@ -21,8 +21,10 @@ app.use(express.json());
 app.post("/api/create-checkout-session", async (req, res) => {
   try {
     const { tier, email } = req.body;
+    console.log("Received request:", { tier, email });
 
     if (!tier || !email) {
+      console.log("Missing parameters:", { tier, email });
       return res.status(400).json({
         success: false,
         message: "Missing required parameters",
@@ -35,13 +37,23 @@ app.post("/api/create-checkout-session", async (req, res) => {
       pro: process.env.VITE_STRIPE_PRO_PRICE_ID,
     };
 
+    console.log("Price IDs:", prices);
     const priceId = prices[tier];
+
     if (!priceId) {
+      console.log("Invalid tier or missing price ID:", { tier, priceId });
       return res.status(400).json({
         success: false,
-        message: "Invalid subscription tier",
+        message: "Invalid subscription tier or missing price ID",
       });
     }
+
+    console.log("Creating checkout session with:", {
+      priceId,
+      email,
+      successUrl: `${process.env.VITE_APP_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${process.env.VITE_APP_URL}/signup`,
+    });
 
     // Create Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -61,16 +73,25 @@ app.post("/api/create-checkout-session", async (req, res) => {
       },
     });
 
+    console.log("Checkout session created:", {
+      sessionId: session.id,
+      url: session.url,
+    });
+
     res.json({
       success: true,
       sessionId: session.id,
       url: session.url,
     });
   } catch (error) {
-    console.error("Error creating checkout session:", error);
+    console.error("Error creating checkout session:", {
+      error: error.message,
+      stack: error.stack,
+      stripeError: error.raw, // Stripe errors have additional details in .raw
+    });
     res.status(500).json({
       success: false,
-      message: "Error creating checkout session",
+      message: error.message || "Error creating checkout session",
     });
   }
 });

@@ -19,7 +19,7 @@ export const SUBSCRIPTION_PLANS = {
   BASIC: {
     priceId: 'price_basic',
     name: 'Basic',
-    price: '$9.99/mo',
+    price: '$20/mo',
     features: [
       'Basic debt calculator',
       'Single debt strategy',
@@ -31,7 +31,7 @@ export const SUBSCRIPTION_PLANS = {
   PRO: {
     priceId: 'price_pro',
     name: 'Pro',
-    price: '$19.99/mo',
+    price: '$50/mo',
     features: [
       'Advanced debt calculator',
       'All debt strategies',
@@ -115,12 +115,12 @@ export async function getSubscriptionStatus(subscriptionId: string): Promise<str
 // Payment link configuration
 export const PAYMENT_LINKS = {
   test: {
-    basic: 'https://buy.stripe.com/test_4gwcPW1HN8597x64gi',
+    basic: 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ',
     pro: 'https://buy.stripe.com/test_8wM5nu72799dbNm6or'
   },
   live: {
-    basic: 'https://buy.stripe.com/4gwcPW1HN8597x64gi',
-    pro: 'https://buy.stripe.com/8wM5nu72799dbNm6or'
+    basic: 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ',
+    pro: 'https://buy.stripe.com/6oE7tnbPrfDecogfYY'
   }
 };
 

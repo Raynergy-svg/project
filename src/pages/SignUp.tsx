@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { userSchema } from '@/lib/utils/validation';
 import { z } from 'zod';
 import { useSecurity } from '@/contexts/SecurityContext';
+import type { SignUpData } from '@/types';
 
 interface SubscriptionTier {
   id: string;
@@ -37,6 +38,13 @@ interface FormErrors {
 interface PaymentResult {
   subscriptionId: string;
   oneTimePaymentIntentId?: string;
+}
+
+interface CheckoutResponse {
+  success: boolean;
+  sessionId?: string;
+  url?: string;
+  message?: string;
 }
 
 const subscriptionTiers: SubscriptionTier[] = [
@@ -168,7 +176,7 @@ export default function SignUp() {
     if (validateForm()) {
       setIsSubmitting(true);
       try {
-        const response = await fetch('/api/create-checkout-session', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -179,7 +187,7 @@ export default function SignUp() {
           }),
         });
 
-        const data = await response.json();
+        const data: CheckoutResponse = await response.json();
         
         if (!data.success || !data.url) {
           throw new Error(data.message || 'Failed to create checkout session');
@@ -212,11 +220,8 @@ export default function SignUp() {
       // Register user with subscription and encrypted data
       await signup({
         email: (await encryptedEmail).encryptedData,
-        emailIv: (await encryptedEmail).iv,
         name: (await encryptedName).encryptedData,
-        nameIv: (await encryptedName).iv,
         password: (await encryptedPassword).encryptedData,
-        passwordIv: (await encryptedPassword).iv,
         subscriptionId: paymentResult.subscriptionId
       });
       

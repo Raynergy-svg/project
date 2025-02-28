@@ -176,25 +176,21 @@ export default function SignUp() {
     if (validateForm()) {
       setIsSubmitting(true);
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/create-checkout-session`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tier: formData.selectedTier,
-            email: formData.email,
-          }),
-        });
+        // Use direct Stripe payment link based on selected tier
+        const paymentLink = formData.selectedTier === 'basic' 
+          ? 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ'  // Basic plan link
+          : 'https://buy.stripe.com/6oE7tnbPrfDecogfYY'; // Pro plan link
 
-        const data: CheckoutResponse = await response.json();
-        
-        if (!data.success || !data.url) {
-          throw new Error(data.message || 'Failed to create checkout session');
-        }
+        // Store form data in localStorage for retrieval after payment
+        localStorage.setItem('pendingSignup', JSON.stringify({
+          email: formData.email,
+          name: formData.name,
+          password: formData.password,
+          selectedTier: formData.selectedTier
+        }));
 
-        // Redirect to Stripe Checkout
-        window.location.href = data.url;
+        // Redirect to Stripe payment page
+        window.location.href = paymentLink;
       } catch (error) {
         setErrors({
           general: error instanceof Error ? error.message : "An error occurred. Please try again."

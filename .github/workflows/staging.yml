@@ -17,7 +17,7 @@ jobs:
       STAGING_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: supabase/setup-cli@v1
         with:

@@ -94,7 +94,7 @@ const Pricing = lazy(() => {
                     onClick={() => onGetStarted('basic')}
                     className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white py-3 rounded-lg"
                   >
-                    Start Free Trial
+                    Become Debt Free
                   </Button>
                 </motion.div>
                 <motion.div

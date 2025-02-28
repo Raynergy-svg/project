@@ -106,7 +106,7 @@ export default function Pricing({ onGetStarted }: PricingProps) {
                   : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
               }`}
             >
-              {tier.id === 'basic' ? 'Start Free Trial' : 'Get Started'}
+              {tier.id === 'basic' ? 'Become Debt Free' : 'Get Started'}
             </Button>
           </motion.div>
         ))}

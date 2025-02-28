@@ -421,7 +421,7 @@ export default function SignUp() {
                   </>
                 ) : (
                   <>
-                    Start Free Trial
+                    Become Debt Free
                     <ArrowRight size={16} />
                   </>
                 )}

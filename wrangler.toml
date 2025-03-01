@@ -3,6 +3,9 @@ main = "src/worker.js"
 compatibility_date = "2024-02-22"
 workers_dev = true
 
+# Configure logs for better debugging
+log_level = "debug"
+
 [assets]
 directory = "dist"
 
@@ -24,6 +27,11 @@ STRIPE_MODE = "test"
 S3_REGION = "local"
 SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
 
+# Development configuration
+[dev]
+port = 8787
+local_protocol = "http"
+
 # The following secrets should be set using:
 # npx wrangler secret put SECRET_NAME
 # - SUPABASE_URL
@@ -38,5 +46,4 @@ SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
 
 [build]
 command = "npm run build"
-watch_dir = "src"
-upload.format = "service-worker" 
+watch_dir = "src" 

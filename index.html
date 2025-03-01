@@ -8,10 +8,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://js.stripe.com https://cdn.plaid.com;
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      img-src 'self' data: blob: https://*.supabase.co https://raw.githubusercontent.com https://*.cloudflare.com https://images.unsplash.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://js.stripe.com https://cdn.plaid.com https://*.hcaptcha.com https://hcaptcha.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.hcaptcha.com https://hcaptcha.com;
+      style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.hcaptcha.com https://hcaptcha.com;
+      img-src 'self' data: blob: https://*.supabase.co https://raw.githubusercontent.com https://*.cloudflare.com https://images.unsplash.com https://*.hcaptcha.com https://hcaptcha.com;
       font-src 'self' https://fonts.gstatic.com;
       connect-src 'self' 
         https://*.supabase.co
@@ -20,8 +20,10 @@
         https://fonts.googleapis.com
         https://fonts.gstatic.com
         https://*.cloudflareinsights.com
-        https://*.plaid.com;
-      frame-src 'self' https://cdn.plaid.com https://js.stripe.com;
+        https://*.plaid.com
+        https://*.hcaptcha.com
+        https://hcaptcha.com;
+      frame-src 'self' https://cdn.plaid.com https://js.stripe.com https://*.hcaptcha.com https://hcaptcha.com;
       media-src 'self';
       object-src 'none';
       base-uri 'self';" />
@@ -34,6 +36,14 @@
     
     <!-- Preconnect to Plaid domain -->
     <link rel="preconnect" href="https://cdn.plaid.com" crossorigin />
+
+    <!-- Preconnect to hCaptcha domains -->
+    <link rel="preconnect" href="https://hcaptcha.com" crossorigin />
+    <link rel="preconnect" href="https://assets.hcaptcha.com" crossorigin />
+    <link rel="preconnect" href="https://newassets.hcaptcha.com" crossorigin />
+    
+    <!-- Load hCaptcha API script -->
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
     
     <!-- Primary Meta Tags -->
     <title>Smart Debt Flow - Get Debt-Free Faster</title>

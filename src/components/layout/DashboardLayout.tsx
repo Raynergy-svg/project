@@ -17,13 +17,16 @@ import {
   X,
   TrendingDown,
   Sparkles,
-  Wallet
+  Wallet,
+  Calculator
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from './Header';
 import { DebtProjection } from '@/components/dashboard/DebtProjection';
 import { BudgetOptimizer } from '@/components/dashboard/BudgetOptimizer';
 import { SavingsOpportunities } from '@/components/dashboard/SavingsOpportunities';
+import { DebtPayoffCalculator } from '@/components/dashboard/DebtPayoffCalculator';
+import { useDashboard } from '@/hooks/useDashboard';
 
 interface NavItem {
   name: string;
@@ -45,6 +48,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { dashboardState, handleAdjustBudget } = useDashboard();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -108,6 +112,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Overview', id: 'overview', icon: Home },
     { name: 'Debt Projection', id: 'debt-projection', icon: TrendingDown },
     { name: 'Budget Optimizer', id: 'budget-optimizer', icon: Sparkles },
+    { name: 'Payoff Calculator', id: 'payoff-calculator', icon: Calculator },
     { name: 'Savings', id: 'savings-opportunities', icon: Wallet },
   ];
 
@@ -302,40 +307,51 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <>
                 {activeSection === 'overview' && children}
                 {activeSection === 'debt-projection' && (
-                  <div className="space-y-6">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-6 rounded-2xl bg-gradient-to-br from-black/60 to-black/40 border border-white/10 backdrop-blur-sm shadow-xl"
-                    >
-                      <h2 className="text-2xl font-bold text-white mb-4">Debt Projection</h2>
-                      <DebtProjection />
-                    </motion.div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h1 className="text-2xl font-bold text-white mb-6">Debt Projection</h1>
+                    <DebtProjection />
+                  </motion.div>
                 )}
                 {activeSection === 'budget-optimizer' && (
-                  <div className="space-y-6">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-6 rounded-2xl bg-gradient-to-br from-black/60 to-black/40 border border-white/10 backdrop-blur-sm shadow-xl"
-                    >
-                      <h2 className="text-2xl font-bold text-white mb-4">Budget Optimizer</h2>
-                      <BudgetOptimizer />
-                    </motion.div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h1 className="text-2xl font-bold text-white mb-6">Budget Optimizer</h1>
+                    <BudgetOptimizer 
+                      dashboardState={dashboardState} 
+                      onAdjustBudget={handleAdjustBudget} 
+                    />
+                  </motion.div>
+                )}
+                {activeSection === 'payoff-calculator' && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h1 className="text-2xl font-bold text-white mb-6">Debt Payoff Calculator</h1>
+                    <DebtPayoffCalculator />
+                  </motion.div>
                 )}
                 {activeSection === 'savings-opportunities' && (
-                  <div className="space-y-6">
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-6 rounded-2xl bg-gradient-to-br from-black/60 to-black/40 border border-white/10 backdrop-blur-sm shadow-xl"
-                    >
-                      <h2 className="text-2xl font-bold text-white mb-4">Savings Opportunities</h2>
-                      <SavingsOpportunities />
-                    </motion.div>
-                  </div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <h1 className="text-2xl font-bold text-white mb-6">Savings Opportunities</h1>
+                    <SavingsOpportunities />
+                  </motion.div>
                 )}
               </>
             )}

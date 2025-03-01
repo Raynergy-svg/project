@@ -81,6 +81,19 @@ export function BudgetOptimizer({ dashboardState, onAdjustBudget }: BudgetOptimi
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+  // Add a function to apply all budget changes at once
+  const handleApplyChanges = () => {
+    // Apply all recommended amounts to the dashboard state
+    allocations.forEach(category => {
+      onAdjustBudget(category.name, category.recommendedAmount);
+    });
+    
+    // Show a success message or notification (in a real app)
+    console.log('Applied optimized budget changes');
+    
+    // You could add a toast notification here in a real app
+  };
+
   if (isLoading) {
     return (
       <motion.div
@@ -299,12 +312,55 @@ export function BudgetOptimizer({ dashboardState, onAdjustBudget }: BudgetOptimi
               Save ${potentialSavings} monthly with these optimizations
             </p>
           </div>
-          <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center space-x-2">
+          <button 
+            onClick={handleApplyChanges}
+            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors flex items-center space-x-2"
+          >
             <span>Apply Changes</span>
             <Sparkles className="h-4 w-4" />
           </button>
         </div>
       </motion.div>
+
+      {selectedCategory === category.name && (
+        <div className="mt-4 pl-10">
+          <div className="mb-4">
+            <div className="flex justify-between mb-2">
+              <span className="text-sm text-white/70">Current: ${category.currentAmount}</span>
+              <span className={`text-sm ${
+                category.recommendedAmount < category.currentAmount ? 'text-purple-400' : 'text-white/70'
+              }`}>Recommended: ${category.recommendedAmount}</span>
+            </div>
+            <Slider
+              defaultValue={[category.recommendedAmount]}
+              max={Math.max(category.currentAmount * 1.5, 1000)}
+              step={10}
+              onValueChange={(value) => handleAllocationChange(category.id, value)}
+              className="my-4"
+            />
+            <div className="flex justify-between text-xs text-white/50">
+              <span>$0</span>
+              <span>${Math.round(Math.max(category.currentAmount * 1.5, 1000))}</span>
+            </div>
+          </div>
+          <p className="text-white/70 text-sm mb-3">
+            {category.recommendedAmount < category.currentAmount 
+              ? `Reducing your ${category.name.toLowerCase()} budget by $${Math.round(category.currentAmount - category.recommendedAmount)} could help you save more.`
+              : `Increasing your ${category.name.toLowerCase()} budget by $${Math.round(category.recommendedAmount - category.currentAmount)} may be necessary based on your spending patterns.`
+            }
+          </p>
+          <Button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedCategory(null);
+            }}
+            variant="outline"
+            className="bg-white/10 text-white/70 hover:bg-white/20"
+          >
+            Close
+          </Button>
+        </div>
+      )}
     </div>
   );
 } 

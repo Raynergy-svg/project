@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { TrendingDown, ArrowRight, Calendar, DollarSign } from 'lucide-react';
 import { useDashboardAnalytics } from '@/hooks/useDashboardAnalytics';
 import { formatCurrency } from '@/lib/utils';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 export function DebtProjection() {
   const [activeStrategy, setActiveStrategy] = useState<'standard' | 'accelerated' | 'optimized'>('optimized');
@@ -44,6 +45,13 @@ export function DebtProjection() {
       </div>
     );
   }
+  
+  // Format projection data for the chart
+  const chartData = analytics.projections.map(projection => ({
+    name: projection.month,
+    standard: projection.amount,
+    optimized: projection.withOptimization,
+  }));
   
   return (
     <div className="space-y-6">
@@ -148,15 +156,59 @@ export function DebtProjection() {
           </div>
         </div>
         
-        {/* Chart Placeholder */}
-        <div className="h-64 w-full bg-black/20 rounded-lg flex items-center justify-center">
-          <div className="text-center">
-            <TrendingDown className="h-12 w-12 text-[#88B04B]/50 mx-auto mb-2" />
-            <p className="text-white/60">Debt projection chart will be displayed here</p>
-            <p className="text-white/40 text-sm mt-2">
-              {analytics.projections.length} months of projection data available
-            </p>
-          </div>
+        {/* Real Chart Implementation */}
+        <div className="h-64 w-full rounded-lg">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={chartData}
+              margin={{
+                top: 5,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis 
+                dataKey="name" 
+                stroke="rgba(255,255,255,0.5)"
+                tick={{ fill: 'rgba(255,255,255,0.7)' }}
+              />
+              <YAxis 
+                stroke="rgba(255,255,255,0.5)"
+                tick={{ fill: 'rgba(255,255,255,0.7)' }}
+                tickFormatter={(value) => `$${value.toLocaleString()}`}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'rgba(0,0,0,0.8)', 
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '8px',
+                  color: 'white'
+                }}
+                formatter={(value) => [`$${Number(value).toLocaleString()}`, '']}
+              />
+              <Legend 
+                wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="standard" 
+                stroke="#4299e1" 
+                strokeWidth={2}
+                activeDot={{ r: 8 }}
+                name="Standard Plan"
+              />
+              <Line 
+                type="monotone" 
+                dataKey="optimized" 
+                stroke="#88B04B" 
+                strokeWidth={2}
+                activeDot={{ r: 8 }}
+                name="Optimized Plan"
+              />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
         
         {/* Legend */}

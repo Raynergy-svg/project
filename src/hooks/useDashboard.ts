@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { Debt } from '@/lib/dashboardConstants';
 
+// Define types for budget data
+interface BudgetCategory {
+  name: string;
+  allocated: number;
+  spent: number;
+  color: string;
+}
+
+interface MonthlySpending {
+  month: string;
+  amount: number;
+}
+
 export interface DashboardState {
   totalDebt: number;
   monthlyChange: number;
@@ -17,6 +30,11 @@ export interface DashboardState {
     confidence: number;
   }>;
   isAIEnabled: boolean;
+  // Budget-related properties
+  budgetCategories: BudgetCategory[];
+  monthlySpending: MonthlySpending[];
+  totalBudget: number;
+  totalSpent: number;
 }
 
 export function useDashboard() {
@@ -30,7 +48,12 @@ export function useDashboard() {
     aiOptimizationScore: 0,
     debtBreakdown: [],
     insights: [],
-    isAIEnabled: true
+    isAIEnabled: true,
+    // Initialize budget-related properties
+    budgetCategories: [],
+    monthlySpending: [],
+    totalBudget: 0,
+    totalSpent: 0
   });
 
   const fetchDashboardData = async () => {
@@ -41,17 +64,17 @@ export function useDashboard() {
       const mockData: DashboardState = {
         totalDebt: 45000,
         monthlyChange: -1200,
-        debtToIncomeRatio: 0.45,
+        debtToIncomeRatio: 45,
         aiOptimizationScore: 85,
         debtBreakdown: [
           {
-            category: 'CREDIT_CARD',
+            category: 'Credit Card',
             amount: 15000,
             interestRate: 0.1499,
             minimumPayment: 450
           },
           {
-            category: 'STUDENT_LOAN',
+            category: 'Student Loan',
             amount: 30000,
             interestRate: 0.0599,
             minimumPayment: 350
@@ -74,7 +97,50 @@ export function useDashboard() {
             confidence: 0.95
           }
         ],
-        isAIEnabled: true
+        isAIEnabled: true,
+        // Mock budget data
+        budgetCategories: [
+          {
+            name: 'Housing',
+            allocated: 1500,
+            spent: 1450,
+            color: '#88B04B'
+          },
+          {
+            name: 'Transportation',
+            allocated: 400,
+            spent: 385,
+            color: '#6A8F3D'
+          },
+          {
+            name: 'Food',
+            allocated: 600,
+            spent: 720,
+            color: '#4A6B2F'
+          },
+          {
+            name: 'Utilities',
+            allocated: 300,
+            spent: 275,
+            color: '#2D4D1E'
+          },
+          {
+            name: 'Entertainment',
+            allocated: 200,
+            spent: 310,
+            color: '#1E3311'
+          }
+        ],
+        monthlySpending: [
+          { month: 'Jan', amount: 2800 },
+          { month: 'Feb', amount: 3100 },
+          { month: 'Mar', amount: 2950 },
+          { month: 'Apr', amount: 3200 },
+          { month: 'May', amount: 2900 },
+          { month: 'Jun', amount: 3140 }
+        ],
+        totalBudget: 3000,
+        totalSpent: 3140
       };
 
       setDashboardState(mockData);
@@ -119,6 +185,17 @@ export function useDashboard() {
     console.log('Scheduling payment:', { amount, date });
   };
 
+  // New budget-related functions
+  const handleCreateBudget = () => {
+    // TODO: Implement create budget functionality
+    console.log('Creating new budget');
+  };
+
+  const handleAdjustBudget = (category: string) => {
+    // TODO: Implement adjust budget functionality
+    console.log('Adjusting budget for category:', category);
+  };
+
   return {
     isLoading,
     error,
@@ -127,6 +204,8 @@ export function useDashboard() {
     handleAddDebt,
     handleViewDebtDetails,
     handleApplyRecommendation,
-    handleSchedulePayment
+    handleSchedulePayment,
+    handleCreateBudget,
+    handleAdjustBudget
   };
 } 

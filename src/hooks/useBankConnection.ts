@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { usePlaidLink } from 'react-plaid-link';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface BankAccount {
@@ -12,6 +11,17 @@ interface BankAccount {
   accountNumber: string;
 }
 
+// Additional interface for the connectAccount function
+interface ConnectAccountParams {
+  id: string;
+  institutionName: string;
+  accountType: string;
+  accountName: string;
+  balance: number;
+  lastUpdated: Date;
+  status: string;
+}
+
 interface UseBankConnectionReturn {
   accounts: BankAccount[];
   isLoading: boolean;
@@ -19,7 +29,39 @@ interface UseBankConnectionReturn {
   openBankConnection: () => void;
   refreshAccounts: () => Promise<void>;
   disconnectAccount: (accountId: string) => Promise<void>;
+  connectAccount: (accountData: ConnectAccountParams) => void;
 }
+
+// Mock bank accounts data
+const mockAccounts: BankAccount[] = [
+  {
+    id: 'acc-1',
+    name: 'Chase Checking',
+    type: 'checking',
+    balance: 2500,
+    lastUpdated: new Date(),
+    institution: 'Chase',
+    accountNumber: '****1234'
+  },
+  {
+    id: 'acc-2',
+    name: 'Chase Savings',
+    type: 'savings',
+    balance: 10000,
+    lastUpdated: new Date(),
+    institution: 'Chase',
+    accountNumber: '****5678'
+  },
+  {
+    id: 'acc-3',
+    name: 'Amex Credit Card',
+    type: 'credit',
+    balance: -1500,
+    lastUpdated: new Date(),
+    institution: 'American Express',
+    accountNumber: '****9012'
+  }
+];
 
 export function useBankConnection(): UseBankConnectionReturn {
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
@@ -27,94 +69,84 @@ export function useBankConnection(): UseBankConnectionReturn {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Initialize Plaid Link
-  const { open: openPlaid, ready } = usePlaidLink({
-    token: null, // You'll need to get this from your backend
-    onSuccess: async (public_token, metadata) => {
-      try {
-        setIsLoading(true);
-        // Exchange public token for access token on your backend
-        const response = await fetch('/api/exchange-token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            public_token,
-            userId: user?.id,
-            metadata 
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to connect bank account');
-        }
-
-        await refreshAccounts();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to connect bank account');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    onExit: (err, metadata) => {
-      if (err) setError(err.message);
-    },
-  });
-
+  // Mock function to open bank connection
   const openBankConnection = useCallback(() => {
-    if (ready) {
-      openPlaid();
-    }
-  }, [ready, openPlaid]);
+    console.log('Opening bank connection for user:', user?.id);
+    // In a real app, this would open Plaid Link
+    // For demo purposes, we'll just log it
+  }, [user?.id]);
 
+  // Mock function to refresh accounts
   const refreshAccounts = useCallback(async () => {
-    if (!user?.id) return;
-
+    console.log('Refreshing accounts for user:', user?.id);
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      const response = await fetch('/api/accounts', {
-        headers: {
-          'Authorization': `Bearer ${user.id}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch accounts');
-      }
-
-      const data = await response.json();
-      setAccounts(data.accounts);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // For demo purposes, use mock data
+      setAccounts(mockAccounts);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch accounts');
+      setError('Failed to refresh accounts');
+      console.error('Error refreshing accounts:', err);
     } finally {
       setIsLoading(false);
     }
+    
+    return Promise.resolve();
   }, [user?.id]);
 
+  // Mock function to disconnect an account
   const disconnectAccount = useCallback(async (accountId: string) => {
-    if (!user?.id) return;
-
+    console.log('Disconnecting account:', accountId);
+    setIsLoading(true);
+    
     try {
-      setIsLoading(true);
-      const response = await fetch(`/api/accounts/${accountId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${user.id}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to disconnect account');
-      }
-
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Remove the account from state
       setAccounts(prev => prev.filter(acc => acc.id !== accountId));
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to disconnect account');
+      setError('Failed to disconnect account');
+      console.error('Error disconnecting account:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id]);
+    
+    return Promise.resolve();
+  }, []);
+
+  // Mock function to connect a new account
+  const connectAccount = useCallback((accountData: ConnectAccountParams) => {
+    console.log('Connecting new account:', accountData);
+    setIsLoading(true);
+    
+    try {
+      // Convert the account data to our internal format
+      const newAccount: BankAccount = {
+        id: accountData.id,
+        name: accountData.accountName,
+        type: accountData.accountType as 'checking' | 'savings' | 'credit',
+        balance: accountData.balance,
+        lastUpdated: accountData.lastUpdated,
+        institution: accountData.institutionName,
+        accountNumber: `****${Math.floor(1000 + Math.random() * 9000)}`
+      };
+      
+      // Add the new account to state
+      setAccounts(prev => [...prev, newAccount]);
+      setError(null);
+    } catch (err) {
+      setError('Failed to connect account');
+      console.error('Error connecting account:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   return {
     accounts,
@@ -123,5 +155,6 @@ export function useBankConnection(): UseBankConnectionReturn {
     openBankConnection,
     refreshAccounts,
     disconnectAccount,
+    connectAccount
   };
 } 

@@ -63,11 +63,13 @@ export function useDashboardAnalytics() {
         const monthsSaved = 12; // 1 year saved
         
         // Calculate interest saved
-        const totalDebt = dashboardState.totalDebt;
-        const avgInterestRate = dashboardState.debtBreakdown.reduce(
-          (sum, debt) => sum + debt.interestRate * debt.amount, 
-          0
-        ) / totalDebt;
+        const totalDebt = dashboardState.totalDebt || 0;
+        const avgInterestRate = totalDebt > 0 && dashboardState.debtBreakdown && dashboardState.debtBreakdown.length > 0
+          ? dashboardState.debtBreakdown.reduce(
+              (sum, debt) => sum + debt.interestRate * debt.amount, 
+              0
+            ) / totalDebt
+          : 0;
         
         const interestSaved = totalDebt * avgInterestRate * (monthsSaved / 12);
         
@@ -96,15 +98,23 @@ export function useDashboardAnalytics() {
         }
         
         // Determine best debt to target
-        const highestInterestDebt = [...dashboardState.debtBreakdown].sort(
-          (a, b) => b.interestRate - a.interestRate
-        )[0];
+        const highestInterestDebt = dashboardState.debtBreakdown && dashboardState.debtBreakdown.length > 0 
+          ? [...dashboardState.debtBreakdown].sort(
+              (a, b) => b.interestRate - a.interestRate
+            )[0]
+          : null;
         
-        const bestDebtToTarget = {
-          category: highestInterestDebt.category,
-          reason: 'Highest interest rate',
-          impact: highestInterestDebt.amount * highestInterestDebt.interestRate
-        };
+        const bestDebtToTarget = highestInterestDebt 
+          ? {
+              category: highestInterestDebt.category,
+              reason: 'Highest interest rate',
+              impact: highestInterestDebt.amount * highestInterestDebt.interestRate
+            }
+          : {
+              category: 'None',
+              reason: 'No debt information available',
+              impact: 0
+            };
         
         // Generate savings opportunities
         const savingsOpportunities = [

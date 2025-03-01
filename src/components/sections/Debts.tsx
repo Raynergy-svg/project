@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { CreditCard, Plus, TrendingDown, DollarSign, Calendar, ArrowRight, Edit, Trash2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDashboard } from '@/hooks/useDashboard';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 export function Debts() {
   const { dashboardState } = useDashboard();
@@ -185,7 +185,11 @@ export function Debts() {
                     </div>
                     <div>
                       <p className="text-xs text-white/50">Payoff Date</p>
-                      <p className="font-medium text-white">{debt.payoffDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</p>
+                      <p className="font-medium text-white">
+                        {debt.payoffDate 
+                          ? formatDate(debt.payoffDate, { month: 'short', year: 'numeric' })
+                          : 'Not calculated'}
+                      </p>
                     </div>
                   </div>
                   

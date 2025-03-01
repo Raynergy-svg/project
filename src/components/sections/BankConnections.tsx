@@ -23,13 +23,13 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 export function BankConnections() {
   const { user } = useAuth();
   const { 
-    connectedAccounts, 
+    accounts, 
     isLoading, 
     error, 
-    connectAccount, 
+    openBankConnection: connectAccount, 
     disconnectAccount, 
     refreshAccounts 
-  } = useBankConnection(user?.id);
+  } = useBankConnection();
   
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
@@ -144,7 +144,7 @@ export function BankConnections() {
             <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-white/70">Loading your accounts...</p>
           </div>
-        ) : connectedAccounts.length === 0 ? (
+        ) : accounts && accounts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="p-3 rounded-full bg-blue-500/20 mb-4">
               <Building className="h-6 w-6 text-blue-400" />
@@ -163,7 +163,7 @@ export function BankConnections() {
           </div>
         ) : (
           <div className="space-y-4">
-            {connectedAccounts.map((account) => (
+            {accounts.map((account) => (
               <motion.div 
                 key={account.id}
                 initial={{ opacity: 0, y: 10 }}

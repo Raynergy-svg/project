@@ -1,5 +1,21 @@
 import React from 'react';
-import { CreditCard, BarChart3, Plus, Calendar, ArrowRight, AlertCircle, CheckCircle, DollarSign, Percent, FileText, BankCard, Home, Bookmark, Car, Briefcase } from 'lucide-react';
+import { 
+  CreditCard, 
+  BarChart3, 
+  Plus, 
+  Calendar, 
+  ArrowRight, 
+  AlertCircle, 
+  CheckCircle, 
+  DollarSign, 
+  Percent, 
+  FileText, 
+  Building2, 
+  Home, 
+  Bookmark, 
+  Car, 
+  Briefcase 
+} from 'lucide-react';
 
 export const metadata = {
   id: "adding-first-debt",
@@ -77,7 +93,7 @@ const AddingFirstDebtArticle = () => {
             </div>
           </div>
           <div className="bg-white/5 rounded-lg p-4 border border-white/10 flex items-start gap-3">
-            <BankCard className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5" />
+            <Building2 className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5" />
             <div>
               <p className="font-medium mb-1">Personal Loans</p>
               <p className="text-sm text-gray-400">
@@ -155,7 +171,7 @@ const AddingFirstDebtArticle = () => {
                   <p className="text-sm">Auto Loan</p>
                 </div>
                 <div className="bg-white/10 rounded-lg p-3 flex flex-col items-center justify-center text-center gap-2 hover:bg-[#88B04B]/20 cursor-pointer transition-all">
-                  <BankCard className="w-8 h-8 text-white/70" />
+                  <Building2 className="w-8 h-8 text-white/70" />
                   <p className="text-sm">Personal Loan</p>
                 </div>
                 <div className="bg-white/10 rounded-lg p-3 flex flex-col items-center justify-center text-center gap-2 hover:bg-[#88B04B]/20 cursor-pointer transition-all">
@@ -382,7 +398,7 @@ const AddingFirstDebtArticle = () => {
         </p>
         <div className="bg-white/5 rounded-lg p-6 border border-white/10 mb-6">
           <h4 className="font-medium mb-4 flex items-center">
-            <BankCard className="w-5 h-5 mr-2 text-[#88B04B]" />
+            <Building2 className="w-5 h-5 mr-2 text-[#88B04B]" />
             Benefits of Connecting Accounts
           </h4>
           <ul className="space-y-3">

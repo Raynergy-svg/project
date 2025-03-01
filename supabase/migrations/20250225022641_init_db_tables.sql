@@ -156,9 +156,10 @@ DROP VIEW IF EXISTS active_subscriptions;
 
 -- Create view for active subscriptions
 CREATE OR REPLACE VIEW active_subscriptions AS
-SELECT s.*, u.email, u.full_name
+SELECT s.*, au.email, p.name as full_name
 FROM subscriptions s
-JOIN users u ON s.user_id = u.id
+JOIN profiles p ON s.user_id = p.id
+JOIN auth.users au ON s.user_id = au.id
 WHERE s.status = 'active'
   AND s.current_period_end > NOW();
 

@@ -45,6 +45,7 @@ const SignUp = lazy(() =>
   })
 );
 const SignIn = lazy(() => import("@/pages/SignIn"));
+const AuthDemo = lazy(() => import("@/pages/AuthDemo"));
 
 function AppRoutes() {
   return (
@@ -72,6 +73,7 @@ function AppRoutes() {
       <Route path="/compliance" element={<Compliance />} />
       <Route path="/signup" element={<SignUp />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
+      <Route path="/auth-demo" element={<AuthDemo />} />
       <Route
         path="/dashboard/*"
         element={

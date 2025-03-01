@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User, SignUpData } from "@/types";
+import { supabase } from "@/utils/supabase/client";
 
 export interface User {
   id: string;
@@ -20,9 +21,10 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (data: User) => Promise<void>;
-  logout: () => void;
-  signup: (data: SignUpData) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  signup: (data: SignUpData) => Promise<{ needsEmailConfirmation?: boolean }>;
+  resendConfirmationEmail: (email: string) => Promise<void>;
   isLoading: boolean;
   isAuthenticated: boolean;
   isSubscribed: boolean;
@@ -41,12 +43,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Load user from localStorage on mount
+  // Load user from Supabase session on mount
   useEffect(() => {
-    const loadUser = () => {
+    const loadUser = async () => {
       try {
-        // For localhost development, automatically authenticate
-        if (window.location.hostname === 'localhost') {
+        // For localhost development with no Supabase setup, use mock data
+        if (window.location.hostname === 'localhost' && 
+            import.meta.env.MODE === 'development' && 
+            !import.meta.env.VITE_SUPABASE_URL) {
+          console.warn('Using mock user data for development. Supabase auth is not configured.');
           const mockUser = {
             id: 'dev-user',
             email: 'dev@example.com',
@@ -54,34 +59,91 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             isPremium: true,
             createdAt: new Date().toISOString(),
             subscription: {
-              status: 'active',
+              status: 'active' as const,
               planName: 'Pro',
               currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
             }
           };
           setUser(mockUser);
-          localStorage.setItem('user', JSON.stringify(mockUser));
           setIsLoading(false);
           return;
         }
 
-        const storedUser = localStorage.getItem('user');
-        if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          // Convert date string back to Date object if it exists
-          if (userData.subscription?.currentPeriodEnd) {
-            userData.subscription.currentPeriodEnd = new Date(userData.subscription.currentPeriodEnd);
+        // Get current session from Supabase
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('Error getting session:', error.message);
+          setIsLoading(false);
+          return;
+        }
+
+        if (session) {
+          // Get user data from Supabase auth
+          const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+          
+          if (userError || !authUser) {
+            console.error('Error getting user:', userError?.message);
+            setIsLoading(false);
+            return;
           }
+
+          // Get additional user data from profiles table
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+
+          if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "not found"
+            console.error('Error getting profile:', profileError.message);
+          }
+
+          // Create a combined user object with auth and profile data
+          const userData: User = {
+            id: authUser.id,
+            name: authUser.user_metadata?.name || profileData?.name,
+            email: authUser.email || '',
+            isPremium: profileData?.is_premium || false,
+            trialEndsAt: profileData?.trial_ends_at || null,
+            createdAt: authUser.created_at || new Date().toISOString(),
+            subscription: profileData?.subscription ? {
+              status: profileData.subscription.status || 'free',
+              planName: profileData.subscription.plan_name,
+              currentPeriodEnd: profileData.subscription.current_period_end 
+                ? new Date(profileData.subscription.current_period_end) 
+                : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            } : undefined
+          };
+
           setUser(userData);
         }
       } catch (error) {
-        console.error('Failed to load user from storage:', error);
+        console.error('Failed to load user from Supabase:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // Reload user data when signed in or token refreshed
+          loadUser();
+        } else if (event === 'SIGNED_OUT') {
+          // Clear user data when signed out
+          setUser(null);
+        }
+      }
+    );
+
     loadUser();
+
+    // Cleanup subscription on unmount
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, []);
 
   // Computed properties for subscription status
@@ -91,51 +153,180 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const subscriptionPlan = user?.subscription?.planName;
   const subscriptionEndDate = user?.subscription?.currentPeriodEnd;
 
-  const login = async (data: User) => {
-    // Save user to state and localStorage
-    setUser(data);
-    localStorage.setItem('user', JSON.stringify(data));
-    navigate("/dashboard");
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      // Sign in with Supabase auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        // Check for specific error messages from Supabase
+        if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please check your email to confirm your account before signing in.');
+        }
+        throw error;
+      }
+
+      // User data will be loaded by the auth state change listener
+      navigate("/dashboard");
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    navigate("/");
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      // Sign out with Supabase auth
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
+      // Clear user state (will also be cleared by auth state change listener)
+      setUser(null);
+      navigate("/");
+    } catch (error) {
+      console.error('Logout error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const signup = async (data: SignUpData) => {
-    // Create a proper User object from SignUpData
-    const newUser: User = {
-      id: crypto.randomUUID(), // Generate a temporary ID
-      email: data.email,
-      name: data.name,
-      isPremium: !!data.subscriptionId, // Set premium based on subscription
-      trialEndsAt: data.subscriptionId ? null : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days trial if no subscription
-      createdAt: new Date().toISOString(),
-      subscription: data.subscriptionId ? {
-        status: 'active',
-        planName: 'Premium',
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-      } : {
-        status: 'trialing',
-        planName: 'Basic',
-        currentPeriodEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days trial
-      }
-    };
+    setIsLoading(true);
+    try {
+      // Sign up with Supabase auth
+      const { data: authData, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            name: data.name,
+          },
+        },
+      });
 
-    // Save user to state and localStorage
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    navigate("/dashboard");
+      if (error) throw error;
+
+      if (!authData.user) {
+        throw new Error('Signup succeeded but no user was returned');
+      }
+
+      // Create a profile in the profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: authData.user.id,
+            name: data.name,
+            is_premium: !!data.subscriptionId,
+            trial_ends_at: data.subscriptionId 
+              ? null 
+              : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            subscription: data.subscriptionId ? {
+              status: 'active',
+              plan_name: 'Premium',
+              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            } : {
+              status: 'trialing',
+              plan_name: 'Basic',
+              current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            }
+          }
+        ]);
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError);
+        // Continue anyway - the user is created but profile insertion failed
+      }
+
+      // Check if email confirmation is required
+      const needsEmailConfirmation = !authData.user.confirmed_at && !!authData.user.confirmation_sent_at;
+
+      if (needsEmailConfirmation) {
+        return { needsEmailConfirmation: true };
+      }
+
+      // User data will be loaded by the auth state change listener
+      navigate("/dashboard");
+      return {};
+    } catch (error) {
+      console.error('Signup error:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const updateUser = (data: Partial<User>) => {
+  const resendConfirmationEmail = async (email: string) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error resending confirmation email:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateUser = async (data: Partial<User>) => {
     if (!user) return;
     
-    const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    try {
+      // Update user_metadata in Supabase auth
+      if (data.name) {
+        const { error } = await supabase.auth.updateUser({
+          data: {
+            name: data.name,
+          }
+        });
+
+        if (error) {
+          console.error('Error updating user metadata:', error);
+        }
+      }
+
+      // Update profile in the profiles table
+      const updateData: Record<string, any> = {};
+      if (data.name) updateData.name = data.name;
+      if (data.isPremium !== undefined) updateData.is_premium = data.isPremium;
+      if (data.trialEndsAt) updateData.trial_ends_at = data.trialEndsAt;
+      if (data.subscription) updateData.subscription = {
+        status: data.subscription.status,
+        plan_name: data.subscription.planName,
+        current_period_end: data.subscription.currentPeriodEnd?.toISOString(),
+      };
+
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', user.id);
+
+        if (error) {
+          console.error('Error updating profile:', error);
+        }
+      }
+
+      // Update local state
+      const updatedUser = { ...user, ...data };
+      setUser(updatedUser);
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
   };
 
   return (
@@ -144,7 +335,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         user, 
         login, 
         logout, 
-        signup, 
+        signup,
+        resendConfirmationEmail, 
         isLoading,
         isAuthenticated,
         isSubscribed,

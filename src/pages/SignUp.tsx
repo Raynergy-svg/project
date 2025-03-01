@@ -104,8 +104,10 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
+  const [confirmedEmail, setConfirmedEmail] = useState("");
 
-  const { signup } = useAuth();
+  const { signup, resendConfirmationEmail } = useAuth();
 
   // Reset errors when form data changes
   useEffect(() => {
@@ -214,12 +216,19 @@ export default function SignUp() {
       const encryptedPassword = sensitiveDataHandler.encryptSensitiveData(sanitizedPassword);
 
       // Register user with subscription and encrypted data
-      await signup({
+      const result = await signup({
         email: (await encryptedEmail).encryptedData,
         name: (await encryptedName).encryptedData,
         password: (await encryptedPassword).encryptedData,
         subscriptionId: paymentResult.subscriptionId
       });
+      
+      // Check if email confirmation is needed
+      if (result.needsEmailConfirmation) {
+        setEmailConfirmationSent(true);
+        setConfirmedEmail(formData.email);
+        return;
+      }
       
       const returnUrl = new URLSearchParams(location.search).get('returnUrl');
       navigate(returnUrl || '/dashboard');
@@ -231,6 +240,24 @@ export default function SignUp() {
       setIsSubmitting(false);
     }
   }, [formData, signup, location, sensitiveDataHandler]);
+
+  const handleResendConfirmation = async () => {
+    if (!confirmedEmail) return;
+    
+    setIsSubmitting(true);
+    try {
+      await resendConfirmationEmail(confirmedEmail);
+      setErrors({});
+      // Show success message
+      setErrors({ general: "Confirmation email has been resent. Please check your inbox." });
+    } catch (error) {
+      setErrors({ 
+        general: error instanceof Error ? error.message : "Failed to resend confirmation email. Please try again." 
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const passwordStrength = getPasswordStrength(formData.password);
 
@@ -257,178 +284,224 @@ export default function SignUp() {
           </p>
         </div>
 
-        <div className="bg-white/5 p-4 sm:p-6 rounded-xl border border-white/10">
-          {errors.general && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg" role="alert">
-              <p className="text-red-400 text-sm">{errors.general}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-1.5">
-                Full Name
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                  errors.name ? "border-red-500" : "border-white/10"
-                } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="John Doe"
-                autoComplete="name"
-                aria-invalid={Boolean(errors.name)}
-                aria-describedby={errors.name ? "name-error" : undefined}
-                disabled={isSubmitting}
-              />
-              {errors.name && (
-                <p id="name-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                  {errors.name}
-                </p>
+        {emailConfirmationSent ? (
+          <div className="bg-[#1E1E1E] p-8 rounded-lg shadow-xl border border-[#333]">
+            <div className="flex flex-col items-center text-center">
+              <Shield className="w-16 h-16 text-[#88B04B] mb-4" />
+              <h1 className="text-2xl font-bold mb-3">Verify Your Email</h1>
+              <p className="mb-6 text-gray-300">
+                We've sent a confirmation email to <strong>{confirmedEmail}</strong>. 
+                Please check your inbox and click the verification link to activate your account.
+              </p>
+              <div className="bg-[#111] p-4 rounded-md text-left w-full mb-6">
+                <h3 className="font-medium mb-2 text-[#88B04B]">Next steps:</h3>
+                <ol className="list-decimal list-inside text-gray-300 space-y-2">
+                  <li>Check your email inbox (and spam folder)</li>
+                  <li>Click the verification link in the email</li>
+                  <li>After verification, you can sign in to your account</li>
+                </ol>
+              </div>
+              <div className="space-y-4 w-full">
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-2 bg-[#333] hover:bg-[#444] text-white py-3 px-6 rounded-md transition-colors"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                  ) : (
+                    <>Resend confirmation email</>
+                  )}
+                </button>
+                <Link
+                  to="/signin"
+                  className="block w-full text-center py-3 px-6 rounded-md border border-[#444] hover:bg-[#222] transition-colors"
+                >
+                  Return to Sign In
+                </Link>
+              </div>
+              {errors.general && (
+                <div className="mt-4 p-3 bg-opacity-20 rounded-md text-center w-full bg-blue-500 text-blue-100">
+                  {errors.general}
+                </div>
               )}
             </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1.5">
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                  errors.email ? "border-red-500" : "border-white/10"
-                } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="you@example.com"
-                autoComplete="email"
-                aria-invalid={Boolean(errors.email)}
-                aria-describedby={errors.email ? "email-error" : undefined}
-                disabled={isSubmitting}
-                required
-              />
-              {errors.email && (
-                <p id="email-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                  {errors.email}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <label htmlFor="password" className="block text-sm font-medium mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    name="password"
-                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                      errors.password ? "border-red-500" : "border-white/10"
-                    } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    autoComplete="new-password"
-                    aria-invalid={Boolean(errors.password)}
-                    aria-describedby={errors.password ? "password-error" : undefined}
-                    disabled={isSubmitting}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
-                  >
-                    {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p id="password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                    {errors.password}
-                  </p>
-                )}
+          </div>
+        ) : (
+          <div className="bg-white/5 p-4 sm:p-6 rounded-xl border border-white/10">
+            {errors.general && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg" role="alert">
+                <p className="text-red-400 text-sm">{errors.general}</p>
               </div>
-
-              <div className="flex-1">
-                <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1.5">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                      errors.confirmPassword ? "border-red-500" : "border-white/10"
-                    } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    autoComplete="new-password"
-                    aria-invalid={Boolean(errors.confirmPassword)}
-                    aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
-                    disabled={isSubmitting}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
-                  >
-                    {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
-                  </button>
-                </div>
-                {errors.confirmPassword && (
-                  <p id="confirm-password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                    {errors.confirmPassword}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2 mt-2">
-              <input
-                type="checkbox"
-                id="acceptTerms"
-                name="acceptTerms"
-                checked={formData.acceptTerms}
-                onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
-              />
-              <label htmlFor="acceptTerms" className="text-xs sm:text-sm text-gray-300">
-                I accept the <Link to="/terms" className="text-[#88B04B] hover:text-[#7a9d43]">Terms of Service</Link> and{' '}
-                <Link to="/privacy" className="text-[#88B04B] hover:text-[#7a9d43]">Privacy Policy</Link>
-              </label>
-            </div>
-            {errors.acceptTerms && (
-              <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">{errors.acceptTerms}</p>
             )}
 
-            <div className="flex gap-4 mt-6">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-2.5 sm:py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    Become Debt Free
-                    <ArrowRight size={16} />
-                  </>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
+                    errors.name ? "border-red-500" : "border-white/10"
+                  } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="John Doe"
+                  autoComplete="name"
+                  aria-invalid={Boolean(errors.name)}
+                  aria-describedby={errors.name ? "name-error" : undefined}
+                  disabled={isSubmitting}
+                />
+                {errors.name && (
+                  <p id="name-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
+                    {errors.name}
+                  </p>
                 )}
-              </button>
-            </div>
-          </form>
-        </div>
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium mb-1.5">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
+                    errors.email ? "border-red-500" : "border-white/10"
+                  } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? "email-error" : undefined}
+                  disabled={isSubmitting}
+                  required
+                />
+                {errors.email && (
+                  <p id="email-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
+                    {errors.email}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <label htmlFor="password" className="block text-sm font-medium mb-1.5">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
+                        errors.password ? "border-red-500" : "border-white/10"
+                      } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      autoComplete="new-password"
+                      aria-invalid={Boolean(errors.password)}
+                      aria-describedby={errors.password ? "password-error" : undefined}
+                      disabled={isSubmitting}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
+                    >
+                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <p id="password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
+                      {errors.password}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex-1">
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1.5">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
+                        errors.confirmPassword ? "border-red-500" : "border-white/10"
+                      } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      autoComplete="new-password"
+                      aria-invalid={Boolean(errors.confirmPassword)}
+                      aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+                      disabled={isSubmitting}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
+                    >
+                      {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p id="confirm-password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
+                      {errors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2 mt-2">
+                <input
+                  type="checkbox"
+                  id="acceptTerms"
+                  name="acceptTerms"
+                  checked={formData.acceptTerms}
+                  onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
+                  className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                />
+                <label htmlFor="acceptTerms" className="text-xs sm:text-sm text-gray-300">
+                  I accept the <Link to="/terms" className="text-[#88B04B] hover:text-[#7a9d43]">Terms of Service</Link> and{' '}
+                  <Link to="/privacy" className="text-[#88B04B] hover:text-[#7a9d43]">Privacy Policy</Link>
+                </label>
+              </div>
+              {errors.acceptTerms && (
+                <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">{errors.acceptTerms}</p>
+              )}
+
+              <div className="flex gap-4 mt-6">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-2.5 sm:py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      Become Debt Free
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-white/10">
           <div className="flex items-start gap-3 text-gray-300">

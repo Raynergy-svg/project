@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Confirm Your SmartDebtFlow Account</title>
+    <style>
+      body {
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        color: #333;
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        text-align: center;
+        padding: 20px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .logo {
+        max-width: 200px;
+        margin: 0 auto;
+      }
+      .content {
+        padding: 20px 0;
+      }
+      .button {
+        display: inline-block;
+        background-color: #4f46e5;
+        color: white;
+        text-decoration: none;
+        padding: 12px 24px;
+        border-radius: 4px;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+      .footer {
+        text-align: center;
+        color: #888;
+        font-size: 12px;
+        padding: 20px 0;
+        border-top: 1px solid #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>SmartDebtFlow</h1>
+      </div>
+      <div class="content">
+        <h2>Confirm Your Email Address</h2>
+        <p>Hello,</p>
+        <p>
+          Thank you for signing up with SmartDebtFlow. Please confirm your email
+          address by clicking the button below.
+        </p>
+        <p>
+          <a href="{{ .ConfirmationURL }}" class="button"
+            >Confirm Email Address</a
+          >
+        </p>
+        <p>
+          If you didn't sign up for SmartDebtFlow, please ignore this email.
+        </p>
+        <p>This link will expire in 24 hours.</p>
+        <p>
+          If the button above doesn't work, you can also copy and paste the
+          following link into your browser:
+        </p>
+        <p>{{ .ConfirmationURL }}</p>
+      </div>
+      <div class="footer">
+        <p>&copy; SmartDebtFlow. All rights reserved.</p>
+        <p>
+          This is an automated email sent from no-reply@smartdebtflow.com.
+          Please do not reply to this email.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

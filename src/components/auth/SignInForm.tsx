@@ -4,11 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 export function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -16,8 +20,39 @@ export function SignInForm() {
 
   const from = (location.state as any)?.from?.pathname || "/dashboard";
 
+  // Validate email format to match what Supabase accepts
+  const validateEmail = (email: string): boolean => {
+    // Supabase seems to be accepting emails with format: name@domain-name.tld
+    const validFormat = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9][a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
+    
+    if (!email) {
+      setEmailError("Email is required");
+      return false;
+    }
+    
+    if (!validFormat.test(email)) {
+      setEmailError("Please enter a valid email format (e.g., user@domain-name.com)");
+      return false;
+    }
+    
+    setEmailError("");
+    return true;
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+    if (newEmail) validateEmail(newEmail);
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    
+    // Validate email before submitting
+    if (!validateEmail(email)) {
+      return;
+    }
+    
     setIsLoading(true);
 
     try {
@@ -27,7 +62,9 @@ export function SignInForm() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Invalid credentials. Please try again.",
+        description: error instanceof Error 
+          ? error.message 
+          : "Invalid credentials. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -41,9 +78,13 @@ export function SignInForm() {
           type="email"
           placeholder="Email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={handleEmailChange}
+          className={emailError ? "border-red-500" : ""}
           required
         />
+        {emailError && (
+          <p className="text-red-500 text-sm mt-1">{emailError}</p>
+        )}
         <Input
           type="password"
           placeholder="Password"
@@ -52,6 +93,14 @@ export function SignInForm() {
           required
         />
       </div>
+      
+      <Alert variant="outline" className="bg-blue-50">
+        <InfoIcon className="h-4 w-4 text-blue-500 mr-2" />
+        <AlertDescription>
+          Use an email format like: user@domain-name.com
+        </AlertDescription>
+      </Alert>
+      
       <Button type="submit" className="w-full" disabled={isLoading}>
         {isLoading ? <LoadingSpinner className="w-4 h-4" /> : "Sign In"}
       </Button>

@@ -11,7 +11,7 @@ import {
   ArrowRight, 
   FileBarChart,
   FilePieChart,
-  FileSparkles,
+  Sparkles,
   Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -73,7 +73,7 @@ export function Reports() {
       id: 'financial-health',
       name: 'Financial Health Assessment',
       description: 'Comprehensive review of your overall financial health with actionable insights',
-      icon: <FileSparkles className="w-5 h-5" />,
+      icon: <Sparkles className="w-5 h-5" />,
       type: 'custom'
     }
   ];

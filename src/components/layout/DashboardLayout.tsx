@@ -18,7 +18,8 @@ import {
   TrendingDown,
   Sparkles,
   Wallet,
-  Calculator
+  Calculator,
+  Building
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from './Header';
@@ -27,6 +28,10 @@ import { BudgetOptimizer } from '@/components/dashboard/BudgetOptimizer';
 import { SavingsOpportunities } from '@/components/dashboard/SavingsOpportunities';
 import { DebtPayoffCalculator } from '@/components/dashboard/DebtPayoffCalculator';
 import { useDashboard } from '@/hooks/useDashboard';
+import { Debts } from '@/components/sections/Debts';
+import { Savings } from '@/components/sections/Savings';
+import { Reports } from '@/components/sections/Reports';
+import { BankConnections } from '@/components/sections/BankConnections';
 
 interface NavItem {
   name: string;
@@ -99,7 +104,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Debts', id: 'debts', icon: CreditCard },
     { name: 'Savings', id: 'savings', icon: PiggyBank },
     { name: 'Reports', id: 'reports', icon: BarChart3 },
-    { name: 'Bank Connections', id: 'bank-connections', icon: FileText },
+    { name: 'Bank Connections', id: 'bank-connections', icon: Building },
   ];
 
   const settingsNavItems: NavItem[] = [
@@ -356,12 +361,52 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               </>
             )}
             {activeTab !== 'dashboard' && (
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-black/60 to-black/40 border border-white/10 backdrop-blur-sm shadow-xl">
-                <h2 className="text-2xl font-bold text-white mb-4">{pageTitle}</h2>
-                <p className="text-white/70">
-                  This is the {pageTitle.toLowerCase()} section. Content for this section will be displayed here.
-                </p>
-              </div>
+              <>
+                {activeTab === 'debts' && (
+                  <motion.div
+                    key="debts"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Debts />
+                  </motion.div>
+                )}
+                {activeTab === 'savings' && (
+                  <motion.div
+                    key="savings"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Savings />
+                  </motion.div>
+                )}
+                {activeTab === 'reports' && (
+                  <motion.div
+                    key="reports"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Reports />
+                  </motion.div>
+                )}
+                {activeTab === 'bank-connections' && (
+                  <motion.div
+                    key="bank-connections"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <BankConnections />
+                  </motion.div>
+                )}
+              </>
             )}
           </div>
         </main>

@@ -27,3 +27,21 @@ export function formatCurrency(value: number): string {
     maximumFractionDigits: 0
   }).format(value);
 }
+
+/**
+ * Format a date object into a readable string
+ * @param date - The date to format
+ * @param options - Intl.DateTimeFormatOptions to customize the format
+ * @returns Formatted date string
+ */
+export function formatDate(date: Date, options?: Intl.DateTimeFormatOptions): string {
+  if (!date) return 'N/A';
+  
+  const defaultOptions: Intl.DateTimeFormatOptions = {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  };
+  
+  return new Intl.DateTimeFormat('en-US', options || defaultOptions).format(date);
+}

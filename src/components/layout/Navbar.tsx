@@ -91,7 +91,7 @@ export default function Navbar({
       items: [
         { label: 'Privacy Policy', href: '/privacy' },
         { label: 'Terms of Service', href: '/terms' },
-        { label: 'Security', href: '/security' },
+        { label: 'Support', href: '/support' },
         { label: 'Compliance', href: '/compliance' }
       ]
     }
@@ -185,31 +185,19 @@ export default function Navbar({
 
           {/* Sign In / Dashboard Button */}
           <div className="hidden md:flex items-center space-x-4">
-            {isAuthenticated ? (
-              <Button
-                onClick={onDashboardClick}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
-              >
-                Dashboard
-              </Button>
-            ) : (
-              <>
-                <Button
-                  onClick={onSignIn}
-                  variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10"
-                >
-                  Sign In
-                </Button>
-                <Button
-                  onClick={onSignUp}
-                  className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
-                >
-                  Sign Up
-                </Button>
-              </>
-            )}
+            <Button
+              onClick={onSignIn}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Sign In
+            </Button>
+            <Button
+              onClick={onSignUp}
+              className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+            >
+              Sign Up
+            </Button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -299,43 +287,29 @@ export default function Navbar({
               ))}
               
               <div className="pt-4 border-t border-white/10">
-                {isAuthenticated ? (
+                <div className="space-y-2">
                   <Button
                     onClick={() => {
-                      onDashboardClick();
+                      onSignIn();
                       setIsMenuOpen(false);
                       setOpenDropdowns([]);
                     }}
                     variant="outline"
                     className="w-full border-white/20 text-white hover:bg-white/10"
                   >
-                    Dashboard
+                    Sign In
                   </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <Button
-                      onClick={() => {
-                        onSignIn();
-                        setIsMenuOpen(false);
-                        setOpenDropdowns([]);
-                      }}
-                      variant="outline"
-                      className="w-full border-white/20 text-white hover:bg-white/10"
-                    >
-                      Sign In
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        onSignUp();
-                        setIsMenuOpen(false);
-                        setOpenDropdowns([]);
-                      }}
-                      className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
-                    >
-                      Sign Up
-                    </Button>
-                  </div>
-                )}
+                  <Button
+                    onClick={() => {
+                      onSignUp();
+                      setIsMenuOpen(false);
+                      setOpenDropdowns([]);
+                    }}
+                    className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                  >
+                    Sign Up
+                  </Button>
+                </div>
               </div>
             </motion.div>
           </>

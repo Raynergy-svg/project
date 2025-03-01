@@ -2,7 +2,7 @@ import { ArrowRight, Shield, Star, Lock, CheckCircle } from "lucide-react";
 import { Suspense, lazy, useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence, useScroll, useSpring, useInView } from "framer-motion";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -284,6 +284,7 @@ const Landing = () => {
   
   // 3. Other hooks
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   // 4. Callback hooks
@@ -313,6 +314,17 @@ const Landing = () => {
     const initialLoader = document.getElementById('initial-loader');
     if (initialLoader) {
       initialLoader.style.display = 'none';
+    }
+
+    // Check if we need to scroll to pricing section
+    const searchParams = new URLSearchParams(location.search);
+    if (searchParams.get('pricing') === 'true') {
+      const pricingSection = document.getElementById('pricing-heading');
+      if (pricingSection) {
+        setTimeout(() => {
+          pricingSection.scrollIntoView({ behavior: 'smooth' });
+        }, 500);
+      }
     }
 
     const preloadAssets = async () => {
@@ -346,7 +358,7 @@ const Landing = () => {
     };
 
     preloadAssets();
-  }, [deviceType]);
+  }, [deviceType, location.search]);
 
   // Loading state
   if (isLoading) {

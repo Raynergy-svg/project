@@ -10,7 +10,8 @@ import {
   Settings, 
   LogOut, 
   CreditCard, 
-  Shield 
+  Shield, 
+  Headphones 
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -183,13 +184,13 @@ export function Header({ title, onToggleSidebar }: HeaderProps) {
                   </button>
                   <button
                     onClick={() => {
-                      window.location.hash = 'security';
+                      window.location.hash = 'support';
                       setShowUserMenu(false);
                     }}
                     className="flex w-full items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
                   >
-                    <Shield className="mr-3 h-4 w-4" />
-                    Security
+                    <Headphones className="mr-3 h-4 w-4" />
+                    Support
                   </button>
                   <button
                     onClick={() => {

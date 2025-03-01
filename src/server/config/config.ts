@@ -25,6 +25,11 @@ export const config = {
     basicPlanId: process.env.STRIPE_BASIC_PLAN_ID || '',
     proPlanId: process.env.STRIPE_PRO_PLAN_ID || '',
   },
+  openai: {
+    apiKey: process.env.OPENAI_API_KEY || '',
+    endpoint: process.env.OPENAI_ENDPOINT || 'https://api.openai.com/v1/chat/completions',
+    model: process.env.OPENAI_MODEL || 'gpt-4',
+  },
   security: {
     bcryptSaltRounds: 12,
     corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:3000'],

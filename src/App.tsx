@@ -1,5 +1,5 @@
 import { Suspense, lazy } from "react";
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
@@ -14,6 +14,11 @@ import { Toaster } from "@/components/ui/toaster";
 import Navbar from "@/components/layout/Navbar";
 import { Layout } from "@/components/layout/Layout";
 import PaymentSuccess from './pages/PaymentSuccess';
+import SnowballMethodArticle from './components/help/articles/SnowballMethod';
+import AvalancheMethodArticle from './components/help/articles/AvalancheMethod';
+import AccountSetupArticle from './components/help/articles/account-setup';
+import UnderstandingDashboardArticle from './components/help/articles/understanding-dashboard';
+import AddingFirstDebtArticle from './components/help/articles/adding-first-debt';
 
 // Lazy load routes with prefetching
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -23,7 +28,7 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const About = lazy(() => import("@/pages/About"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
-const Security = lazy(() => import("@/pages/Security"));
+const Support = lazy(() => import("@/pages/Support"));
 const Blog = lazy(() => import("@/pages/Blog"));
 const Press = lazy(() => import("@/pages/Press"));
 const Help = lazy(() => import("@/pages/Help"));
@@ -49,10 +54,16 @@ function AppRoutes() {
       <Route path="/about" element={<About />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
-      <Route path="/security" element={<Security />} />
+      <Route path="/support" element={<Support />} />
+      <Route path="/security" element={<Navigate to="/support" replace />} />
       <Route path="/blog" element={<Blog />} />
       <Route path="/press" element={<Press />} />
       <Route path="/help" element={<Help />} />
+      <Route path="/help/articles/snowball-method" element={<SnowballMethodArticle />} />
+      <Route path="/help/articles/avalanche-method" element={<AvalancheMethodArticle />} />
+      <Route path="/help/articles/account-setup" element={<AccountSetupArticle />} />
+      <Route path="/help/articles/dashboard-overview" element={<UnderstandingDashboardArticle />} />
+      <Route path="/help/articles/adding-debts" element={<AddingFirstDebtArticle />} />
       <Route path="/docs" element={<Docs />} />
       <Route path="/api" element={<Api />} />
       <Route path="/status" element={<Status />} />
@@ -85,6 +96,10 @@ function AppNavbar() {
     navigate("/signin", { state: { returnTo: window.location.pathname, animation: "slide-in" } });
   };
 
+  const handleSignUp = () => {
+    navigate("/signup", { state: { animation: "slide-in" } });
+  };
+
   const handleDashboardClick = () => {
     navigate("/dashboard");
   };
@@ -99,6 +114,7 @@ function AppNavbar() {
   return (
     <Navbar
       onSignIn={handleSignIn}
+      onSignUp={handleSignUp}
       onNavigate={scrollToSection}
       isAuthenticated={isAuthenticated}
       userName={user?.name}

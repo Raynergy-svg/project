@@ -137,16 +137,13 @@ export default defineConfig(({ mode }) => {
       devSourcemap: true
     },
     server: {
-      https: sslCertificates ? {
-        key: sslCertificates.key,
-        cert: sslCertificates.cert
-      } : undefined,
+      https: false,
       headers: {
         'Content-Security-Policy': generateCSP(mode),
       },
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          target: 'http://localhost:3001',
           changeOrigin: true,
           secure: false
         }

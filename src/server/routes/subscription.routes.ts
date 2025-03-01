@@ -1,3 +1,8 @@
+import express from 'express';
+import { stripe } from '../services/stripe.service.js';
+
+const router = express.Router();
+
 // Add this new route for verifying the Stripe session
 router.get('/verify-session', async (req, res) => {
   try {
@@ -60,4 +65,6 @@ router.get('/verify-session', async (req, res) => {
       message: 'Error verifying payment'
     });
   }
-}); 
+});
+
+export default router; 

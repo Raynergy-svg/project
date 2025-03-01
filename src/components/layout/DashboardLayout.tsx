@@ -19,7 +19,8 @@ import {
   Sparkles,
   Wallet,
   Calculator,
-  Building
+  Building,
+  Headphones
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from './Header';
@@ -63,6 +64,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   // Update active tab based on URL hash or default to dashboard
   useEffect(() => {
     const hash = location.hash.replace('#', '');
+    
+    // Special case: redirect from 'security' to 'support'
+    if (hash === 'security') {
+      navigate('#support', { replace: true });
+      return;
+    }
+    
     if (hash) {
       // Check if hash is a main section or a tab
       const isMainSection = [...mainNavItems].some(item => item.id === hash);
@@ -109,7 +117,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const settingsNavItems: NavItem[] = [
     { name: 'Account', id: 'account', icon: User },
-    { name: 'Security', id: 'security', icon: Shield },
+    { name: 'Support', id: 'support', icon: Headphones },
     { name: 'Billing', id: 'billing', icon: BillingIcon },
   ];
 

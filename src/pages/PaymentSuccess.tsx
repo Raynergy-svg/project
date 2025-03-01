@@ -5,10 +5,13 @@ import { UserOnboarding } from '@/components/onboarding/UserOnboarding';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const PaymentSuccess: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -42,6 +45,46 @@ const PaymentSuccess: React.FC = () => {
             setSubscriptionPlan(response.data.plan);
           }
           
+          // Update subscription in Supabase if user is logged in
+          if (user) {
+            try {
+              // Check if subscription already exists
+              const { data: existingSubscription } = await supabase
+                .from('user_subscriptions')
+                .select('*')
+                .eq('user_id', user.id)
+                .single();
+              
+              if (existingSubscription) {
+                // Update existing subscription
+                await supabase
+                  .from('user_subscriptions')
+                  .update({
+                    status: 'active',
+                    subscription_id: response.data.subscriptionId || sessionId,
+                    plan_name: response.data.plan,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('user_id', user.id);
+              } else {
+                // Create new subscription
+                await supabase
+                  .from('user_subscriptions')
+                  .insert({
+                    user_id: user.id,
+                    status: 'active',
+                    subscription_id: response.data.subscriptionId || sessionId,
+                    plan_name: response.data.plan,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                  });
+              }
+            } catch (supabaseError) {
+              console.error('Error updating subscription in Supabase:', supabaseError);
+              // Continue with the flow even if Supabase update fails
+            }
+          }
+          
           // Show success toast
           toast({
             title: 'Payment successful!',
@@ -66,7 +109,7 @@ const PaymentSuccess: React.FC = () => {
     };
 
     verifyPayment();
-  }, [location.search]);
+  }, [location.search, user]);
 
   const handleOnboardingComplete = () => {
     // Navigate to dashboard after onboarding

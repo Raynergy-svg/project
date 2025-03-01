@@ -1,18 +1,39 @@
 import { motion } from 'framer-motion';
-import { Building2, Plus, RefreshCcw, XCircle, Shield, Lock } from 'lucide-react';
+import { Building2, Plus, RefreshCcw, XCircle, Shield, Lock, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useBankConnection } from '@/hooks/useBankConnection';
+import { useBankConnection } from '@/services/bankConnection';
 import { formatCurrency } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
+import { useDashboard } from '@/hooks/useDashboard';
 
 export function BankConnections() {
+  const { user } = useAuth();
+  const { dashboardState, refreshDashboard, handleConnectBank } = useDashboard();
+  
   const {
     accounts,
-    isLoading,
-    error,
-    openBankConnection,
-    refreshAccounts,
+    isConnecting,
+    error: connectionError,
+    connectBank,
+    fetchAccounts,
     disconnectAccount
-  } = useBankConnection();
+  } = useBankConnection(user?.id || '');
+
+  const handleRefreshAccounts = async () => {
+    await fetchAccounts();
+    refreshDashboard();
+  };
+
+  const handleConnectBankAccount = async () => {
+    await handleConnectBank();
+  };
+
+  const handleDisconnectAccount = async (accountId: string) => {
+    const success = await disconnectAccount(accountId);
+    if (success) {
+      refreshDashboard();
+    }
+  };
 
   return (
     <motion.div
@@ -30,8 +51,8 @@ export function BankConnections() {
             variant="outline"
             size="sm"
             className="gap-2"
-            onClick={() => refreshAccounts()}
-            disabled={isLoading}
+            onClick={handleRefreshAccounts}
+            disabled={isConnecting || dashboardState.isConnectingBank}
           >
             <RefreshCcw className="w-4 h-4" />
             Refresh
@@ -39,8 +60,8 @@ export function BankConnections() {
           <Button
             size="sm"
             className="gap-2"
-            onClick={openBankConnection}
-            disabled={isLoading}
+            onClick={handleConnectBankAccount}
+            disabled={isConnecting || dashboardState.isConnectingBank}
           >
             <Plus className="w-4 h-4" />
             Add Account
@@ -48,14 +69,18 @@ export function BankConnections() {
         </div>
       </div>
 
-      {error && (
-        <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
-          {error}
+      {(connectionError || dashboardState.bankConnectionError) && (
+        <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Connection Error</p>
+            <p className="text-sm">{connectionError || dashboardState.bankConnectionError}</p>
+          </div>
         </div>
       )}
 
       <div className="space-y-4">
-        {accounts.map((account) => (
+        {dashboardState.connectedAccounts.map((account) => (
           <div
             key={account.id}
             className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
@@ -68,19 +93,19 @@ export function BankConnections() {
                 <div>
                   <h3 className="font-medium text-white">{account.name}</h3>
                   <p className="text-sm text-white/60">
-                    {account.institution} •••• {account.accountNumber.slice(-4)}
+                    {account.institution.name} • {account.type}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <p className="font-medium text-white">
+                <p className={`font-medium ${account.balance < 0 ? 'text-red-400' : 'text-white'}`}>
                   {formatCurrency(account.balance)}
                 </p>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                  onClick={() => disconnectAccount(account.id)}
+                  onClick={() => handleDisconnectAccount(account.id)}
                 >
                   <XCircle className="w-4 h-4" />
                 </Button>
@@ -89,7 +114,7 @@ export function BankConnections() {
           </div>
         ))}
 
-        {accounts.length === 0 && !isLoading && (
+        {dashboardState.connectedAccounts.length === 0 && !isConnecting && !dashboardState.isConnectingBank && (
           <div className="text-center py-8">
             <Building2 className="w-12 h-12 text-white/20 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-white mb-2">
@@ -98,15 +123,21 @@ export function BankConnections() {
             <p className="text-white/60 mb-4">
               Connect your bank accounts to get personalized insights
             </p>
-            <Button onClick={openBankConnection}>
+            <Button onClick={handleConnectBankAccount}>
               Connect Your First Account
             </Button>
           </div>
         )}
 
-        {isLoading && (
-          <div className="text-center py-8 text-white/60">
-            Loading accounts...
+        {(isConnecting || dashboardState.isConnectingBank) && (
+          <div className="text-center py-8">
+            <div className="animate-spin w-12 h-12 border-4 border-[#88B04B] border-t-transparent rounded-full mx-auto mb-4"></div>
+            <h3 className="text-lg font-medium text-white mb-2">
+              Connecting to your bank
+            </h3>
+            <p className="text-white/60">
+              This may take a few moments...
+            </p>
           </div>
         )}
       </div>

@@ -134,7 +134,9 @@ function App() {
                   </div>
                 }
               >
-                <AppRoutes />
+                <ErrorBoundary>
+                  <AppRoutes />
+                </ErrorBoundary>
               </Suspense>
               <Toaster />
             </Layout>

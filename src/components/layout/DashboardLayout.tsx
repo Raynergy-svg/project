@@ -14,14 +14,26 @@ import {
   Shield, 
   CreditCard as BillingIcon,
   Menu,
-  X
+  X,
+  TrendingDown,
+  Sparkles,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from './Header';
+import { DebtProjection } from '@/components/dashboard/DebtProjection';
+import { BudgetOptimizer } from '@/components/dashboard/BudgetOptimizer';
+import { SavingsOpportunities } from '@/components/dashboard/SavingsOpportunities';
 
 interface NavItem {
   name: string;
-  href: string;
+  id: string;
+  icon: React.ElementType;
+}
+
+interface TabItem {
+  name: string;
+  id: string;
   icon: React.ElementType;
 }
 
@@ -35,44 +47,96 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState('overview');
   const [pageTitle, setPageTitle] = useState('Dashboard');
 
-  // Update page title based on current route
+  // Update active tab based on URL hash or default to dashboard
   useEffect(() => {
-    const path = location.pathname;
-    if (path.includes('/dashboard')) setPageTitle('Dashboard');
-    else if (path.includes('/debts')) setPageTitle('Debt Management');
-    else if (path.includes('/savings')) setPageTitle('Savings Goals');
-    else if (path.includes('/reports')) setPageTitle('Financial Reports');
-    else if (path.includes('/bank-connections')) setPageTitle('Bank Connections');
-    else if (path.includes('/settings')) {
-      if (path.includes('/account')) setPageTitle('Account Settings');
-      else if (path.includes('/security')) setPageTitle('Security Settings');
-      else if (path.includes('/billing')) setPageTitle('Billing & Subscription');
-      else setPageTitle('Settings');
+    const hash = location.hash.replace('#', '');
+    if (hash) {
+      // Check if hash is a main section or a tab
+      const isMainSection = [...mainNavItems].some(item => item.id === hash);
+      const isTab = dashboardTabs.some(tab => tab.id === hash);
+      
+      if (isMainSection) {
+        setActiveTab(hash);
+        // Reset active section to overview when changing main sections
+        setActiveSection('overview');
+        // Update page title based on active tab
+        const tab = [...mainNavItems, ...settingsNavItems].find(item => item.id === hash);
+        if (tab) {
+          setPageTitle(tab.name);
+        }
+      } else if (isTab) {
+        // If it's a dashboard tab, set the active section
+        setActiveTab('dashboard');
+        setActiveSection(hash);
+        setPageTitle('Dashboard');
+      } else {
+        // Handle settings or other sections
+        setActiveTab(hash);
+        const tab = [...settingsNavItems].find(item => item.id === hash);
+        if (tab) {
+          setPageTitle(tab.name);
+        }
+      }
+    } else {
+      // If no hash, set default tab and update URL
+      setActiveTab('dashboard');
+      setActiveSection('overview');
+      setPageTitle('Dashboard');
+      navigate('#dashboard', { replace: true });
     }
-  }, [location.pathname]);
+  }, [location.hash]);
 
   const mainNavItems: NavItem[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Debts', href: '/debts', icon: CreditCard },
-    { name: 'Savings', href: '/savings', icon: PiggyBank },
-    { name: 'Reports', href: '/reports', icon: BarChart3 },
-    { name: 'Bank Connections', href: '/bank-connections', icon: FileText },
+    { name: 'Dashboard', id: 'dashboard', icon: Home },
+    { name: 'Debts', id: 'debts', icon: CreditCard },
+    { name: 'Savings', id: 'savings', icon: PiggyBank },
+    { name: 'Reports', id: 'reports', icon: BarChart3 },
+    { name: 'Bank Connections', id: 'bank-connections', icon: FileText },
   ];
 
   const settingsNavItems: NavItem[] = [
-    { name: 'Account', href: '/settings/account', icon: User },
-    { name: 'Security', href: '/settings/security', icon: Shield },
-    { name: 'Billing', href: '/settings/billing', icon: BillingIcon },
+    { name: 'Account', id: 'account', icon: User },
+    { name: 'Security', id: 'security', icon: Shield },
+    { name: 'Billing', id: 'billing', icon: BillingIcon },
+  ];
+
+  const dashboardTabs: TabItem[] = [
+    { name: 'Overview', id: 'overview', icon: Home },
+    { name: 'Debt Projection', id: 'debt-projection', icon: TrendingDown },
+    { name: 'Budget Optimizer', id: 'budget-optimizer', icon: Sparkles },
+    { name: 'Savings', id: 'savings-opportunities', icon: Wallet },
   ];
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const isActive = (href: string) => {
-    return location.pathname === href || location.pathname.startsWith(`${href}/`);
+  const isActive = (id: string) => {
+    return activeTab === id;
+  };
+
+  const isActiveSection = (id: string) => {
+    return activeSection === id;
+  };
+
+  const handleNavClick = (id: string, name: string) => {
+    setActiveTab(id);
+    setPageTitle(name);
+    navigate(`#${id}`);
+    
+    // Close mobile sidebar when an item is clicked
+    if (window.innerWidth < 768) {
+      setIsSidebarOpen(false);
+    }
+  };
+
+  const handleTabClick = (id: string) => {
+    setActiveSection(id);
+    navigate(`#${id}`);
   };
 
   const handleSignOut = () => {
@@ -91,12 +155,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="flex h-full flex-col">
           {/* Logo and close button (mobile only) */}
           <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
-            <RouterLink to="/dashboard" className="flex items-center space-x-2">
+            <div onClick={() => handleNavClick('dashboard', 'Dashboard')} className="flex items-center space-x-2 cursor-pointer">
               <div className="h-8 w-8 rounded-md bg-blue-600 flex items-center justify-center">
                 <PiggyBank className="h-5 w-5 text-white" />
               </div>
               <span className="text-xl font-bold">FinTrack</span>
-            </RouterLink>
+            </div>
             <button
               onClick={toggleSidebar}
               className="rounded-md p-2 text-gray-400 hover:bg-gray-800 hover:text-white md:hidden"
@@ -108,24 +172,29 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 space-y-1 px-2 py-4">
             <div className="space-y-1">
-              {mainNavItems.map((item) => (
-                <RouterLink
-                  key={item.name}
-                  to={item.href}
-                  className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium ${
-                    isActive(item.href)
-                      ? 'bg-gray-800 text-white'
-                      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                  }`}
-                >
-                  <item.icon
-                    className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                      isActive(item.href) ? 'text-white' : 'text-gray-400 group-hover:text-white'
+              {mainNavItems.map((item) => {
+                // Create a local variable for the icon component
+                const IconComponent = item.icon;
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleNavClick(item.id, item.name)}
+                    className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium cursor-pointer ${
+                      isActive(item.id)
+                        ? 'bg-gray-800 text-white'
+                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                     }`}
-                  />
-                  {item.name}
-                </RouterLink>
-              ))}
+                  >
+                    {/* Render the icon component explicitly */}
+                    <IconComponent
+                      className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                        isActive(item.id) ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                      }`}
+                    />
+                    {item.name}
+                  </div>
+                );
+              })}
             </div>
 
             <div className="mt-8">
@@ -133,24 +202,29 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 Settings
               </h3>
               <div className="mt-2 space-y-1">
-                {settingsNavItems.map((item) => (
-                  <RouterLink
-                    key={item.name}
-                    to={item.href}
-                    className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium ${
-                      isActive(item.href)
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
-                    }`}
-                  >
-                    <item.icon
-                      className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                        isActive(item.href) ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                {settingsNavItems.map((item) => {
+                  // Create a local variable for the icon component
+                  const IconComponent = item.icon;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleNavClick(item.id, item.name)}
+                      className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium cursor-pointer ${
+                        isActive(item.id)
+                          ? 'bg-gray-800 text-white'
+                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
                       }`}
-                    />
-                    {item.name}
-                  </RouterLink>
-                ))}
+                    >
+                      {/* Render the icon component explicitly */}
+                      <IconComponent
+                        className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                          isActive(item.id) ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                        }`}
+                      />
+                      {item.name}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </nav>
@@ -160,15 +234,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="h-10 w-10 rounded-full bg-gray-700 flex items-center justify-center">
-                  {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={user?.name || 'User'}
-                      className="h-10 w-10 rounded-full"
-                    />
-                  ) : (
-                    <User className="h-6 w-6 text-gray-300" />
-                  )}
+                  <User className="h-6 w-6 text-gray-300" />
                 </div>
               </div>
               <div className="ml-3 min-w-0 flex-1">
@@ -202,7 +268,85 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           
           {/* Page content */}
           <div className="mx-auto max-w-7xl">
-            {children}
+            {/* Dashboard tabs - only show when dashboard is active */}
+            {activeTab === 'dashboard' && (
+              <div className="mb-6">
+                <div className="flex overflow-x-auto pb-2 space-x-2">
+                  {dashboardTabs.map((tab) => {
+                    // Create a local variable for the icon component
+                    const IconComponent = tab.icon;
+                    return (
+                      <motion.button
+                        key={tab.id}
+                        onClick={() => handleTabClick(tab.id)}
+                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                          isActiveSection(tab.id)
+                            ? 'bg-white/10 text-white border border-white/20'
+                            : 'text-white/60 hover:bg-white/5 hover:text-white'
+                        }`}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        {/* Render the icon component explicitly */}
+                        <IconComponent className="h-4 w-4" />
+                        <span>{tab.name}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Only show content for active tab */}
+            {activeTab === 'dashboard' && (
+              <>
+                {activeSection === 'overview' && children}
+                {activeSection === 'debt-projection' && (
+                  <div className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-6 rounded-2xl bg-gradient-to-br from-black/60 to-black/40 border border-white/10 backdrop-blur-sm shadow-xl"
+                    >
+                      <h2 className="text-2xl font-bold text-white mb-4">Debt Projection</h2>
+                      <DebtProjection />
+                    </motion.div>
+                  </div>
+                )}
+                {activeSection === 'budget-optimizer' && (
+                  <div className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-6 rounded-2xl bg-gradient-to-br from-black/60 to-black/40 border border-white/10 backdrop-blur-sm shadow-xl"
+                    >
+                      <h2 className="text-2xl font-bold text-white mb-4">Budget Optimizer</h2>
+                      <BudgetOptimizer />
+                    </motion.div>
+                  </div>
+                )}
+                {activeSection === 'savings-opportunities' && (
+                  <div className="space-y-6">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-6 rounded-2xl bg-gradient-to-br from-black/60 to-black/40 border border-white/10 backdrop-blur-sm shadow-xl"
+                    >
+                      <h2 className="text-2xl font-bold text-white mb-4">Savings Opportunities</h2>
+                      <SavingsOpportunities />
+                    </motion.div>
+                  </div>
+                )}
+              </>
+            )}
+            {activeTab !== 'dashboard' && (
+              <div className="p-6 rounded-2xl bg-gradient-to-br from-black/60 to-black/40 border border-white/10 backdrop-blur-sm shadow-xl">
+                <h2 className="text-2xl font-bold text-white mb-4">{pageTitle}</h2>
+                <p className="text-white/70">
+                  This is the {pageTitle.toLowerCase()} section. Content for this section will be displayed here.
+                </p>
+              </div>
+            )}
           </div>
         </main>
       </div>

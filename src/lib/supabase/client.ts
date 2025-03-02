@@ -27,7 +27,7 @@ export const supabase = createClient<Database>(
 );
 
 // Helper function to check if Supabase is properly configured
-export const checkSupabaseConnection = async () => {
+export async function checkSupabaseConnection() {
   try {
     const { error } = await supabase.auth.getSession();
     if (error) {
@@ -39,4 +39,4 @@ export const checkSupabaseConnection = async () => {
     console.error('Failed to check Supabase connection:', error);
     return false;
   }
-};
+}

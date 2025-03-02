@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/lib/supabase/client';
-import { checkSupabaseConnection } from '@/lib/supabase/client';
+import { checkSupabaseConnection } from '@/utils/supabase/connectionStatus';
 
 interface FormData {
   fullName: string;
@@ -42,19 +42,17 @@ export default function JobApplication() {
   // Check Supabase connection on component mount
   useEffect(() => {
     const verifySupabaseConnection = async () => {
-      const isConnected = await checkSupabaseConnection();
-      if (!isConnected) {
+      const status = await checkSupabaseConnection();
+      if (!status.isConnected) {
         toast({
           title: "Connection Error",
           description: "Unable to establish connection to our services. Please try again later.",
           variant: "destructive"
         });
-        navigate('/careers');
       }
     };
-
     verifySupabaseConnection();
-  }, [navigate, toast]);
+  }, [toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -95,8 +93,8 @@ export default function JobApplication() {
 
     try {
       // Verify Supabase connection again before submission
-      const isConnected = await checkSupabaseConnection();
-      if (!isConnected) {
+      const status = await checkSupabaseConnection();
+      if (!status.isConnected) {
         throw new Error('Unable to connect to our services. Please try again later.');
       }
 

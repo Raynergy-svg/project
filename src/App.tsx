@@ -22,7 +22,17 @@ import AddingFirstDebtArticle from './components/help/articles/adding-first-debt
 import { createDebtTable, checkExecuteSqlFunction } from "@/lib/supabase/createDebtTable";
 import { createBankAccountsTable } from "@/lib/supabase/createBankAccountsTable";
 import { supabase } from "@/utils/supabase/client";
-import { ConnectionStatus } from '@/components/debug/ConnectionStatus';
+
+// Import debug components only in development mode
+const isDevelopment = import.meta.env.DEV;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let ConnectionStatus: React.ComponentType<any> | null = null;
+if (isDevelopment) {
+  // Dynamic import for debug components
+  import('@/components/debug/ConnectionStatus').then(module => {
+    ConnectionStatus = module.ConnectionStatus;
+  });
+}
 
 // Lazy load routes with prefetching
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -220,7 +230,7 @@ function App() {
         </DeviceProvider>
       </SecurityProvider>
       {/* Add the debug component */}
-      {import.meta.env.DEV && <ConnectionStatus />}
+      {isDevelopment && ConnectionStatus && <ConnectionStatus />}
     </ErrorBoundary>
   );
 }

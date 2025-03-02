@@ -137,6 +137,29 @@
         }
       }
     </style>
+    
+    <!-- Loader fallback script - ensure loader gets removed even if app initialization fails -->
+    <script>
+      // Force remove the loader after 10 seconds as a fallback
+      window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          var loader = document.getElementById('initial-loader');
+          if (loader) {
+            console.log('Fallback: Force removing loader after timeout');
+            loader.style.display = 'none';
+          }
+        }, 10000);  // 10 second fallback
+        
+        // Also try to remove it if any click happens on the page
+        document.addEventListener('click', function() {
+          var loader = document.getElementById('initial-loader');
+          if (loader && loader.style.display !== 'none') {
+            console.log('Fallback: Removing loader on user interaction');
+            loader.style.display = 'none';
+          }
+        });
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
@@ -145,6 +168,14 @@
     <div id="initial-loader" class="initial-loader">
       <div class="initial-loader__spinner"></div>
       <div class="initial-loader__text">Loading Smart Debt Flow...</div>
+      <div style="margin-top: 20px; font-size: 12px;">
+        <button onclick="document.getElementById('initial-loader').style.display='none';" 
+                style="padding: 5px 10px; background: #88B04B; color: white; border: none; cursor: pointer; border-radius: 4px;">
+          Click here if loading takes too long
+        </button>
+      </div>
     </div>
+    
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

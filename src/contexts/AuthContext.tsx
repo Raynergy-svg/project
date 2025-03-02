@@ -43,10 +43,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Safety timeout - don't block the app for more than 5 seconds
+  useEffect(() => {
+    const safetyTimeout = setTimeout(() => {
+      if (isLoading) {
+        console.warn('Auth loading safety timeout reached, continuing without auth');
+        setIsLoading(false);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(safetyTimeout);
+  }, [isLoading]);
+
   // Load user from Supabase session on mount
   useEffect(() => {
     const loadUser = async () => {
       try {
+        // Remove the initial loader immediately so UI is responsive
+        const initialLoader = document.getElementById('initial-loader');
+        if (initialLoader) {
+          initialLoader.style.display = 'none';
+        }
+        
         // Get current session from Supabase (disabled mock data)
         const { data: { session }, error } = await supabase.auth.getSession();
 

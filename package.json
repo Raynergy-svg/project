@@ -8,12 +8,14 @@
     "server": "node start-server.js",
     "server:dev": "node start-server.js",
     "dev:all": "concurrently \"npm run dev\" \"npm run server:dev\"",
-    "build": "tsc && vite build",
+    "build": "npm run clean-debug && tsc && vite build",
     "build:ci": "npm install --force && tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest",
-    "analyze": "vite-bundle-analyzer"
+    "analyze": "vite-bundle-analyzer",
+    "clean-debug": "node scripts/clean-debug.js",
+    "restore-debug": "node scripts/restore-debug.js"
   },
   "dependencies": {
     "@hcaptcha/react-hcaptcha": "^1.12.0",

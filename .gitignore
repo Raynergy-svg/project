@@ -85,3 +85,12 @@ local/
 #ignore readme files
 README*
 .md*
+
+# Debug files
+debug.html
+test.html
+src/debug.tsx
+src/DebugApp.tsx
+src/index.html
+.debug-backup/
+**/debug/

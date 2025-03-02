@@ -113,6 +113,14 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: true,
       rollupOptions: {
+        input: isDev 
+          ? {
+              main: path.resolve(__dirname, 'index.html'),
+              debug: path.resolve(__dirname, 'debug.html'),
+            }
+          : {
+              main: path.resolve(__dirname, 'index.html'),
+            },
         output: {
           sourcemapExcludeSources: false,
           manualChunks: {
@@ -121,7 +129,12 @@ export default defineConfig(({ mode }) => {
             'stripe-vendor': ['@stripe/react-stripe-js', '@stripe/stripe-js']
           }
         },
-        external: ['next/headers']
+        external: ['next/headers'],
+        treeshake: {
+          moduleSideEffects: (id, external) => {
+            return !id.includes('debug') || external;
+          }
+        }
       },
       assetsInlineLimit: 4096,
       chunkSizeWarningLimit: 1000,
@@ -129,7 +142,15 @@ export default defineConfig(({ mode }) => {
       terserOptions: {
         compress: {
           drop_console: !isDev,
-          drop_debugger: !isDev
+          drop_debugger: !isDev,
+          pure_funcs: isDev ? [] : [
+            'console.log', 
+            'console.debug', 
+            'console.trace'
+          ],
+          global_defs: {
+            DEBUG: isDev
+          }
         }
       }
     },

@@ -4,115 +4,159 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
 
-// Initialize performance monitoring
-const initializePerformanceMonitoring = () => {
-  // Report Web Vitals
-  if ('web-vitals' in window) {
-    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-      getCLS(console.log);
-      getFID(console.log);
-      getFCP(console.log);
-      getLCP(console.log);
-      getTTFB(console.log);
-    });
+// Determine if we're in development mode
+const isDevelopment = import.meta.env.DEV;
+
+// Global error handler
+window.addEventListener('error', (event) => {
+  console.error('Global error caught:', event.error || event.message);
+  
+  // Try to remove loader in case of error
+  const loader = document.getElementById('initial-loader');
+  if (loader && loader.parentNode) {
+    console.warn('Removing loader after error');
+    loader.parentNode.removeChild(loader);
   }
+});
 
-  // Monitor network conditions
-  if ('connection' in navigator) {
-    // @ts-ignore
-    const connection = navigator.connection;
-    if (connection) {
-      console.log(`Network Information:
-        - Effective Type: ${connection.effectiveType}
-        - Downlink: ${connection.downlink} Mbps
-        - RTT: ${connection.rtt} ms
-      `);
-
-      connection.addEventListener('change', () => {
-        console.log('Network conditions changed');
-      });
+// Detect slow resource loading - only in development
+const detectSlowResources = () => {
+  if (!isDevelopment) return;
+  
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      // If a resource takes more than 3 seconds to load, log it
+      if (entry.duration > 3000) {
+        console.warn(`Slow resource: ${entry.name} took ${entry.duration}ms to load`);
+      }
     }
+  });
+  
+  try {
+    observer.observe({ entryTypes: ['resource'] });
+  } catch (e) {
+    console.error('PerformanceObserver not supported:', e);
   }
 };
 
-// Preload critical resources
-const preloadResources = () => {
-  const addResourceHint = (href: string, rel: 'preconnect' | 'dns-prefetch') => {
-    const link = document.createElement('link');
-    link.rel = rel;
-    link.href = href;
-    if (rel === 'preconnect') link.crossOrigin = 'anonymous';
-    document.head.appendChild(link);
-  };
-
-  // Add resource hints for external services
-  addResourceHint('https://gnwdahoiauduyncppbdb.supabase.co', 'preconnect');
-  addResourceHint('https://gnwdahoiauduyncppbdb.supabase.co', 'dns-prefetch');
-};
-
-// Initialize service worker
-const initializeServiceWorker = async () => {
-  if ('serviceWorker' in navigator) {
-    try {
-      // Let Vite PWA handle the service worker registration
-      const { registerSW } = await import('virtual:pwa-register');
-      
-      registerSW({
-        immediate: true,
-        onRegistered(registration) {
-          console.log('Service worker registration successful');
-        },
-        onRegisterError(error) {
-          console.warn('Service worker registration failed:', error);
-        }
-      });
-    } catch (error) {
-      console.warn('Service worker initialization failed:', error);
-      // Continue without service worker
-    }
-  }
-};
-
-// Remove initial loader
+// Remove initial loader - with multiple fallbacks and debugging
 const removeInitialLoader = () => {
   const loader = document.getElementById('initial-loader');
   if (loader) {
-    loader.style.opacity = '0';
-    setTimeout(() => loader.remove(), 300);
+    if (isDevelopment) console.log('Removing initial loader');
+    
+    // Try multiple approaches to ensure it's removed
+    try {
+      // First set display to none for immediate visual hiding
+      loader.style.display = 'none';
+      if (isDevelopment) console.log('Set loader display to none');
+      
+      // Then set opacity and remove it after animation
+      loader.style.opacity = '0';
+      if (isDevelopment) console.log('Set loader opacity to 0');
+      
+      // Finally remove from DOM
+      setTimeout(() => {
+        if (loader.parentNode) {
+          loader.parentNode.removeChild(loader);
+          if (isDevelopment) console.log('Removed loader from DOM');
+        }
+      }, 300);
+    } catch (e) {
+      console.error('Error removing loader:', e);
+      // Fallback if the above fails
+      if (loader.parentNode) {
+        loader.parentNode.removeChild(loader);
+        if (isDevelopment) console.log('Used fallback method to remove loader');
+      }
+    }
+  } else if (isDevelopment) {
+    console.warn('Initial loader element not found');
   }
 };
 
-// Initialize the application
+// Add debug info to page - only in development
+const addDebugInfo = () => {
+  if (!isDevelopment) {
+    return {
+      update: (_text: string) => { /* No-op in production */ }
+    };
+  }
+  
+  const debugDiv = document.createElement('div');
+  debugDiv.style.position = 'fixed';
+  debugDiv.style.bottom = '0';
+  debugDiv.style.right = '0';
+  debugDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
+  debugDiv.style.color = '#00FF00';
+  debugDiv.style.padding = '5px';
+  debugDiv.style.fontSize = '10px';
+  debugDiv.style.fontFamily = 'monospace';
+  debugDiv.style.zIndex = '9999';
+  debugDiv.textContent = 'DEBUG: App initializing...';
+  
+  document.body.appendChild(debugDiv);
+  
+  return {
+    update: (text: string) => {
+      debugDiv.textContent = `DEBUG: ${text} (${new Date().toLocaleTimeString()})`;
+    }
+  };
+};
+
+// Initialize the application with better error handling
 const initializeApp = () => {
+  const debugInfo = addDebugInfo();
+  if (isDevelopment) debugInfo.update('Finding root element');
+  
   const root = document.getElementById('root');
-  if (!root) throw new Error('Root element not found');
+  if (!root) {
+    if (isDevelopment) debugInfo.update('ERROR: Root element not found');
+    console.error('Root element not found');
+    return;
+  }
 
-  createRoot(root).render(
-    <StrictMode>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <App />
-      </BrowserRouter>
-    </StrictMode>
-  );
+  if (isDevelopment) debugInfo.update('Preparing to render React app');
+  
+  try {
+    if (isDevelopment) debugInfo.update('Creating React root');
+    const reactRoot = createRoot(root);
+    
+    if (isDevelopment) debugInfo.update('Rendering App component');
+    reactRoot.render(
+      <StrictMode>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </StrictMode>
+    );
 
-  // Remove loader after app is mounted
-  removeInitialLoader();
+    if (isDevelopment) debugInfo.update('React render called');
+    
+    // Remove loader after a short delay to ensure React has started rendering
+    setTimeout(() => {
+      removeInitialLoader();
+      if (isDevelopment) debugInfo.update('App initialized successfully');
+    }, 100);
+  } catch (e) {
+    if (isDevelopment) debugInfo.update(`ERROR: ${e instanceof Error ? e.message : 'Unknown error'}`);
+    console.error('Error initializing app:', e);
+    removeInitialLoader(); // Try to remove loader even if app fails
+  }
 };
 
-// Initialize everything in the correct order
-const initialize = async () => {
-  // Start preloading resources immediately
-  preloadResources();
+// Enable debugging with query parameter, but only in development
+const isDebugMode = isDevelopment && new URLSearchParams(window.location.search).has('debug');
+if (isDebugMode) {
+  console.log('Debug mode enabled');
+  detectSlowResources();
+}
 
-  // Initialize monitoring
-  initializePerformanceMonitoring();
+// Start immediately
+initializeApp();
 
-  // Initialize service worker
-  await initializeServiceWorker();
-
-  // Initialize the app
-  initializeApp();
-};
-
-// Start initialization
-initialize();
+// Extra safety - ensure loader is removed even if something above fails
+window.addEventListener('load', () => {
+  if (isDevelopment) console.log('Window load event fired');
+  setTimeout(removeInitialLoader, 1000);
+});

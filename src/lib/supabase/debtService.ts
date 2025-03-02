@@ -1,4 +1,5 @@
 import { supabase } from '@/utils/supabase/client';
+import { checkSupabaseConnection as baseConnectionCheck } from '@/lib/supabase/client';
 import type { PostgrestError } from '@supabase/supabase-js';
 
 // Define types for our debt data
@@ -33,19 +34,8 @@ export interface ServiceResponse<T> {
  */
 export async function checkSupabaseConnection(): Promise<boolean> {
   try {
-    // Try a simple health check query - using a known table instead of _rpc
-    // We're just checking the auth.users table count as it always exists
-    const { error } = await supabase
-      .from('profiles')
-      .select('count', { count: 'exact', head: true })
-      .limit(1);
-    
-    if (error) {
-      console.error('Supabase connection check failed with error:', error);
-      return false;
-    }
-    
-    return true;
+    // Use the base connection check function from client.ts
+    return await baseConnectionCheck();
   } catch (error) {
     console.error('Supabase connection check failed with exception:', error);
     return false;

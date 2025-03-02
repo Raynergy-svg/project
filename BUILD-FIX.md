@@ -19,6 +19,9 @@ This document describes the dependency conflicts that were resolved to fix the b
 5. **ESLint Configuration**: Fixed ESLint compatibility issues
    - Solution: Downgraded ESLint and related plugins to compatible versions
 
+6. **Circular Dependencies**: Fixed circular import that caused "Export 'checkSupabaseConnection' is not defined" error
+   - Solution: Used import alias for the checkSupabaseConnection function to break circular references between modules
+
 ## CI/CD Updates
 
 - Added `.npmrc` configuration for consistent dependency resolution

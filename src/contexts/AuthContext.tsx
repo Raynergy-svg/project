@@ -47,29 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // For localhost development with no Supabase setup, use mock data
-        if (window.location.hostname === 'localhost' && 
-            import.meta.env.MODE === 'development') {
-          console.warn('Using mock user data for development. Bypassing Supabase auth.');
-          const mockUser = {
-            id: '550e8400-e29b-41d4-a716-446655440000', // Valid UUID format
-            email: 'dev@example.com',
-            name: 'Developer',
-            isPremium: true,
-            createdAt: new Date().toISOString(),
-            trialEndsAt: null,
-            subscription: {
-              status: 'active' as const,
-              planName: 'Pro',
-              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            }
-          };
-          setUser(mockUser);
-          setIsLoading(false);
-          return;
-        }
-
-        // Get current session from Supabase
+        // Get current session from Supabase (disabled mock data)
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {

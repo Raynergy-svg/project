@@ -16,6 +16,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     async function checkSubscription() {
+      // Always bypass subscription check in development mode
+      if (window.location.hostname === 'localhost' && 
+          import.meta.env.MODE === 'development') {
+        setHasSubscription(true);
+        setIsLoading(false);
+        return;
+      }
+      
       if (!isAuthenticated || !user) {
         setIsLoading(false);
         return;

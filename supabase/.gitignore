@@ -1,8 +1,38 @@
 # Supabase
 .branches
 .temp
+.cache/
+volumes/
+.secrets/
 
-# dotenvx
+# Environment and configuration files
 .env.keys
 .env.local
 .env.*.local
+.env*
+!.env.example
+
+# Service keys and secrets
+*service-key*
+*service_key*
+*service_account*
+*service-account*
+*.key
+*.pem
+*jwt*
+
+# Database dumps and backups
+*.sql
+*.dump
+*.backup
+backups/
+
+# Local development
+*local*
+dev/
+development/
+
+# Generated files
+generated/
+_generated/
+.output/

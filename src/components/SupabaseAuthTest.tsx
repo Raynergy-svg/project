@@ -6,15 +6,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from './LoadingSpinner';
-import { SmartCaptcha } from './SmartCaptcha';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { 
   HCAPTCHA_SITE_KEY,
   handleCaptchaVerify,
   handleCaptchaExpire,
-  verifyCaptchaPresent,
-  isTokenFromFallback,
-  addCaptchaToOptions,
-  verifyTokenWithServer
+  verifyCaptchaPresent
 } from '@/utils/captcha';
 
 export const SupabaseAuthTest: React.FC = () => {
@@ -29,10 +26,6 @@ export const SupabaseAuthTest: React.FC = () => {
   
   // Add this to keep track of captcha verification
   const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
-  // Track if using fallback captcha
-  const [isUsingFallback, setIsUsingFallback] = useState(false);
-  // Track if we're verifying the captcha with the server
-  const [isVerifyingCaptcha, setIsVerifyingCaptcha] = useState(false);
 
   // Check for existing session on mount
   useEffect(() => {
@@ -65,54 +58,12 @@ export const SupabaseAuthTest: React.FC = () => {
 
   // Handle captcha verification
   const onCaptchaVerify = (token: string) => {
-    // Check if using fallback
-    setIsUsingFallback(isTokenFromFallback(token));
-    
-    handleCaptchaVerify(
-      token, 
-      setCaptchaToken, 
-      setIsCaptchaVerified, 
-      setIsUsingFallback
-    );
+    handleCaptchaVerify(token, setCaptchaToken, setIsCaptchaVerified);
   };
 
   // Handle captcha expiration
   const onCaptchaExpire = () => {
-    handleCaptchaExpire(
-      setCaptchaToken, 
-      setIsCaptchaVerified, 
-      setIsUsingFallback
-    );
-  };
-
-  // Verify captcha with server before proceeding
-  const verifyWithServerBeforeAuth = async (): Promise<boolean> => {
-    // Check for captcha
-    const captchaError = verifyCaptchaPresent(captchaToken);
-    if (captchaError) {
-      setStatus('error');
-      setMessage(captchaError);
-      return false;
-    }
-
-    // Verify with server
-    setIsVerifyingCaptcha(true);
-    try {
-      const result = await verifyTokenWithServer(captchaToken!);
-      if (!result.success) {
-        setStatus('error');
-        setMessage(`Captcha verification failed: ${result.message}`);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      setStatus('error');
-      setMessage(`Error verifying captcha: ${error instanceof Error ? error.message : String(error)}`);
-      return false;
-    } finally {
-      setIsVerifyingCaptcha(false);
-    }
+    handleCaptchaExpire(setCaptchaToken, setIsCaptchaVerified);
   };
 
   const handleSignUp = async () => {
@@ -120,19 +71,24 @@ export const SupabaseAuthTest: React.FC = () => {
       setStatus('loading');
       setMessage('');
 
-      // First verify the captcha with our server
-      const isVerified = await verifyWithServerBeforeAuth();
-      if (!isVerified) return;
+      // Check for captcha
+      const captchaError = verifyCaptchaPresent(captchaToken);
+      if (captchaError) {
+        setStatus('error');
+        setMessage(captchaError);
+        return;
+      }
 
       // Proceed with signup
       const { data, error } = await supabase.auth.signUp({
         email: testEmail,
         password: testPassword,
-        options: addCaptchaToOptions(captchaToken, {
+        options: {
           data: {
             name: testName,
-          }
-        }),
+          },
+          captchaToken: captchaToken,
+        },
       });
 
       if (error) {
@@ -161,15 +117,21 @@ export const SupabaseAuthTest: React.FC = () => {
       setStatus('loading');
       setMessage('');
 
-      // First verify the captcha with our server
-      const isVerified = await verifyWithServerBeforeAuth();
-      if (!isVerified) return;
+      // Check for captcha
+      const captchaError = verifyCaptchaPresent(captchaToken);
+      if (captchaError) {
+        setStatus('error');
+        setMessage(captchaError);
+        return;
+      }
 
       // Proceed with signin
       const { data, error } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword,
-        options: addCaptchaToOptions(captchaToken),
+        options: {
+          captchaToken: captchaToken,
+        }
       });
 
       if (error) {
@@ -285,30 +247,17 @@ export const SupabaseAuthTest: React.FC = () => {
                 />
               </div>
               
-              <SmartCaptcha
+              <HCaptcha
                 sitekey={HCAPTCHA_SITE_KEY}
                 onVerify={onCaptchaVerify}
                 onExpire={onCaptchaExpire}
               />
               
-              {isUsingFallback && (
-                <Alert className="mt-2">
-                  <AlertTitle>Using Fallback Verification</AlertTitle>
-                  <AlertDescription>
-                    For the best security, please ensure hCaptcha domains are allowed in your browser.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <Button 
-                onClick={handleSignUp} 
-                className="w-full" 
-                disabled={status === 'loading' || isVerifyingCaptcha}
-              >
-                {status === 'loading' || isVerifyingCaptcha ? (
+              <Button onClick={handleSignUp} className="w-full" disabled={status === 'loading'}>
+                {status === 'loading' ? (
                   <>
                     <LoadingSpinner className="mr-2 h-4 w-4" />
-                    {isVerifyingCaptcha ? 'Verifying Captcha...' : 'Signing Up...'}
+                    Signing Up...
                   </>
                 ) : (
                   'Sign Up'
@@ -334,34 +283,15 @@ export const SupabaseAuthTest: React.FC = () => {
                 />
               </div>
               
-              <SmartCaptcha
+              <HCaptcha
                 sitekey={HCAPTCHA_SITE_KEY}
                 onVerify={onCaptchaVerify}
                 onExpire={onCaptchaExpire}
               />
               
-              {isUsingFallback && (
-                <Alert className="mt-2">
-                  <AlertTitle>Using Fallback Verification</AlertTitle>
-                  <AlertDescription>
-                    For the best security, please ensure hCaptcha domains are allowed in your browser.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <Button 
-                onClick={handleSignIn} 
-                className="w-full" 
-                disabled={status === 'loading' || isVerifyingCaptcha}
-              >
-                {status === 'loading' || isVerifyingCaptcha ? (
-                  <>
-                    <LoadingSpinner className="mr-2 h-4 w-4" />
-                    {isVerifyingCaptcha ? 'Verifying Captcha...' : 'Signing In...'}
-                  </>
-                ) : (
-                  'Sign In'
-                )}
+              <Button onClick={handleSignIn} className="w-full" disabled={status === 'loading'}>
+                {status === 'loading' ? <LoadingSpinner className="mr-2 h-4 w-4" /> : null}
+                Sign In
               </Button>
             </TabsContent>
           </Tabs>

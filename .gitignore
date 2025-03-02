@@ -27,6 +27,57 @@ dist-ssr
 .env
 .env.*
 !.env.example
+.env.local
+.env.development
+.env.production
+.env.test
+
+# SSL Certificates
+.cert/
+.cert/*
+certs/
+certs/*
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.der
 
 # Supabase
 .supabase/
+supabase/.branches/
+supabase/.temp/
+
+# Secrets and keys
+*secret*
+*api_key*
+*apikey*
+credentials.json
+*auth*.json
+*config*.json
+
+# Build and cache
+.cache/
+build/
+coverage/
+.coverage/
+.nyc_output/
+
+# Local development
+.dev/
+.local/
+local/
+
+# Backup files
+*.bak
+*.backup
+*~
+*.swp
+*.old
+
+# Dependency lock files (keep one based on your package manager)
+# yarn.lock
+# package-lock.json
+# pnpm-lock.yaml

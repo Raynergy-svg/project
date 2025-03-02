@@ -49,15 +49,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         // For localhost development with no Supabase setup, use mock data
         if (window.location.hostname === 'localhost' && 
-            import.meta.env.MODE === 'development' && 
-            !import.meta.env.VITE_SUPABASE_URL) {
-          console.warn('Using mock user data for development. Supabase auth is not configured.');
+            import.meta.env.MODE === 'development') {
+          console.warn('Using mock user data for development. Bypassing Supabase auth.');
           const mockUser = {
             id: 'dev-user',
             email: 'dev@example.com',
             name: 'Developer',
             isPremium: true,
             createdAt: new Date().toISOString(),
+            trialEndsAt: null,
             subscription: {
               status: 'active' as const,
               planName: 'Pro',

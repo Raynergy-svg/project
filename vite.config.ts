@@ -137,7 +137,7 @@ export default defineConfig(({ mode }) => {
       devSourcemap: true
     },
     server: {
-      https: false,
+      https: sslCertificates,
       headers: {
         'Content-Security-Policy': generateCSP(mode),
       },

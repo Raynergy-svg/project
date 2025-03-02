@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build:ci"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18.18.0"
+
+# Force Netlify to use npm instead of yarn
+[build.processing]
+  skip_processing = false
+
+# Handle SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 

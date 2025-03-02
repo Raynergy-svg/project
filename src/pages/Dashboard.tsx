@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,6 +9,7 @@ import { DebtBreakdown } from '@/components/dashboard/DebtBreakdown';
 import { NextPayment } from '@/components/dashboard/NextPayment';
 import { BankConnections } from '@/components/dashboard/BankConnections';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { createBankAccountsTable } from '@/lib/supabase/createBankAccountsTable';
 
 // Define DebtCategory type to match expected enum
 type DebtCategory = 'Credit Card' | 'Student Loan' | 'Auto Loan' | 'Mortgage' | 'Personal Loan' | 'Medical Debt' | 'Other';
@@ -42,6 +43,9 @@ interface MonthlySpending {
 export function Dashboard() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [isFixingDatabase, setIsFixingDatabase] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  
   const { 
     isLoading, 
     error, 
@@ -57,6 +61,30 @@ export function Dashboard() {
 
   // For demo purposes, we'll assume onboarding is complete
   const isOnboardingComplete = true;
+
+  // Try to fix database issues if they occur
+  useEffect(() => {
+    const checkAndFixDatabase = async () => {
+      if (error && (error.includes('404') || error.includes('does not exist'))) {
+        setIsFixingDatabase(true);
+        try {
+          // Attempt to create the tables that might be missing
+          await createBankAccountsTable();
+          // Wait a bit then reload the page
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to fix database issue:', err);
+          setLocalError(err instanceof Error ? err.message : String(err));
+        } finally {
+          setIsFixingDatabase(false);
+        }
+      }
+    };
+    
+    checkAndFixDatabase();
+  }, [error]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -98,31 +126,63 @@ export function Dashboard() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isFixingDatabase) {
     return (
       <DashboardLayout>
         <div className="flex flex-col items-center justify-center h-[80vh]">
           <LoadingSpinner size="lg" />
-          <p className="mt-4 text-white/70">Loading your financial dashboard...</p>
+          <p className="mt-4 text-white/70">
+            {isFixingDatabase 
+              ? 'Setting up your database. This may take a moment...' 
+              : 'Loading your financial dashboard...'}
+          </p>
         </div>
       </DashboardLayout>
     );
   }
 
-  if (error) {
+  if (error || localError) {
+    const errorMessage = localError || error;
+    
+    // Handle specific error cases with helpful messages
+    let userFriendlyMessage = errorMessage;
+    if (errorMessage?.includes('404') || errorMessage?.includes('does not exist')) {
+      userFriendlyMessage = 'We encountered an issue with the database. Please try refreshing the page.';
+    }
+    
     return (
       <DashboardLayout>
         <div className="p-6 rounded-2xl bg-gradient-to-br from-red-500/20 to-red-500/10 border border-red-500/20 backdrop-blur-sm shadow-xl">
           <h2 className="text-2xl font-bold text-white mb-4">Error Loading Dashboard</h2>
-          <p className="text-white/70">
-            {error}
+          <p className="text-white/70 mb-4">
+            {userFriendlyMessage}
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
-          >
-            Retry
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+            >
+              Retry
+            </button>
+            {(errorMessage?.includes('404') || errorMessage?.includes('does not exist')) && (
+              <button
+                onClick={async () => {
+                  setIsFixingDatabase(true);
+                  try {
+                    await createBankAccountsTable();
+                    setTimeout(() => window.location.reload(), 1000);
+                  } catch (err) {
+                    console.error('Failed to fix database:', err);
+                    setIsFixingDatabase(false);
+                    setLocalError(err instanceof Error ? err.message : String(err));
+                  }
+                }}
+                className="mt-4 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              >
+                Fix Database
+              </button>
+            )}
+          </div>
         </div>
       </DashboardLayout>
     );

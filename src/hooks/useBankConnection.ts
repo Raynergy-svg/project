@@ -104,7 +104,7 @@ export function useBankConnection(): UseBankConnectionReturn {
 
   // Fetch bank accounts from Supabase
   const fetchAccounts = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) return [];
     
     try {
       const { data, error: fetchError } = await supabase
@@ -113,12 +113,14 @@ export function useBankConnection(): UseBankConnectionReturn {
         .eq('user_id', user.id);
         
       if (fetchError) {
-        // If the error is a missing table (42P01), we'll handle it gracefully
-        if (fetchError.code === '42P01') {
-          console.log('Bank accounts table does not exist yet - will be created when needed');
-          // Return an empty array without showing an error to the user
+        // Handle different error cases
+        if (fetchError.code === '42P01' || // Table doesn't exist error
+            fetchError.message?.includes('does not exist') ||
+            fetchError.status === 404 || // HTTP 404 error
+            fetchError.message?.includes('404')) {
+          console.log('Bank accounts table does not exist yet or API endpoint has issues');
           setAccounts([]);
-          return;
+          return [];
         }
         
         throw fetchError;
@@ -140,17 +142,25 @@ export function useBankConnection(): UseBankConnectionReturn {
         }));
         
         setAccounts(transformedAccounts);
+        return transformedAccounts;
       }
+      
+      return [];
     } catch (err) {
       console.error('Error fetching bank accounts:', err);
       
-      // Don't show errors to users for database setup issues
-      if (err instanceof Error && 
-          (err.message.includes('42P01') || err.message.includes('does not exist'))) {
-        console.log('Bank accounts table does not exist yet');
+      const errMsg = err instanceof Error ? err.message : String(err);
+      
+      // Don't show errors to users for database setup issues or 404 errors
+      if (errMsg.includes('42P01') || 
+          errMsg.includes('does not exist') || 
+          errMsg.includes('404')) {
+        console.log('Bank accounts table does not exist yet or API has connectivity issues');
         setAccounts([]);
+        return [];
       } else {
         setError('Failed to fetch bank accounts');
+        return [];
       }
     }
   }, [user?.id]);

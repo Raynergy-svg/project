@@ -22,6 +22,7 @@ import AddingFirstDebtArticle from './components/help/articles/adding-first-debt
 import { createDebtTable, checkExecuteSqlFunction } from "@/lib/supabase/createDebtTable";
 import { createBankAccountsTable } from "@/lib/supabase/createBankAccountsTable";
 import { supabase } from "@/utils/supabase/client";
+import { ConnectionStatus } from '@/components/debug/ConnectionStatus';
 
 // Lazy load routes with prefetching
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -217,6 +218,12 @@ function App() {
           </AuthProvider>
         </DeviceProvider>
       </SecurityProvider>
+      <Routes>
+        {/* ... existing routes ... */}
+      </Routes>
+      
+      {/* Add the debug component */}
+      {import.meta.env.DEV && <ConnectionStatus />}
     </ErrorBoundary>
   );
 }

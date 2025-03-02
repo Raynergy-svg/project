@@ -1,8 +1,13 @@
-import { supabase, createBrowserClient } from '@/utils/supabase/client';
+import { supabase } from '@/utils/supabase/client';
 import type { Database } from './types';
 
-// Re-export the singleton instance and createBrowserClient function
-export { supabase, createBrowserClient };
+// Re-export everything from the primary source
+export { 
+  supabase, 
+  createBrowserClient,
+  supabaseUrl,
+  supabaseAnonKey 
+} from '@/utils/supabase/client';
 
 // Helper function to check if Supabase is properly configured
 export async function checkSupabaseConnection() {

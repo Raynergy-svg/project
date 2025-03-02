@@ -81,3 +81,6 @@ local/
 # yarn.lock
 # package-lock.json
 # pnpm-lock.yaml
+
+#ignore readme files
+README*

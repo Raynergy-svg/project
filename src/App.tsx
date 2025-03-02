@@ -88,6 +88,7 @@ function AppRoutes() {
       />
       <Route path="/debt-planner" element={<DebtPlanner />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
@@ -218,10 +219,6 @@ function App() {
           </AuthProvider>
         </DeviceProvider>
       </SecurityProvider>
-      <Routes>
-        {/* ... existing routes ... */}
-      </Routes>
-      
       {/* Add the debug component */}
       {import.meta.env.DEV && <ConnectionStatus />}
     </ErrorBoundary>

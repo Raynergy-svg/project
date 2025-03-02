@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/supabase/types';
 
 // Use environment variables with fallbacks
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://gnwdahoiauduyncppbdb.supabase.co';
@@ -12,7 +13,7 @@ if (import.meta.env.DEV) {
 
 // Create a single instance to reuse with standard configuration
 // We're using default fetch to avoid CORS and certificate issues
-const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
@@ -20,21 +21,29 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
     flowType: 'pkce',
   },
-  // Removed custom fetch implementation to use browser defaults
+  global: {
+    headers: {
+      'x-application-name': 'smart-debt-flow',
+    },
+  }
 });
 
 export { supabase };
 
 // For cases where we need a new instance
 export const createBrowserClient = () => {
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       persistSession: true,
       storage: typeof window !== 'undefined' ? window.localStorage : undefined,
       autoRefreshToken: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
+    },
+    global: {
+      headers: {
+        'x-application-name': 'smart-debt-flow',
+      },
     }
-    // Removed custom fetch implementation to use browser defaults
   });
 }; 

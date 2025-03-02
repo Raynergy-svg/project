@@ -1,30 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase, createBrowserClient } from '@/utils/supabase/client';
 import type { Database } from './types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase credentials. Please check your environment variables: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY');
-}
-
-export const supabase = createClient<Database>(
-  supabaseUrl,
-  supabaseKey,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: 'pkce',
-    },
-    global: {
-      headers: {
-        'x-application-name': 'smart-debt-flow',
-      },
-    },
-  }
-);
+// Re-export the singleton instance and createBrowserClient function
+export { supabase, createBrowserClient };
 
 // Helper function to check if Supabase is properly configured
 export async function checkSupabaseConnection() {

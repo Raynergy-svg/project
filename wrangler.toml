@@ -1,42 +1,57 @@
-name = "project"
+name = "smart-debt-flow"
 main = "src/worker.js"
 compatibility_date = "2024-02-22"
 workers_dev = true
 
-[assets]
-directory = "dist"
+[build]
+command = "npm run build"
+watch_dir = "src"
+
+[site]
+bucket = "dist"
+entry-point = "src/worker.js"
+
+[site.assets]
+include = ["dist"]
+exclude = ["node_modules"]
 
 [[kv_namespaces]]
 binding = "STATIC_ASSETS"
 id = "dc953a65f10c424d94803328e066b5a9"
 preview_id = "28111915119942eca5dc83a27d0a4ca7"
 
+[[kv_namespaces]]
+binding = "CACHE_STORAGE"
+id = "fc94361a012149a786110694590856af"
+preview_id = "d6fecc982467413a96246f7ac901db8b"
+
+# Removing R2 bucket configuration since we use Supabase Storage
+# [[r2_buckets]]
+# binding = "USER_CONTENT"
+# bucket_name = "smart-debt-flow-user-content"
+
 # Non-sensitive environment variables
 [vars]
 ENVIRONMENT = "production"
-STRIPE_MODE = "test"
-S3_REGION = "local"
-SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
+STRIPE_MODE = "live"
+S3_REGION = "us-east-1"
+SUPABASE_URL = "https://sdagcazfszlumwbatfcr.supabase.co"
+ASSETS_URL = ""
 
+# Production environment variables
 [env.production.vars]
 ENVIRONMENT = "production"
-STRIPE_MODE = "test"
-S3_REGION = "local"
-SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
+STRIPE_MODE = "live"
+S3_REGION = "us-east-1"
+SUPABASE_URL = "https://sdagcazfszlumwbatfcr.supabase.co"
+ASSETS_URL = ""
 
-# The following secrets should be set using:
-# npx wrangler secret put SECRET_NAME
-# - SUPABASE_URL
+# Set these secrets using 'npx wrangler secret put SECRET_NAME'
+# - STRIPE_SK_TEST
+# - STRIPE_SK_LIVE
+# - SUPABASE_SERVICE_ROLE
 # - SUPABASE_ANON_KEY
-# - JWT_SECRET
-# - STRIPE_WEBHOOK_SECRET
-# - STRIPE_PUBLISHABLE_KEY
-# - STRIPE_SECRET_KEY
-# - OPENAI_API_KEY
-# - S3_Access_Key
-# - S3_Secret_Key
-
-[build]
-command = "npm run build"
-watch_dir = "src"
-upload.format = "service-worker" 
+# - S3_ACCESS_KEY
+# - S3_SECRET_KEY
+# - SERVICE_JWT_SECRET
+# - WEBHOOK_SECRET 

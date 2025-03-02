@@ -1,6 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase, createBrowserClient } from '@/utils/supabase/client';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Re-export the singleton instance from utils
+export { supabase, createBrowserClient };
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// If you need to access the URL and key for some reason:
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+export const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;

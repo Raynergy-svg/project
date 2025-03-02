@@ -1,48 +1,40 @@
-# Build Error Resolution
+# Build Fixes for Production
 
-This document describes the dependency conflicts that were resolved to fix the build process.
+## "Export 'supabase' is not defined in module" Error
 
-## Fixed Issues
+### Issue
+In production builds, the following error was occurring:
+```
+index-CdwHeaeY.js:26 Uncaught SyntaxError: Export 'supabase' is not defined in module
+```
 
-1. **TypeScript Compatibility**: Fixed version conflict between TypeScript 5.8.2 and @typescript-eslint/eslint-plugin 8.25.0
-   - Solution: Downgraded TypeScript to ~5.7.3 and ESLint plugin to ^6.21.0
+This error was caused by having multiple independent instances of Supabase clients exported with the same name across different files:
+- `src/utils/supabase/client.ts` 
+- `src/lib/supabase.ts`
+- `src/lib/supabase/client.ts`
 
-2. **React Version Compatibility**: Fixed version conflicts with React and React-DOM
-   - Solution: Set specific versions (18.2.0) for React and React-DOM
-   - Added resolutions field in package.json to enforce consistent versions
+Different components were importing from different files, which worked in development but caused conflicts in production when the bundler tried to optimize and deduplicate exports.
 
-3. **PostCSS Configuration**: Fixed ESM compatibility issues with PostCSS
-   - Solution: Changed configuration from CommonJS (.cjs) to ESM (.mjs) format
+### Fix
+The fix involved consolidating all Supabase client instances to a single source of truth:
 
-4. **Missing Dependencies**: Added missing date-fns package
+1. Made `src/utils/supabase/client.ts` the primary source of the Supabase client
+2. Updated it to properly use Database types for better type safety
+3. Modified the other files to re-export from this primary source instead of creating new instances:
+   - `src/lib/supabase.ts` now re-exports from `@/utils/supabase/client`
+   - `src/lib/supabase/client.ts` now re-exports from `@/utils/supabase/client`
 
-5. **ESLint Configuration**: Fixed ESLint compatibility issues
-   - Solution: Downgraded ESLint and related plugins to compatible versions
+This ensures that there's only one Supabase client instance throughout the application, eliminating the export conflicts in production builds.
 
-6. **Circular Dependencies**: Fixed circular import that caused "Export 'checkSupabaseConnection' is not defined" error
-   - Solution: Used import alias for the checkSupabaseConnection function to break circular references between modules
+### Key Changes
+- Added `import type { Database } from '@/lib/supabase/types'` to the main client
+- Used proper typing with `createClient<Database>()`
+- Added consistent global headers
+- Made auxiliary files re-export the main instance instead of creating new ones
 
-## CI/CD Updates
-
-- Added `.npmrc` configuration for consistent dependency resolution
-- Created a dedicated CI build script with force flag (`build:ci`)
-- Added GitHub Actions workflow for automated building
-- Created Netlify configuration for deployment
-
-## For Dependency Updates in Future
-
-When updating dependencies, maintain compatibility between:
-
-1. React, React DOM, and types
-2. TypeScript and @typescript-eslint
-3. ESLint and its plugins
-
-For major version upgrades, consider updating the entire stack rather than individual packages.
-
-## Build Command
-
-Use the following command for production builds:
-
-```bash
-npm run build:ci
-``` 
+### Prevention
+When working with singleton instances like database clients, always:
+1. Create a single source of truth
+2. Re-export from that source rather than creating new instances
+3. Use proper typing for better development experience
+4. Test production builds before deployment 

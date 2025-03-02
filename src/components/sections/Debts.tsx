@@ -16,7 +16,15 @@ import {
   Car,
   Briefcase,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  RefreshCw,
+  WifiOff,
+  Database,
+  ScrollText,
+  Package,
+  Banknote,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
@@ -26,6 +34,7 @@ import { Debt } from '@/lib/supabase/debtService';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { DebtCategoryType, DEBT_CATEGORIES } from '@/lib/constants';
+import { DebtAIModule } from '@/components/ai/DebtAIModule';
 
 // Map debt types between our UI and database
 const mapCategoryToType = (category: DebtCategoryType): Debt['type'] => {
@@ -70,11 +79,14 @@ export function Debts() {
     debts,
     isLoading,
     error,
+    connectionError,
     debtSummary,
     addDebt: addDebtToSupabase,
     updateDebt: updateDebtInSupabase,
     deleteDebt: deleteDebtFromSupabase,
-    refreshDebts
+    refreshDebts,
+    resetErrors,
+    tableExists
   } = useDebts();
 
   const [activeTab, setActiveTab] = useState<'all' | 'credit-cards' | 'loans' | 'other'>('all');
@@ -91,6 +103,12 @@ export function Debts() {
   });
   const [editingDebtId, setEditingDebtId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Add a retry function for connection errors
+  const handleRetryConnection = () => {
+    resetErrors();
+    refreshDebts();
+  };
 
   // Filter debts based on active tab
   const filteredDebts = debts.filter(debt => {
@@ -311,26 +329,128 @@ export function Debts() {
     return (debt.minimum_payment * months) - debt.amount;
   };
 
-  // Handle error state
+  // Add the connection error UI section after the return statement
+  // Check for errors and display appropriate messages
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 min-h-[300px]">
+        <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
+        <h3 className="text-lg font-medium">Loading your debt information...</h3>
+      </div>
+    );
+  }
+
+  if (connectionError) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 min-h-[300px] text-center">
+        <WifiOff className="w-12 h-12 text-red-500 mb-4" />
+        <h3 className="text-xl font-bold mb-2">Connection Error</h3>
+        <p className="text-gray-500 mb-6 max-w-md">
+          We're having trouble connecting to the database. This could be due to network issues or server maintenance.
+        </p>
+        <Button 
+          onClick={handleRetryConnection}
+          className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Retry Connection
+        </Button>
+      </div>
+    );
+  }
+
+  if (!tableExists) {
+    return (
+      <div className="flex flex-col items-center justify-center p-8 min-h-[300px] text-center">
+        <Database className="w-12 h-12 text-yellow-500 mb-4" />
+        <h3 className="text-xl font-bold mb-2">Database Setup Required</h3>
+        <p className="text-gray-500 mb-6 max-w-md">
+          The debts table doesn't exist in your Supabase project yet. To fix this, you need to run a SQL setup script in your Supabase dashboard.
+        </p>
+        <div className="bg-black/30 p-4 rounded-md mb-6 text-left text-xs max-w-xl overflow-auto">
+          <pre className="whitespace-pre-wrap">
+{`-- Run this in your Supabase SQL Editor:
+
+CREATE TABLE IF NOT EXISTS public.debts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  amount DECIMAL(15,2) NOT NULL,
+  interest_rate DECIMAL(6,2) NOT NULL,
+  minimum_payment DECIMAL(15,2) NOT NULL,
+  due_date DATE,
+  notes TEXT,
+  priority INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
+  institution_id TEXT,
+  account_id TEXT,
+  plaid_item_id TEXT,
+  last_updated_from_bank TIMESTAMP WITH TIME ZONE
+);
+
+-- Add indexes for better query performance
+CREATE INDEX IF NOT EXISTS debts_user_id_idx ON public.debts (user_id);
+CREATE INDEX IF NOT EXISTS debts_type_idx ON public.debts (type);
+
+-- Enable RLS
+ALTER TABLE public.debts ENABLE ROW LEVEL SECURITY;
+
+-- Create policies
+CREATE POLICY select_own_debts ON public.debts
+  FOR SELECT USING (auth.uid() = user_id);
+  
+CREATE POLICY insert_own_debts ON public.debts
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  
+CREATE POLICY update_own_debts ON public.debts
+  FOR UPDATE USING (auth.uid() = user_id);
+  
+CREATE POLICY delete_own_debts ON public.debts
+  FOR DELETE USING (auth.uid() = user_id);`}
+          </pre>
+        </div>
+        <Button 
+          onClick={handleRetryConnection}
+          className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Retry After Setup
+        </Button>
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="space-y-6">
-        <div className="p-8 text-center">
-          <h1 className="text-2xl font-bold text-red-500 mb-4">Error Loading Debts</h1>
-          <p className="text-gray-400 mb-4">{error.message}</p>
-          <Button
-            onClick={() => refreshDebts()}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            Try Again
-          </Button>
-        </div>
+      <div className="flex flex-col items-center justify-center p-8 min-h-[300px] text-center">
+        <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+        <h3 className="text-xl font-bold mb-2">Error Loading Debts</h3>
+        <p className="text-gray-500 mb-6">{error.message}</p>
+        <Button
+          onClick={handleRetryConnection}
+          className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Try Again
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-3xl font-bold tracking-tight">Debt Management</h2>
+        <Button onClick={() => setShowAddDebt(true)} className="bg-primary hover:bg-primary/90">
+          Add Debt
+        </Button>
+      </div>
+
+      {/* AI Module - Add this new section */}
+      <DebtAIModule />
+      
       {/* Header with stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div

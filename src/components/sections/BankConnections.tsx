@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Building, 
@@ -13,369 +13,360 @@ import {
   Shield, 
   LockKeyhole,
   CreditCard,
-  Wallet
+  Wallet,
+  WifiOff,
+  Banknote,
+  PiggyBank,
+  ChevronDown,
+  Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBankConnection } from '@/hooks/useBankConnection';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { usePlaidLink } from 'react-plaid-link';
+import { createDebtTable } from '@/lib/supabase/createDebtTable';
+import { createBankAccountsTable } from '@/lib/supabase/createBankAccountsTable';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 
 export function BankConnections() {
+  const { accounts, isLoading, error, openBankConnection, refreshAccounts, disconnectAccount, linkToken, isPlaidReady } = useBankConnection();
   const { user } = useAuth();
-  const { 
-    accounts, 
-    isLoading, 
-    error, 
-    openBankConnection: connectAccount, 
-    disconnectAccount, 
-    refreshAccounts 
-  } = useBankConnection();
-  
+  const navigate = useNavigate();
+  const [activeAccount, setActiveAccount] = useState<string | null>(null);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [debtsTableInitialized, setDebtsTableInitialized] = useState(false);
   
-  // Mock list of available banks
+  // Simplified list of available banks (would typically come from Plaid)
   const availableBanks = [
-    { id: 'chase', name: 'Chase', logo: '🏦', popular: true },
-    { id: 'bofa', name: 'Bank of America', logo: '🏦', popular: true },
-    { id: 'wells', name: 'Wells Fargo', logo: '🏦', popular: true },
-    { id: 'citi', name: 'Citibank', logo: '🏦', popular: true },
-    { id: 'capital', name: 'Capital One', logo: '🏦', popular: true },
-    { id: 'discover', name: 'Discover', logo: '💳', popular: false },
-    { id: 'amex', name: 'American Express', logo: '💳', popular: false },
-    { id: 'usbank', name: 'US Bank', logo: '🏦', popular: false },
-    { id: 'pnc', name: 'PNC Bank', logo: '🏦', popular: false },
-    { id: 'td', name: 'TD Bank', logo: '🏦', popular: false },
+    { id: 'chase', name: 'Chase', logo: 'https://logo.clearbit.com/chase.com' },
+    { id: 'bofa', name: 'Bank of America', logo: 'https://logo.clearbit.com/bankofamerica.com' },
+    { id: 'wells', name: 'Wells Fargo', logo: 'https://logo.clearbit.com/wellsfargo.com' },
+    { id: 'citi', name: 'Citibank', logo: 'https://logo.clearbit.com/citibank.com' },
+    { id: 'capital', name: 'Capital One', logo: 'https://logo.clearbit.com/capitalone.com' },
   ];
   
-  // Handle connecting a bank account
-  const handleConnectBankAccount = (bankId: string) => {
-    setSelectedBank(bankId);
-    
-    // In a real app, this would open a secure connection flow
-    // For this demo, we'll simulate the connection process
-    setTimeout(() => {
-      const bank = availableBanks.find(b => b.id === bankId);
-      if (bank) {
-        connectAccount({
-          id: `${bankId}-${Date.now()}`,
-          institutionName: bank.name,
-          accountType: 'checking',
-          accountName: `${bank.name} Checking`,
-          balance: Math.floor(Math.random() * 10000),
-          lastUpdated: new Date(),
-          status: 'active'
-        });
-      }
-      setShowConnectModal(false);
-      setSelectedBank(null);
-    }, 2000);
-  };
-  
-  // Handle disconnecting a bank account
-  const handleDisconnectAccount = (accountId: string) => {
-    if (confirm('Are you sure you want to disconnect this account? This action cannot be undone.')) {
-      disconnectAccount(accountId);
+  // Initialize database tables if needed
+  const handleInitializeDebtsTable = async () => {
+    setIsInitializing(true);
+    try {
+      // We'll handle this internally without bothering the user
+      await createBankAccountsTable();
+      setDebtsTableInitialized(true);
+      setInitError(null);
+    } catch (error) {
+      console.error('Error initializing debts table:', error);
+      // Instead of showing a database error to the user, show a more friendly message
+      setInitError("We encountered an issue setting up your account. Please try again.");
+    } finally {
+      setIsInitializing(false);
     }
   };
   
-  // Handle refreshing account data
-  const handleRefreshAccounts = () => {
-    refreshAccounts();
+  // Handles opening the Plaid Link flow
+  const handleOpenPlaid = useCallback(() => {
+    if (!isPlaidReady) {
+      console.log('Plaid not ready yet');
+      return;
+    }
+    
+    openBankConnection();
+    setShowConnectModal(true);
+  }, [isPlaidReady, openBankConnection]);
+  
+  // Config for the Plaid Link component
+  const config: PlaidLinkOptions = {
+    token: linkToken || '',
+    onSuccess: (public_token, metadata) => {
+      console.log('Success!', public_token, metadata);
+      
+      // In a real app, you would exchange this token for an access token on your backend
+      // For our demo, we'll simulate connecting a bank account
+      if (metadata.institution && metadata.accounts && metadata.accounts.length > 0) {
+        const account = metadata.accounts[0];
+        
+        // Connect the account
+        connectAccount({
+          id: uuidv4(),
+          institutionName: metadata.institution.name,
+          accountType: account.type,
+          accountName: account.name,
+          accountNumber: account.mask,
+          balance: 1250.00, // Mock balance
+          lastUpdated: new Date(),
+          status: 'active',
+          plaidItemId: metadata.item_id,
+          plaidAccountId: account.id,
+          institutionId: metadata.institution.institution_id
+        });
+      }
+      
+      setShowConnectModal(false);
+      setSelectedBank(null);
+    },
+    onExit: (err, metadata) => {
+      console.log('Exit!', err, metadata);
+      setShowConnectModal(false);
+      setSelectedBank(null);
+    },
+  };
+  
+  const { open, ready } = usePlaidLink(config);
+  
+  // Handle connecting a mock bank account
+  const handleConnectBankAccount = (bankId: string) => {
+    setSelectedBank(bankId);
+    
+    // In a real app, we would use Plaid Link here
+    // For our mock, we'll add a random account
+    const selectedBank = availableBanks.find(bank => bank.id === bankId);
+    
+    if (!selectedBank) return;
+    
+    if (ready && linkToken) {
+      // Use real Plaid Link if ready
+      open();
+    } else {
+      // Use mock data if Plaid is not set up
+      setTimeout(() => {
+        const accountTypes = ['checking', 'savings', 'credit'];
+        const randomType = accountTypes[Math.floor(Math.random() * accountTypes.length)];
+        
+        connectAccount({
+          id: uuidv4(),
+          institutionName: selectedBank.name,
+          accountType: randomType,
+          accountName: `${randomType.charAt(0).toUpperCase() + randomType.slice(1)} Account`,
+          balance: Math.floor(Math.random() * 10000) / 100,
+          lastUpdated: new Date(),
+          status: 'active'
+        });
+        
+        setShowConnectModal(false);
+        setSelectedBank(null);
+      }, 1000);
+    }
+  };
+  
+  // Handle disconnecting an account
+  const handleDisconnectAccount = async (accountId: string) => {
+    await disconnectAccount(accountId);
+  };
+  
+  // Handle refreshing accounts
+  const handleRefreshAccounts = async () => {
+    await refreshAccounts();
+  };
+  
+  // Toggle account details
+  const toggleAccountDetails = (accountId: string) => {
+    setActiveAccount(prevId => prevId === accountId ? null : accountId);
   };
   
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Bank Connections</h2>
-          <p className="text-white/60">Manage your connected financial accounts</p>
-        </div>
-        
-        <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            onClick={handleRefreshAccounts}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+    <Card className="overflow-hidden bg-black border border-white/10 shadow-sm">
+      <CardHeader className="pb-3 border-b border-white/10">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-xl font-semibold text-white">
+            Connected Accounts
+          </CardTitle>
           
-          <Button 
-            className="gap-2"
-            onClick={() => setShowConnectModal(true)}
-          >
-            <Plus className="w-4 h-4" />
-            Connect Account
-          </Button>
-        </div>
-      </div>
-      
-      {/* Error message */}
-      {error && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 rounded-lg bg-red-500/20 border border-red-500/30"
-        >
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-            <p className="text-white font-medium">Error connecting to your accounts</p>
-          </div>
-          <p className="text-white/70 text-sm mt-1 ml-8">
-            {error}. Please try again later or contact support if the issue persists.
-          </p>
-        </motion.div>
-      )}
-      
-      {/* Connected accounts */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm"
-      >
-        <h3 className="text-xl font-semibold text-white mb-6">Connected Accounts</h3>
-        
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-white/70">Loading your accounts...</p>
-          </div>
-        ) : accounts && accounts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="p-3 rounded-full bg-blue-500/20 mb-4">
-              <Building className="h-6 w-6 text-blue-400" />
-            </div>
-            <h4 className="text-lg font-medium text-white mb-2">No accounts connected</h4>
-            <p className="text-white/60 max-w-md mb-6">
-              Connect your bank accounts to automatically track your finances and get personalized insights.
-            </p>
+          {accounts.length > 0 && (
             <Button 
-              onClick={() => setShowConnectModal(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              variant="ghost" 
+              size="sm" 
+              onClick={handleRefreshAccounts}
+              disabled={isLoading}
+              className="h-8 gap-1 text-gray-300 hover:text-white"
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Connect Your First Account
+              {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              <span className="text-sm">Refresh</span>
+            </Button>
+          )}
+        </div>
+        <CardDescription className="text-sm text-gray-400">
+          Connect your bank accounts to analyze your debts and get personalized insights
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent className="p-0">
+        {/* Error message */}
+        {error && !initError && (
+          <div className="p-6 bg-red-900/30 border-b border-red-500/30">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-400" />
+              <div>
+                <h4 className="font-medium text-red-300">Connection Error</h4>
+                <p className="text-sm text-red-200/80">{error}</p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleRefreshAccounts} 
+              variant="outline" 
+              size="sm"
+              className="mt-3 ml-8 border-red-500/30 bg-transparent text-red-300 hover:bg-red-900/30"
+            >
+              Retry Connection
             </Button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {accounts.map((account) => (
-              <motion.div 
-                key={account.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-4 rounded-lg bg-black/30 border border-white/10 hover:border-white/20 transition-colors"
-              >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex items-center">
-                    <div className="p-2 rounded-lg mr-4 bg-blue-500/20">
-                      {account.accountType === 'checking' || account.accountType === 'savings' ? (
-                        <Building className="h-5 w-5 text-blue-400" />
-                      ) : account.accountType === 'credit' ? (
-                        <CreditCard className="h-5 w-5 text-blue-400" />
-                      ) : (
-                        <Wallet className="h-5 w-5 text-blue-400" />
-                      )}
-                    </div>
-                    <div>
-                      <h4 className="font-medium text-white">{account.accountName}</h4>
-                      <p className="text-sm text-white/60">{account.institutionName}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <p className="text-xs text-white/50">Balance</p>
-                      <p className="font-medium text-white">{formatCurrency(account.balance)}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-xs text-white/50">Status</p>
-                      <div className="flex items-center">
-                        {account.status === 'active' ? (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5 text-green-400 mr-1" />
-                            <span className="text-green-400 text-sm">Active</span>
-                          </>
-                        ) : account.status === 'pending' ? (
-                          <>
-                            <Clock className="w-3.5 h-3.5 text-amber-400 mr-1" />
-                            <span className="text-amber-400 text-sm">Pending</span>
-                          </>
-                        ) : (
-                          <>
-                            <XCircle className="w-3.5 h-3.5 text-red-400 mr-1" />
-                            <span className="text-red-400 text-sm">Error</span>
-                          </>
-                        )}
+        )}
+        
+        {/* Display connected accounts */}
+        {accounts.length > 0 ? (
+          <div>
+            <ul className="divide-y divide-white/10">
+              {accounts.map(account => (
+                <li key={account.id} className="p-5 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleAccountDetails(account.id)}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-900/30 text-blue-400">
+                        {account.type === 'checking' && <Banknote className="w-5 h-5" />}
+                        {account.type === 'savings' && <PiggyBank className="w-5 h-5" />}
+                        {account.type === 'credit' && <CreditCard className="w-5 h-5" />}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-white">{account.name}</h4>
+                        <p className="text-sm text-gray-400">{account.institution}</p>
                       </div>
                     </div>
-                    
-                    <div>
-                      <p className="text-xs text-white/50">Last Updated</p>
-                      <p className="text-sm text-white/70">{formatDate(account.lastUpdated)}</p>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className={cn(
+                          "font-medium",
+                          account.balance >= 0 ? "text-white" : "text-red-400"
+                        )}>
+                          {formatCurrency(account.balance)}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Last updated: {account.lastUpdated.toLocaleDateString()}
+                        </p>
+                      </div>
+                      <ChevronDown className={cn(
+                        "w-5 h-5 text-gray-400 transition-transform",
+                        activeAccount === account.id && "transform rotate-180"
+                      )} />
                     </div>
                   </div>
                   
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="bg-white/5 hover:bg-white/10 text-red-400 hover:text-red-300"
-                    onClick={() => handleDisconnectAccount(account.id)}
-                  >
-                    <Unlink className="h-4 w-4 mr-1" />
-                    Disconnect
-                  </Button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </motion.div>
-      
-      {/* Security information */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-green-500/20">
-            <Shield className="w-5 h-5 text-green-400" />
-          </div>
-          <h3 className="text-xl font-semibold text-white">Security & Privacy</h3>
-        </div>
-        
-        <div className="space-y-4">
-          <div className="flex items-start gap-3">
-            <LockKeyhole className="w-5 h-5 text-green-400 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-white">Bank-level security</h4>
-              <p className="text-white/70 text-sm">
-                We use 256-bit encryption and secure connections to protect your financial data.
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-start gap-3">
-            <Shield className="w-5 h-5 text-green-400 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-white">Read-only access</h4>
-              <p className="text-white/70 text-sm">
-                We can only view your transaction data, not move money or make changes to your accounts.
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-green-400 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-white">Your data belongs to you</h4>
-              <p className="text-white/70 text-sm">
-                We never sell your personal information to third parties. You can disconnect your accounts at any time.
-              </p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-      
-      {/* Connect account modal */}
-      {showConnectModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-gradient-to-br from-gray-900 to-gray-800 border border-white/10 rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-white">Connect a Bank Account</h3>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowConnectModal(false)}
-                className="text-white/70 hover:text-white"
+                  {/* Account details (expanded view) */}
+                  {activeAccount === account.id && (
+                    <div className="mt-4 pt-4 border-t border-white/10">
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-xs font-medium text-gray-400">Account Type</p>
+                          <p className="text-sm text-white capitalize">{account.type}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-400">Account Number</p>
+                          <p className="text-sm text-white">{account.accountNumber}</p>
+                        </div>
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-red-400 border-red-500/30 hover:bg-red-900/20 hover:text-red-300"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDisconnectAccount(account.id);
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          Disconnect
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+            
+            <div className="p-5 bg-white/5 border-t border-white/10">
+              <Button
+                onClick={handleOpenPlaid}
+                variant="outline"
+                className="w-full border-dashed border-white/20 bg-transparent text-gray-300 hover:bg-white/10"
               >
-                <XCircle className="w-5 h-5" />
+                <Plus className="w-4 h-4 mr-2" />
+                Connect Another Account
               </Button>
             </div>
-            
-            <p className="text-white/70 mb-6">
-              Select your bank or financial institution to securely connect your accounts.
+          </div>
+        ) : (
+          // Empty state - no accounts connected
+          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+            <div className="w-16 h-16 bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
+              <Link className="w-8 h-8 text-blue-400" />
+            </div>
+            <h3 className="text-lg font-medium text-white mb-2">No Accounts Connected</h3>
+            <p className="text-sm text-gray-400 mb-8 max-w-md">
+              Connect your bank accounts securely with Plaid to enable AI-powered debt analysis 
+              and get personalized financial insights.
             </p>
-            
-            <div className="space-y-2 mb-6">
-              <h4 className="text-sm font-medium text-white/70 mb-2">Popular Banks</h4>
-              {availableBanks
-                .filter(bank => bank.popular)
-                .map(bank => (
-                  <button
-                    key={bank.id}
-                    onClick={() => handleConnectBankAccount(bank.id)}
-                    disabled={selectedBank === bank.id}
-                    className={`w-full flex items-center p-3 rounded-lg border ${
-                      selectedBank === bank.id
-                        ? 'bg-blue-500/20 border-blue-500/50 text-white'
-                        : 'bg-black/30 border-white/10 text-white hover:bg-black/50 hover:border-white/20'
-                    } transition-colors`}
-                  >
-                    <span className="text-xl mr-3">{bank.logo}</span>
-                    <span className="font-medium">{bank.name}</span>
-                    {selectedBank === bank.id && (
-                      <div className="ml-auto flex items-center">
-                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                        <span className="text-sm text-blue-400">Connecting...</span>
-                      </div>
-                    )}
-                  </button>
-                ))
-              }
-            </div>
-            
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-white/70 mb-2">Other Financial Institutions</h4>
-              {availableBanks
-                .filter(bank => !bank.popular)
-                .map(bank => (
-                  <button
-                    key={bank.id}
-                    onClick={() => handleConnectBankAccount(bank.id)}
-                    disabled={selectedBank === bank.id}
-                    className={`w-full flex items-center p-3 rounded-lg border ${
-                      selectedBank === bank.id
-                        ? 'bg-blue-500/20 border-blue-500/50 text-white'
-                        : 'bg-black/30 border-white/10 text-white hover:bg-black/50 hover:border-white/20'
-                    } transition-colors`}
-                  >
-                    <span className="text-xl mr-3">{bank.logo}</span>
-                    <span className="font-medium">{bank.name}</span>
-                    {selectedBank === bank.id && (
-                      <div className="ml-auto flex items-center">
-                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                        <span className="text-sm text-blue-400">Connecting...</span>
-                      </div>
-                    )}
-                  </button>
-                ))
-              }
-            </div>
-            
-            <div className="mt-6 pt-6 border-t border-white/10">
-              <p className="text-white/50 text-sm text-center">
-                By connecting your accounts, you agree to our <a href="#" className="text-blue-400 hover:underline">terms of service</a> and <a href="#" className="text-blue-400 hover:underline">privacy policy</a>.
-              </p>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </div>
+            <Button
+              onClick={handleOpenPlaid}
+              size="lg"
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            >
+              <Link className="w-4 h-4" />
+              Connect with Plaid
+            </Button>
+          </div>
+        )}
+      </CardContent>
+      
+      {/* Connect bank modal */}
+      <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
+        <DialogContent className="bg-gray-900 border border-white/10 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white">Connect Your Bank</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Select your bank to securely connect your accounts.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-4 py-4">
+            {availableBanks.map(bank => (
+              <button
+                key={bank.id}
+                className={cn(
+                  "flex flex-col items-center gap-3 p-4 rounded-lg border border-white/10 hover:bg-white/5 transition",
+                  selectedBank === bank.id && "border-blue-500 bg-blue-900/20"
+                )}
+                onClick={() => handleConnectBankAccount(bank.id)}
+              >
+                <img 
+                  src={bank.logo} 
+                  alt={bank.name} 
+                  className="w-10 h-10 object-contain bg-white rounded-md p-1"
+                  onError={(e) => {
+                    // Fallback if logo doesn't load
+                    e.currentTarget.src = "https://placehold.co/80x80/1e293b/cbd5e1?text=Bank";
+                  }}
+                />
+                <span className="text-sm font-medium text-gray-200">{bank.name}</span>
+              </button>
+            ))}
+          </div>
+          
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <DialogClose asChild>
+              <Button variant="outline" type="button" className="border-white/10 text-gray-200 hover:bg-white/10">
+                Cancel
+              </Button>
+            </DialogClose>
+            <p className="text-xs text-gray-400">
+              Powered by Plaid
+            </p>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 } 

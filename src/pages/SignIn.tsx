@@ -79,10 +79,13 @@ export default function SignIn() {
     }
   }, [location]);
 
-  // If user is already authenticated, redirect to dashboard
-  if (isAuthenticated) {
-    navigate("/dashboard");
-  }
+  // Move navigation to useEffect instead of during render
+  useEffect(() => {
+    // If user is already authenticated, redirect to dashboard
+    if (isAuthenticated) {
+      navigate("/dashboard");
+    }
+  }, [isAuthenticated, navigate]);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};

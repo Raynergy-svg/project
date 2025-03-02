@@ -7,12 +7,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { OverviewCards } from '@/components/dashboard/OverviewCards';
 import { DebtBreakdown } from '@/components/dashboard/DebtBreakdown';
 import { NextPayment } from '@/components/dashboard/NextPayment';
-import { QuickStats } from '@/components/dashboard/QuickStats';
-import { AIFinancialInsights } from '@/components/dashboard/AIFinancialInsights';
-import { BudgetAnalyzer } from '@/components/dashboard/BudgetAnalyzer';
 import { BankConnections } from '@/components/dashboard/BankConnections';
-import { AIDebtAssistant } from '@/components/dashboard/AIDebtAssistant';
-import { CreditScoreWidget } from '@/components/dashboard/CreditScoreWidget';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 // Define DebtCategory type to match expected enum
@@ -55,7 +50,9 @@ export function Dashboard() {
     handleViewDebtDetails,
     handleApplyRecommendation,
     handleSchedulePayment,
-    handleAdjustBudget
+    handleAdjustBudget,
+    handleToggleAI,
+    handleViewPayoffPlan
   } = useDashboard();
 
   // For demo purposes, we'll assume onboarding is complete
@@ -151,14 +148,6 @@ export function Dashboard() {
             </p>
             <BankConnections />
           </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <AIDebtAssistant />
-          </motion.div>
         </div>
       </DashboardLayout>
     );
@@ -173,108 +162,50 @@ export function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <OverviewCards data={dashboardState} />
+          <OverviewCards 
+            data={dashboardState} 
+            onAIToggle={handleToggleAI}
+            onViewPayoffPlan={handleViewPayoffPlan}
+          />
         </motion.div>
 
-        {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          {/* Left Column */}
-          <div className="space-y-6 lg:col-span-2">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              <DebtBreakdown 
-                debts={dashboardState.debtBreakdown} 
-                onAddDebt={() => handleAddDebt({
-                  id: crypto.randomUUID(),
-                  category: 'Credit Card',
-                  amount: 0,
-                  interestRate: 0,
-                  minimumPayment: 0,
-                  name: '',
-                })} 
-                onViewDetails={(id: string) => handleViewDebtDetails(id)} 
-              />
-            </motion.div>
+        {/* Main Dashboard Content */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Debt Breakdown - Takes up 2/3 of the width */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="md:col-span-2"
+          >
+            <DebtBreakdown 
+              debts={dashboardState.debtBreakdown} 
+              onAddDebt={() => handleAddDebt({
+                id: crypto.randomUUID(),
+                category: 'Credit Card',
+                amount: 0,
+                interestRate: 0,
+                minimumPayment: 0,
+                name: '',
+              })} 
+              onViewDetails={(id: string) => handleViewDebtDetails(id)} 
+            />
+          </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <BudgetAnalyzer 
-                dashboardState={dashboardState}
-                onAdjustBudget={(category: string) => handleAdjustBudget(category, 0)}
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <AIFinancialInsights 
-                insights={dashboardState.insights} 
-                isLoading={isLoading}
-              />
-            </motion.div>
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              <NextPayment 
-                dueDate={dashboardState.debtBreakdown.length > 0 ? new Date().toISOString().split('T')[0] : ''}
-                amount={dashboardState.monthlyPayment}
-                isAutomated={false}
-                onSchedule={handleSchedulePayment}
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <QuickStats 
-                debtToIncome={dashboardState.debtToIncomeRatio * 100}
-                monthlyChange={dashboardState.monthlyChange}
-                aiScore={dashboardState.aiOptimizationScore}
-              />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <CreditScoreWidget />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <AIDebtAssistant />
-            </motion.div>
-          </div>
+          {/* Next Payment - Takes up 1/3 of the width */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <NextPayment 
+              dueDate={dashboardState.debtBreakdown.length > 0 ? new Date().toISOString().split('T')[0] : ''}
+              amount={dashboardState.monthlyPayment}
+              isAutomated={false}
+              onSchedule={handleSchedulePayment}
+            />
+          </motion.div>
         </div>
-
-        {/* Bank Connections */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          <BankConnections />
-        </motion.div>
       </div>
     </DashboardLayout>
   );

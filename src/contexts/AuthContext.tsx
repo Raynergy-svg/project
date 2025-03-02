@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             import.meta.env.MODE === 'development') {
           console.warn('Using mock user data for development. Bypassing Supabase auth.');
           const mockUser = {
-            id: 'dev-user',
+            id: '550e8400-e29b-41d4-a716-446655440000', // Valid UUID format
             email: 'dev@example.com',
             name: 'Developer',
             isPremium: true,
@@ -171,7 +171,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // User data will be loaded by the auth state change listener
-      navigate("/dashboard");
+      // Don't navigate here - let the component handle navigation via useEffect
+      return data;
     } catch (error) {
       console.error('Login error:', error);
       throw error;

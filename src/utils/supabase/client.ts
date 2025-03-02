@@ -10,7 +10,8 @@ if (import.meta.env.DEV) {
   console.log(`Using Anon Key: ${supabaseAnonKey.substring(0, 15)}...`);
 }
 
-// Create a single instance to reuse
+// Create a single instance to reuse with standard configuration
+// We're using default fetch to avoid CORS and certificate issues
 const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -18,7 +19,8 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-  }
+  },
+  // Removed custom fetch implementation to use browser defaults
 });
 
 export { supabase };
@@ -33,5 +35,6 @@ export const createBrowserClient = () => {
       detectSessionInUrl: true,
       flowType: 'pkce',
     }
+    // Removed custom fetch implementation to use browser defaults
   });
 }; 

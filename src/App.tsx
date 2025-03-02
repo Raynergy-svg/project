@@ -1,4 +1,4 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -19,6 +19,9 @@ import AvalancheMethodArticle from './components/help/articles/AvalancheMethod';
 import AccountSetupArticle from './components/help/articles/account-setup';
 import UnderstandingDashboardArticle from './components/help/articles/understanding-dashboard';
 import AddingFirstDebtArticle from './components/help/articles/adding-first-debt';
+import { createDebtTable, checkExecuteSqlFunction } from "@/lib/supabase/createDebtTable";
+import { createBankAccountsTable } from "@/lib/supabase/createBankAccountsTable";
+import { supabase } from "@/utils/supabase/client";
 
 // Lazy load routes with prefetching
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -126,11 +129,52 @@ function AppNavbar() {
   );
 }
 
-function App() {
-  // Initialize monitoring hooks
-  usePerformanceMonitoring();
-  useErrorTracking();
+// This component will be used inside the AuthProvider
+function AppContent() {
   const location = useLocation();
+  const { isAuthenticated } = useAuth();
+  const { isMobile } = useDeviceContext();
+
+  // Initialize database tables when the app starts
+  useEffect(() => {
+    const initializeDatabase = async () => {
+      try {
+        console.log('Initializing database tables...');
+        
+        // Check if the SQL execute function exists
+        const sqlFunctionCheck = await checkExecuteSqlFunction();
+        if (!sqlFunctionCheck.exists) {
+          console.warn('SQL execution function is not available:', sqlFunctionCheck.message);
+          return;
+        }
+        
+        // Create the debts table if it doesn't exist
+        const debtsResult = await createDebtTable();
+        if (debtsResult.success) {
+          console.log('Debts table initialization successful');
+        } else {
+          console.error('Failed to initialize debts table:', debtsResult.error);
+        }
+        
+        // Create the bank_accounts table if it doesn't exist
+        const bankAccountsResult = await createBankAccountsTable();
+        if (bankAccountsResult.success) {
+          console.log('Bank accounts table initialization successful');
+        } else {
+          console.error('Failed to initialize bank_accounts table:', bankAccountsResult.error);
+        }
+        
+      } catch (err) {
+        console.error('Error initializing database:', err);
+        // Continue with the application regardless of database initialization
+      }
+    };
+    
+    // Only run this if the user is authenticated
+    if (isAuthenticated) {
+      initializeDatabase();
+    }
+  }, [isAuthenticated]);
 
   // Show onboarding tour for new users
   const shouldShowTour = !localStorage.getItem("onboardingCompleted");
@@ -138,26 +182,38 @@ function App() {
   const isDashboardPage = location.pathname.startsWith('/dashboard');
 
   return (
+    <Layout>
+      {shouldShowTour && <OnboardingTour />}
+      {!isAuthPage && !isDashboardPage && <AppNavbar />}
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <LoadingSpinner />
+          </div>
+        }
+      >
+        <ErrorBoundary>
+          <AppRoutes />
+        </ErrorBoundary>
+      </Suspense>
+      <Toaster />
+    </Layout>
+  );
+}
+
+function App() {
+  // Initialize performance monitoring
+  usePerformanceMonitoring();
+  
+  // Initialize error tracking
+  useErrorTracking();
+
+  return (
     <ErrorBoundary>
       <SecurityProvider>
         <DeviceProvider>
           <AuthProvider>
-            <Layout>
-              {shouldShowTour && <OnboardingTour />}
-              {!isAuthPage && !isDashboardPage && <AppNavbar />}
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center min-h-[50vh]">
-                    <LoadingSpinner />
-                  </div>
-                }
-              >
-                <ErrorBoundary>
-                  <AppRoutes />
-                </ErrorBoundary>
-              </Suspense>
-              <Toaster />
-            </Layout>
+            <AppContent />
           </AuthProvider>
         </DeviceProvider>
       </SecurityProvider>

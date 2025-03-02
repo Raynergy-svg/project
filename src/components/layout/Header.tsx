@@ -17,10 +17,10 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface HeaderProps {
   title: string;
-  onToggleSidebar: () => void;
+  subtitle?: string;
 }
 
-export function Header({ title, onToggleSidebar }: HeaderProps) {
+export function Header({ title, subtitle }: HeaderProps) {
   const { user } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -73,13 +73,14 @@ export function Header({ title, onToggleSidebar }: HeaderProps) {
     <header className="bg-gray-900 border-b border-gray-800">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center">
-          <button
-            onClick={onToggleSidebar}
-            className="rounded-md p-2 text-gray-400 hover:bg-gray-800 hover:text-white md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </button>
-          <h1 className="ml-2 text-xl font-semibold text-white md:ml-0">{title}</h1>
+          <div className="flex flex-col">
+            {title && (
+              <h1 className="text-xl font-semibold text-white">{title}</h1>
+            )}
+            {subtitle && (
+              <p className="text-sm text-gray-400">{subtitle}</p>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center space-x-2">

@@ -20,19 +20,23 @@ import {
   Wallet,
   Calculator,
   Building,
-  Headphones
+  Headphones,
+  DollarSign
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Header } from './Header';
+import { Logo } from '@/components/Logo';
 import { DebtProjection } from '@/components/dashboard/DebtProjection';
-import { BudgetOptimizer } from '@/components/dashboard/BudgetOptimizer';
 import { SavingsOpportunities } from '@/components/dashboard/SavingsOpportunities';
 import { DebtPayoffCalculator } from '@/components/dashboard/DebtPayoffCalculator';
+import { Transactions } from '@/components/dashboard/Transactions';
 import { useDashboard } from '@/hooks/useDashboard';
 import { Debts } from '@/components/sections/Debts';
 import { Savings } from '@/components/sections/Savings';
 import { Reports } from '@/components/sections/Reports';
 import { BankConnections } from '@/components/sections/BankConnections';
+import { BackgroundAnimation } from './BackgroundAnimation';
+import { Button } from '@/components/ui/button';
 
 interface NavItem {
   name: string;
@@ -124,7 +128,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const dashboardTabs: TabItem[] = [
     { name: 'Overview', id: 'overview', icon: Home },
     { name: 'Debt Projection', id: 'debt-projection', icon: TrendingDown },
-    { name: 'Budget Optimizer', id: 'budget-optimizer', icon: Sparkles },
+    { name: 'Transactions', id: 'transactions', icon: DollarSign },
     { name: 'Payoff Calculator', id: 'payoff-calculator', icon: Calculator },
     { name: 'Savings', id: 'savings-opportunities', icon: Wallet },
   ];
@@ -163,21 +167,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   return (
-    <div className="flex h-screen bg-black text-white">
+    <div className="flex h-screen bg-black text-white overflow-hidden">
+      {/* Background Animation */}
+      <BackgroundAnimation />
+      
       {/* Sidebar for desktop */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-gray-900 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 transform bg-gray-900/80 backdrop-blur-md border-r border-white/5 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="flex h-full flex-col">
           {/* Logo and close button (mobile only) */}
-          <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4">
-            <div onClick={() => handleNavClick('dashboard', 'Dashboard')} className="flex items-center space-x-2 cursor-pointer">
-              <div className="h-8 w-8 rounded-md bg-blue-600 flex items-center justify-center">
-                <PiggyBank className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">FinTrack</span>
+          <div className="flex h-16 items-center justify-between border-b border-white/10 px-4">
+            <div onClick={() => handleNavClick('dashboard', 'Dashboard')} className="flex items-center gap-1.5 cursor-pointer">
+              <Logo showText={false} size="sm" isLink={false} />
+              <span className="text-sm font-semibold tracking-wide">Smart Debt Flow</span>
             </div>
             <button
               onClick={toggleSidebar}
@@ -188,8 +193,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-2 py-4">
-            <div className="space-y-1">
+          <nav className="flex-1 space-y-1 px-2 py-3">
+            <div className="space-y-0.5">
               {mainNavItems.map((item) => {
                 // Create a local variable for the icon component
                 const IconComponent = item.icon;
@@ -197,16 +202,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <div
                     key={item.id}
                     onClick={() => handleNavClick(item.id, item.name)}
-                    className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium cursor-pointer ${
+                    className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium cursor-pointer transition-all ${
                       isActive(item.id)
-                        ? 'bg-gray-800 text-white'
-                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                        ? 'bg-[#88B04B]/20 text-white border border-[#88B04B]/30'
+                        : 'text-gray-300 hover:bg-gray-800/60 hover:text-white'
                     }`}
                   >
                     {/* Render the icon component explicitly */}
                     <IconComponent
-                      className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                        isActive(item.id) ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                      className={`mr-2.5 h-4 w-4 flex-shrink-0 ${
+                        isActive(item.id) ? 'text-[#88B04B]' : 'text-gray-400 group-hover:text-white'
                       }`}
                     />
                     {item.name}
@@ -215,11 +220,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               })}
             </div>
 
-            <div className="mt-8">
-              <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="mt-6 pt-3 border-t border-white/5">
+              <h3 className="px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
                 Settings
               </h3>
-              <div className="mt-2 space-y-1">
+              <div className="space-y-0.5">
                 {settingsNavItems.map((item) => {
                   // Create a local variable for the icon component
                   const IconComponent = item.icon;
@@ -227,16 +232,16 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                     <div
                       key={item.id}
                       onClick={() => handleNavClick(item.id, item.name)}
-                      className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium cursor-pointer ${
+                      className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium cursor-pointer transition-all ${
                         isActive(item.id)
-                          ? 'bg-gray-800 text-white'
-                          : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                          ? 'bg-[#88B04B]/20 text-white border border-[#88B04B]/30'
+                          : 'text-gray-300 hover:bg-gray-800/60 hover:text-white'
                       }`}
                     >
                       {/* Render the icon component explicitly */}
                       <IconComponent
-                        className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                          isActive(item.id) ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                        className={`mr-2.5 h-4 w-4 flex-shrink-0 ${
+                          isActive(item.id) ? 'text-[#88B04B]' : 'text-gray-400 group-hover:text-white'
                         }`}
                       />
                       {item.name}
@@ -248,22 +253,27 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
 
           {/* User section */}
-          <div className="border-t border-gray-800 p-4">
+          <div className="border-t border-white/10 p-4">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <div className="h-10 w-10 rounded-full bg-gray-700 flex items-center justify-center">
-                  <User className="h-6 w-6 text-gray-300" />
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                  <span className="text-white text-lg font-semibold">
+                    {user?.name?.charAt(0) || 'U'}
+                  </span>
                 </div>
               </div>
-              <div className="ml-3 min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-white">{user?.name}</div>
-                <div className="truncate text-xs text-gray-400">{user?.email}</div>
+              <div className="ml-3">
+                <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
+                <p className="text-xs text-gray-400">{user?.email || ''}</p>
               </div>
+            </div>
+            <div className="mt-3">
               <button
                 onClick={handleSignOut}
-                className="ml-auto flex-shrink-0 rounded-md p-1 text-gray-400 hover:bg-gray-800 hover:text-white"
+                className="flex w-full items-center justify-center rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 border border-white/10"
               >
-                <LogOut className="h-5 w-5" />
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign out
               </button>
             </div>
           </div>
@@ -271,162 +281,126 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Header */}
-        <Header title={pageTitle} onToggleSidebar={toggleSidebar} />
-
-        {/* Main content area */}
-        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-black to-gray-900 p-4 md:p-6">
-          {/* Animated background elements */}
-          <div className="fixed inset-0 overflow-hidden -z-10">
-            <div className="absolute top-0 right-0 w-1/3 h-1/3 bg-[#88B04B]/10 rounded-full blur-[120px]" />
-            <div className="absolute bottom-0 left-0 w-1/3 h-1/3 bg-purple-500/10 rounded-full blur-[120px]" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/2 h-1/2 bg-blue-500/5 rounded-full blur-[150px]" />
+      <main className="flex-1 overflow-auto">
+        {/* Mobile header */}
+        <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-white/10 bg-gray-900/90 backdrop-blur-md px-4 md:hidden">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleSidebar}
+              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-800 hover:text-white"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+            <div className="flex items-center gap-1.5">
+              <Logo showText={false} size="xs" isLink={false} />
+              <span className="text-xs font-semibold tracking-wide text-white">Smart Debt Flow</span>
+            </div>
           </div>
-          
-          {/* Page content */}
-          <div className="mx-auto max-w-7xl">
-            {/* Dashboard tabs - only show when dashboard is active */}
-            {activeTab === 'dashboard' && (
-              <div className="mb-6">
-                <div className="flex overflow-x-auto pb-2 space-x-2">
-                  {dashboardTabs.map((tab) => {
-                    // Create a local variable for the icon component
-                    const IconComponent = tab.icon;
-                    return (
-                      <motion.button
-                        key={tab.id}
-                        onClick={() => handleTabClick(tab.id)}
-                        className={`flex items-center space-x-2 px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                          isActiveSection(tab.id)
-                            ? 'bg-white/10 text-white border border-white/20'
-                            : 'text-white/60 hover:bg-white/5 hover:text-white'
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleSignOut}
+              variant="ghost"
+              size="sm"
+              className="text-xs h-8"
+            >
+              <LogOut className="h-3 w-3 mr-1.5" />
+              Sign out
+            </Button>
+          </div>
+        </div>
+
+        {/* Dashboard header and tabs */}
+        {activeTab === 'dashboard' && (
+          <div className="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-md border-b border-white/10">
+            <div className="px-6 pt-3">
+              <Header title="" subtitle="Manage your financial journey" />
+            </div>
+            
+            {/* Dashboard tabs - simplified design */}
+            <div className="px-6 py-3">
+              <nav className="flex overflow-x-auto bg-gray-800/40 backdrop-blur-sm rounded-lg border border-white/5 no-scrollbar">
+                {dashboardTabs.map((tab) => {
+                  const TabIcon = tab.icon;
+                  const isActive = isActiveSection(tab.id);
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => handleTabClick(tab.id)}
+                      className={`relative flex items-center gap-2 cursor-pointer px-5 py-2.5 transition-all whitespace-nowrap flex-1 justify-center ${
+                        isActive
+                          ? 'text-white'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                      aria-selected={isActive}
+                    >
+                      <TabIcon
+                        className={`h-4 w-4 flex-shrink-0 ${
+                          isActive 
+                            ? 'text-[#88B04B]' 
+                            : 'text-gray-400'
                         }`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        {/* Render the icon component explicitly */}
-                        <IconComponent className="h-4 w-4" />
-                        <span>{tab.name}</span>
-                      </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Only show content for active tab */}
-            {activeTab === 'dashboard' && (
-              <>
-                {activeSection === 'overview' && children}
-                {activeSection === 'debt-projection' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <h1 className="text-2xl font-bold text-white mb-6">Debt Projection</h1>
-                    <DebtProjection />
-                  </motion.div>
-                )}
-                {activeSection === 'budget-optimizer' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <h1 className="text-2xl font-bold text-white mb-6">Budget Optimizer</h1>
-                    <BudgetOptimizer 
-                      dashboardState={dashboardState} 
-                      onAdjustBudget={handleAdjustBudget} 
-                    />
-                  </motion.div>
-                )}
-                {activeSection === 'payoff-calculator' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <h1 className="text-2xl font-bold text-white mb-6">Debt Payoff Calculator</h1>
-                    <DebtPayoffCalculator />
-                  </motion.div>
-                )}
-                {activeSection === 'savings-opportunities' && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <h1 className="text-2xl font-bold text-white mb-6">Savings Opportunities</h1>
-                    <SavingsOpportunities />
-                  </motion.div>
-                )}
-              </>
-            )}
-            {activeTab !== 'dashboard' && (
-              <>
-                {activeTab === 'debts' && (
-                  <motion.div
-                    key="debts"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Debts />
-                  </motion.div>
-                )}
-                {activeTab === 'savings' && (
-                  <motion.div
-                    key="savings"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Savings />
-                  </motion.div>
-                )}
-                {activeTab === 'reports' && (
-                  <motion.div
-                    key="reports"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Reports />
-                  </motion.div>
-                )}
-                {activeTab === 'bank-connections' && (
-                  <motion.div
-                    key="bank-connections"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <BankConnections />
-                  </motion.div>
-                )}
-              </>
-            )}
+                      />
+                      <span className="text-sm font-medium">{tab.name}</span>
+                      
+                      {/* Active indicator */}
+                      {isActive && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#88B04B] mx-2"></div>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
           </div>
-        </main>
-      </div>
+        )}
+        
+        {/* Section-specific headers */}
+        {activeTab !== 'dashboard' && (
+          <div className="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-md border-b border-white/10 px-6 py-3">
+            <Header title={pageTitle} subtitle="Manage your financial journey" />
+          </div>
+        )}
 
-      {/* Mobile menu backdrop */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/50 md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
+        {/* Main content based on active tab and section */}
+        <div className="p-6">
+          {/* Dashboard sections */}
+          {activeTab === 'dashboard' && (
+            <div className="px-4 py-6 md:px-6">
+              {activeSection === 'overview' && children}
+              {activeSection === 'debt-projection' && <DebtProjection debts={dashboardState.debtBreakdown} />}
+              {activeSection === 'transactions' && <Transactions />}
+              {activeSection === 'payoff-calculator' && <DebtPayoffCalculator debts={dashboardState.debtBreakdown} />}
+              {activeSection === 'savings-opportunities' && <SavingsOpportunities />}
+            </div>
+          )}
+
+          {/* Main sections */}
+          {activeTab === 'debts' && <Debts />}
+          {activeTab === 'savings' && <Savings />}
+          {activeTab === 'reports' && <Reports />}
+          {activeTab === 'bank-connections' && <BankConnections />}
+
+          {/* Settings sections */}
+          {activeTab === 'account' && (
+            <div className="rounded-lg border border-white/10 bg-gray-900/50 backdrop-blur-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Account Settings</h2>
+              <p className="text-gray-400">Manage your account preferences and personal information.</p>
+            </div>
+          )}
+          {activeTab === 'support' && (
+            <div className="rounded-lg border border-white/10 bg-gray-900/50 backdrop-blur-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Support</h2>
+              <p className="text-gray-400">Get help with your account or financial questions.</p>
+            </div>
+          )}
+          {activeTab === 'billing' && (
+            <div className="rounded-lg border border-white/10 bg-gray-900/50 backdrop-blur-md p-6">
+              <h2 className="text-xl font-semibold mb-4">Billing</h2>
+              <p className="text-gray-400">Manage your subscription and payment methods.</p>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
   );
 } 

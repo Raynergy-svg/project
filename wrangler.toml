@@ -9,7 +9,6 @@ watch_dir = "src"
 
 [site]
 bucket = "dist"
-entry-point = "src/worker.js"
 
 [site.assets]
 include = ["dist"]

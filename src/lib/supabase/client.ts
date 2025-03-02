@@ -1,4 +1,4 @@
-import { supabase } from '@/utils/supabase/client';
+// Import type only, no actual import of the supabase client
 import type { Database } from './types';
 
 // Re-export everything from the primary source
@@ -12,6 +12,8 @@ export {
 // Helper function to check if Supabase is properly configured
 export async function checkSupabaseConnection() {
   try {
+    // Import the supabase client dynamically to avoid circular dependencies
+    const { supabase } = await import('@/utils/supabase/client');
     const { error } = await supabase.auth.getSession();
     if (error) {
       console.error('Supabase connection error:', error);

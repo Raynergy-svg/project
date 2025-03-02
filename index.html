@@ -65,6 +65,7 @@
     
     <!-- Progressive Web App -->
     <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" href="/manifest.webmanifest" media="not all" />
     <meta name="theme-color" content="#0A0A0A" />
     
     <!-- Cache control -->
@@ -139,7 +140,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
     
     <!-- Initial loading state -->
     <div id="initial-loader" class="initial-loader">

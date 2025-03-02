@@ -10,9 +10,8 @@ watch_dir = "src"
 [site]
 bucket = "dist"
 
-[site.assets]
-include = ["dist"]
-exclude = ["node_modules"]
+# Remove this as it's not a recognized configuration
+# assets_handler = true
 
 [[kv_namespaces]]
 binding = "STATIC_ASSETS"

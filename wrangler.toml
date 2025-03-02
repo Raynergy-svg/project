@@ -1,4 +1,4 @@
-name = "smart-debt-flow"
+name = "project"
 main = "src/worker.js"
 compatibility_date = "2024-02-22"
 workers_dev = true

@@ -12,10 +12,9 @@ watch_dir = "src"
 bucket = "dist"
 
 # Static assets configuration
-assets = {
-  browser_TTL = 86400,
-  serve_single_page_app = true
-}
+[site.assets]
+browser_TTL = 86400
+serve_single_page_app = true
 
 [[kv_namespaces]]
 binding = "STATIC_ASSETS"

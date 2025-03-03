@@ -8,6 +8,7 @@ import { updateUserProfile } from '@/lib/supabase/profileService';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Shield, Mail, Bell, Lock } from 'lucide-react';
+import { supabase } from '@/utils/supabase/client';
 
 // Simple Switch component for this component only
 interface SimpleSwitchProps {
@@ -195,7 +196,4 @@ export function SecuritySettings() {
       </Card>
     </div>
   );
-}
-
-// Add missing import for supabase
-import { supabase } from '@/utils/supabase/client'; 
+} 

@@ -28,6 +28,11 @@ preview_id = "d6fecc982467413a96246f7ac901db8b"
 # binding = "USER_CONTENT"
 # bucket_name = "smart-debt-flow-user-content"
 
+# Domain Routes Configuration
+routes = [
+  "www.smartdebtflow.com/*"
+]
+
 # Non-sensitive environment variables
 [vars]
 ENVIRONMENT = "production"

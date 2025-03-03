@@ -24,10 +24,14 @@ import SkipToContent from "@/components/SkipToContent";
 const isDevelopment = import.meta.env.DEV;
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let ConnectionStatus: React.ComponentType<any> | null = null;
+
+// Replace dynamic import with conditional import
 if (isDevelopment) {
-  // Dynamic import for debug components
+  // Only attempt to load debug components in development
   import('@/components/debug/ConnectionStatus').then(module => {
     ConnectionStatus = module.ConnectionStatus;
+  }).catch(error => {
+    console.warn('Debug component could not be loaded:', error);
   });
 }
 

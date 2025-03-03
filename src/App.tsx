@@ -273,13 +273,13 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <SecurityProvider>
-        <DeviceProvider>
-          <AuthProvider>
+      <DeviceProvider>
+        <AuthProvider>
+          <SecurityProvider>
             <AppContent />
-          </AuthProvider>
-        </DeviceProvider>
-      </SecurityProvider>
+          </SecurityProvider>
+        </AuthProvider>
+      </DeviceProvider>
       {/* Add the debug component */}
       {isDevelopment && ConnectionStatus && <ConnectionStatus />}
     </ErrorBoundary>

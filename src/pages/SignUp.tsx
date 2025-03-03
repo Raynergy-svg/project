@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Eye, EyeOff, ArrowRight, Shield, Lock, ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { userSchema } from '@/lib/utils/validation';
+import { validatePasswordStrength } from '@/utils/validation';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { z } from 'zod';
 import { useSecurity } from '@/contexts/SecurityContext';
 import type { SignUpData } from '@/types';
@@ -24,6 +26,7 @@ interface FormData {
   selectedTier: string;
   name: string;
   acceptTerms: boolean;
+  captchaToken?: string;
 }
 
 interface FormErrors {
@@ -33,6 +36,7 @@ interface FormErrors {
   name?: string;
   general?: string;
   acceptTerms?: string;
+  captcha?: string;
 }
 
 interface PaymentResult {
@@ -97,68 +101,68 @@ export default function SignUp() {
     confirmPassword: '',
     selectedTier: planFromUrl || 'basic',
     name: '',
-    acceptTerms: false
+    acceptTerms: false,
+    captchaToken: ''
   });
   
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
   const [confirmedEmail, setConfirmedEmail] = useState("");
+  const captchaRef = useRef<HCaptcha>(null);
 
   const { signup, resendConfirmationEmail } = useAuth();
 
   // Reset errors when form data changes
   useEffect(() => {
-    setErrors({});
+    setFormErrors({});
   }, [formData]);
 
-  const validateForm = useCallback((): boolean => {
-    try {
-      // Validate and sanitize sensitive data
-      const sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
-      const sanitizedName = sensitiveDataHandler.sanitizeSensitiveData(formData.name);
-      
-      if (!sensitiveDataHandler.validateSensitiveData(sanitizedEmail, 'email')) {
-        throw new Error('Invalid email format');
-      }
-
-      userSchema.parse({
-        email: sanitizedEmail,
-        password: formData.password
-      });
-      
-      const newErrors: FormErrors = {};
-      
-      if (!sanitizedName?.trim()) {
-        newErrors.name = 'Name is required';
-      }
-
-      if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
-
-      if (!formData.acceptTerms) {
-        newErrors.acceptTerms = 'You must accept the terms and conditions';
-      }
-
-      setErrors(newErrors);
-      return Object.keys(newErrors).length === 0;
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        const newErrors: FormErrors = {};
-        err.errors.forEach(error => {
-          const field = error.path[0] as keyof FormErrors;
-          newErrors[field] = error.message;
-        });
-        setErrors(newErrors);
-        return false;
-      }
-      setErrors({ email: err instanceof Error ? err.message : 'Invalid email' });
-      return false;
+  const validateForm = (): boolean => {
+    const errors: FormErrors = {};
+    
+    // Email validation
+    if (!formData.email) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      errors.email = 'Please enter a valid email address';
     }
-  }, [formData, sensitiveDataHandler]);
+    
+    // Name validation
+    if (!formData.name) {
+      errors.name = 'Name is required';
+    }
+    
+    // Password validation using our new strengthened validation
+    const passwordValidation = validatePasswordStrength(formData.password);
+    if (!passwordValidation.isValid) {
+      errors.password = passwordValidation.errors[0]; // Display the first error
+    }
+    
+    // Confirm password validation
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+    
+    // Terms acceptance validation
+    if (!formData.acceptTerms) {
+      errors.acceptTerms = 'You must accept the terms and conditions';
+    }
+    
+    // CAPTCHA validation
+    if (!formData.captchaToken) {
+      errors.captcha = 'Please complete the CAPTCHA verification';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleCaptchaVerify = (token: string) => {
+    setFormData({ ...formData, captchaToken: token });
+  };
 
   const getPasswordStrength = useCallback((password: string): { strength: number; label: string } => {
     let strength = 0;
@@ -175,71 +179,90 @@ export default function SignUp() {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      setIsSubmitting(true);
-      try {
-        // Use direct Stripe payment link based on selected tier
-        const paymentLink = formData.selectedTier === 'basic' 
-          ? 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ'  // Basic plan link
-          : 'https://buy.stripe.com/6oE7tnbPrfDecogfYY'; // Pro plan link
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Use direct Stripe payment link based on selected tier
+      const paymentLink = formData.selectedTier === 'basic' 
+        ? 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ'  // Basic plan link
+        : 'https://buy.stripe.com/6oE7tnbPrfDecogfYY'; // Pro plan link
 
-        // Store form data in localStorage for retrieval after payment
-        localStorage.setItem('pendingSignup', JSON.stringify({
-          email: formData.email,
-          name: formData.name,
-          password: formData.password,
-          selectedTier: formData.selectedTier
-        }));
+      // Store form data in localStorage for retrieval after payment
+      localStorage.setItem('pendingSignup', JSON.stringify({
+        email: formData.email,
+        name: formData.name,
+        password: formData.password,
+        selectedTier: formData.selectedTier
+      }));
 
-        // Redirect to Stripe payment page
-        window.location.href = paymentLink;
-      } catch (error) {
-        setErrors({
-          general: error instanceof Error ? error.message : "An error occurred. Please try again."
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
+      // Redirect to Stripe payment page
+      window.location.href = paymentLink;
+    } catch (error) {
+      setFormErrors({
+        general: error instanceof Error ? error.message : "An error occurred. Please try again."
+      });
+    } finally {
+      setIsSubmitting(false);
+      // Reset captcha
+      captchaRef.current?.resetCaptcha();
     }
   }, [formData, validateForm]);
 
   const handlePaymentComplete = useCallback(async (paymentResult: PaymentResult) => {
     setIsSubmitting(true);
     try {
+      // Check if sensitiveDataHandler is available
+      if (!sensitiveDataHandler || 
+          typeof sensitiveDataHandler.sanitizeSensitiveData !== 'function' || 
+          typeof sensitiveDataHandler.encryptSensitiveData !== 'function') {
+        throw new Error('Security services are not available. Please try again later.');
+      }
+      
       // Encrypt sensitive data before sending to API
       const sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
       const sanitizedName = sensitiveDataHandler.sanitizeSensitiveData(formData.name);
       const sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(formData.password);
 
-      const encryptedEmail = sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
-      const encryptedName = sensitiveDataHandler.encryptSensitiveData(sanitizedName);
-      const encryptedPassword = sensitiveDataHandler.encryptSensitiveData(sanitizedPassword);
+      try {
+        const encryptedEmail = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
+        const encryptedName = await sensitiveDataHandler.encryptSensitiveData(sanitizedName);
+        const encryptedPassword = await sensitiveDataHandler.encryptSensitiveData(sanitizedPassword);
 
-      // Register user with subscription and encrypted data
-      const result = await signup({
-        email: (await encryptedEmail).encryptedData,
-        name: (await encryptedName).encryptedData,
-        password: (await encryptedPassword).encryptedData,
-        subscriptionId: paymentResult.subscriptionId
-      });
-      
-      // Check if email confirmation is needed
-      if (result.needsEmailConfirmation) {
-        setEmailConfirmationSent(true);
-        setConfirmedEmail(formData.email);
-        return;
+        // Register user with subscription and encrypted data
+        const result = await signup({
+          email: encryptedEmail.encryptedData,
+          name: encryptedName.encryptedData,
+          password: encryptedPassword.encryptedData,
+          subscriptionId: paymentResult.subscriptionId
+        });
+        
+        // Check if email confirmation is needed
+        if (result.needsEmailConfirmation) {
+          setEmailConfirmationSent(true);
+          setConfirmedEmail(formData.email);
+          return;
+        }
+        
+        const returnUrl = new URLSearchParams(location.search).get('returnUrl');
+        navigate(returnUrl || '/dashboard');
+      } catch (encryptError) {
+        console.error('Error encrypting sensitive data:', encryptError);
+        throw new Error('Failed to secure your data. Please try again.');
       }
-      
-      const returnUrl = new URLSearchParams(location.search).get('returnUrl');
-      navigate(returnUrl || '/dashboard');
     } catch (error) {
-      setErrors({ 
+      setFormErrors({ 
         general: error instanceof Error ? error.message : "An error occurred during sign up. Please try again." 
       });
     } finally {
       setIsSubmitting(false);
+      // Reset captcha
+      captchaRef.current?.resetCaptcha();
     }
-  }, [formData, signup, location, sensitiveDataHandler]);
+  }, [formData, signup, location, sensitiveDataHandler, navigate]);
 
   const handleResendConfirmation = async () => {
     if (!confirmedEmail) return;
@@ -247,15 +270,17 @@ export default function SignUp() {
     setIsSubmitting(true);
     try {
       await resendConfirmationEmail(confirmedEmail);
-      setErrors({});
+      setFormErrors({});
       // Show success message
-      setErrors({ general: "Confirmation email has been resent. Please check your inbox." });
+      setFormErrors({ general: "Confirmation email has been resent. Please check your inbox." });
     } catch (error) {
-      setErrors({ 
+      setFormErrors({ 
         general: error instanceof Error ? error.message : "Failed to resend confirmation email. Please try again." 
       });
     } finally {
       setIsSubmitting(false);
+      // Reset captcha
+      captchaRef.current?.resetCaptcha();
     }
   };
 
@@ -321,18 +346,18 @@ export default function SignUp() {
                   Return to Sign In
                 </Link>
               </div>
-              {errors.general && (
+              {formErrors.general && (
                 <div className="mt-4 p-3 bg-opacity-20 rounded-md text-center w-full bg-blue-500 text-blue-100">
-                  {errors.general}
+                  {formErrors.general}
                 </div>
               )}
             </div>
           </div>
         ) : (
           <div className="bg-white/5 p-4 sm:p-6 rounded-xl border border-white/10">
-            {errors.general && (
+            {formErrors.general && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg" role="alert">
-                <p className="text-red-400 text-sm">{errors.general}</p>
+                <p className="text-red-400 text-sm">{formErrors.general}</p>
               </div>
             )}
 
@@ -346,19 +371,19 @@ export default function SignUp() {
                   id="name"
                   name="name"
                   className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                    errors.name ? "border-red-500" : "border-white/10"
+                    formErrors.name ? "border-red-500" : "border-white/10"
                   } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="John Doe"
                   autoComplete="name"
-                  aria-invalid={Boolean(errors.name)}
-                  aria-describedby={errors.name ? "name-error" : undefined}
+                  aria-invalid={Boolean(formErrors.name)}
+                  aria-describedby={formErrors.name ? "name-error" : undefined}
                   disabled={isSubmitting}
                 />
-                {errors.name && (
+                {formErrors.name && (
                   <p id="name-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                    {errors.name}
+                    {formErrors.name}
                   </p>
                 )}
               </div>
@@ -372,20 +397,20 @@ export default function SignUp() {
                   id="email"
                   name="email"
                   className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                    errors.email ? "border-red-500" : "border-white/10"
+                    formErrors.email ? "border-red-500" : "border-white/10"
                   } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="you@example.com"
                   autoComplete="email"
-                  aria-invalid={Boolean(errors.email)}
-                  aria-describedby={errors.email ? "email-error" : undefined}
+                  aria-invalid={Boolean(formErrors.email)}
+                  aria-describedby={formErrors.email ? "email-error" : undefined}
                   disabled={isSubmitting}
                   required
                 />
-                {errors.email && (
+                {formErrors.email && (
                   <p id="email-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                    {errors.email}
+                    {formErrors.email}
                   </p>
                 )}
               </div>
@@ -401,13 +426,13 @@ export default function SignUp() {
                       id="password"
                       name="password"
                       className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                        errors.password ? "border-red-500" : "border-white/10"
+                        formErrors.password ? "border-red-500" : "border-white/10"
                       } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       autoComplete="new-password"
-                      aria-invalid={Boolean(errors.password)}
-                      aria-describedby={errors.password ? "password-error" : undefined}
+                      aria-invalid={Boolean(formErrors.password)}
+                      aria-describedby={formErrors.password ? "password-error" : undefined}
                       disabled={isSubmitting}
                       required
                     />
@@ -419,9 +444,9 @@ export default function SignUp() {
                       {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
                   </div>
-                  {errors.password && (
+                  {formErrors.password && (
                     <p id="password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                      {errors.password}
+                      {formErrors.password}
                     </p>
                   )}
                 </div>
@@ -436,13 +461,13 @@ export default function SignUp() {
                       id="confirmPassword"
                       name="confirmPassword"
                       className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                        errors.confirmPassword ? "border-red-500" : "border-white/10"
+                        formErrors.confirmPassword ? "border-red-500" : "border-white/10"
                       } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                       autoComplete="new-password"
-                      aria-invalid={Boolean(errors.confirmPassword)}
-                      aria-describedby={errors.confirmPassword ? "confirm-password-error" : undefined}
+                      aria-invalid={Boolean(formErrors.confirmPassword)}
+                      aria-describedby={formErrors.confirmPassword ? "confirm-password-error" : undefined}
                       disabled={isSubmitting}
                       required
                     />
@@ -454,9 +479,9 @@ export default function SignUp() {
                       {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
                   </div>
-                  {errors.confirmPassword && (
+                  {formErrors.confirmPassword && (
                     <p id="confirm-password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                      {errors.confirmPassword}
+                      {formErrors.confirmPassword}
                     </p>
                   )}
                 </div>
@@ -476,9 +501,20 @@ export default function SignUp() {
                   <Link to="/privacy" className="text-[#88B04B] hover:text-[#7a9d43]">Privacy Policy</Link>
                 </label>
               </div>
-              {errors.acceptTerms && (
-                <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">{errors.acceptTerms}</p>
+              {formErrors.acceptTerms && (
+                <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">{formErrors.acceptTerms}</p>
               )}
+
+              <div className="mb-4">
+                <HCaptcha
+                  sitekey={import.meta.env.VITE_HCAPTCHA_SITE_KEY || '10000000-ffff-ffff-ffff-000000000001'}
+                  onVerify={handleCaptchaVerify}
+                  ref={captchaRef}
+                />
+                {formErrors.captcha && (
+                  <p className="text-sm text-red-500 mt-1">{formErrors.captcha}</p>
+                )}
+              </div>
 
               <div className="flex gap-4 mt-6">
                 <button

@@ -42,12 +42,23 @@ export default function SignIn() {
     const getSavedEmail = async () => {
       try {
         const savedEmail = localStorage.getItem('lastUsedEmail');
-        if (savedEmail) {
-          const decryptedEmail = await sensitiveDataHandler.decryptSensitiveData(
-            savedEmail,
-            localStorage.getItem('lastUsedEmail_iv') || ''
-          );
-          setFormData(prev => ({ ...prev, email: decryptedEmail }));
+        const emailIv = localStorage.getItem('lastUsedEmail_iv');
+        
+        if (savedEmail && emailIv && 
+            sensitiveDataHandler && 
+            typeof sensitiveDataHandler.decryptSensitiveData === 'function') {
+          try {
+            const decryptedEmail = await sensitiveDataHandler.decryptSensitiveData(
+              savedEmail,
+              emailIv
+            );
+            setFormData(prev => ({ ...prev, email: decryptedEmail }));
+          } catch (decryptError) {
+            console.error('Error decrypting saved email:', decryptError);
+            // Clear potentially corrupted data
+            localStorage.removeItem('lastUsedEmail');
+            localStorage.removeItem('lastUsedEmail_iv');
+          }
         }
       } catch (error) {
         console.error('Error loading saved email:', error);
@@ -94,8 +105,15 @@ export default function SignIn() {
 
     if (!formData.email) {
       newErrors.email = "Email is required";
-    } else if (!sensitiveDataHandler.validateSensitiveData(formData.email, 'email')) {
-      newErrors.email = "Please enter a valid email address";
+    } else if (sensitiveDataHandler && typeof sensitiveDataHandler.validateSensitiveData === 'function') {
+      if (!sensitiveDataHandler.validateSensitiveData(formData.email, 'email')) {
+        newErrors.email = "Please enter a valid email address";
+      }
+    } else {
+      // Basic email validation fallback if sensitiveDataHandler is not available
+      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+        newErrors.email = "Please enter a valid email address";
+      }
     }
 
     if (!formData.password) {
@@ -121,8 +139,13 @@ export default function SignIn() {
         setIsSubmitting(true);
         try {
           // Sanitize sensitive data
-          const sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
-          const sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(formData.password);
+          let sanitizedEmail = formData.email;
+          let sanitizedPassword = formData.password;
+          
+          if (sensitiveDataHandler && typeof sensitiveDataHandler.sanitizeSensitiveData === 'function') {
+            sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
+            sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(formData.password);
+          }
           
           // Show development mode message if in development
           if (process.env.NODE_ENV === 'development') {
@@ -139,11 +162,16 @@ export default function SignIn() {
           
           // If we reach here, authentication was successful
           // Save email if remember me is checked
-          if (rememberMe) {
-            const { encryptedData: encryptedEmail, iv: emailIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
-            localStorage.setItem('lastUsedEmail', encryptedEmail);
-            localStorage.setItem('lastUsedEmail_iv', emailIv);
-          } else {
+          if (rememberMe && sensitiveDataHandler && typeof sensitiveDataHandler.encryptSensitiveData === 'function') {
+            try {
+              const { encryptedData: encryptedEmail, iv: emailIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
+              localStorage.setItem('lastUsedEmail', encryptedEmail);
+              localStorage.setItem('lastUsedEmail_iv', emailIv);
+            } catch (encryptError) {
+              console.error('Failed to encrypt email for storage:', encryptError);
+              // Still continue with login even if saving email fails
+            }
+          } else if (!rememberMe) {
             localStorage.removeItem('lastUsedEmail');
             localStorage.removeItem('lastUsedEmail_iv');
           }

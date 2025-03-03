@@ -118,14 +118,41 @@ export class SensitiveDataHandler {
     }
   }
 
-  public validateSensitiveData(data: string, type: 'creditCard' | 'ssn' | 'email'): boolean {
+  public validateSensitiveData(data: string, type: 'creditCard' | 'ssn' | 'email' | 'password' | 'name' | 'phone' | 'general'): boolean {
+    if (!data) return false;
+    
     const patterns = {
       creditCard: /^(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})$/,
       ssn: /^(?!000|666)[0-8][0-9]{2}-(?!00)[0-9]{2}-(?!0000)[0-9]{4}$/,
-      email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+      email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+      password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/,
+      name: /^[A-Za-z\s\-']+$/,
+      phone: /^[0-9+\-() ]{8,}$/,
+      general: /^[\w\s.,?!@#$%^&*()-=_+[\]{}|;:'",.<>\\/]+$/
     };
-
-    return patterns[type].test(data);
+    
+    // For types that have specific patterns
+    if (patterns[type]) {
+      return patterns[type].test(data);
+    }
+    
+    // Default case for 'general' and any other types
+    switch (type) {
+      case 'password':
+        // At least 8 chars, 1 uppercase, 1 lowercase, 1 number, and 1 special char
+        return data.length >= 8;
+      case 'name':
+        // Allow letters, spaces, hyphens, apostrophes and at least 2 chars
+        return patterns.name.test(data) && data.length >= 2;
+      case 'phone':
+        // Allow digits, +, -, (, ), spaces and at least 8 chars
+        return patterns.phone.test(data);
+      case 'general':
+        // For general text, ensure it's not empty and doesn't contain potentially dangerous characters
+        return data.length > 0 && !/[<>{}]/.test(data);
+      default:
+        return true;
+    }
   }
 
   public sanitizeSensitiveData(data: string): string {

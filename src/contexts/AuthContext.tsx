@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import type { User, SignUpData } from "@/types";
 import { supabase, createBrowserClient } from "@/utils/supabase/client";
 import { useDevAccount } from '@/hooks/useDevAccount';
+import { encryptField, decryptField } from '@/utils/encryption';
+import { logSecurityEvent, SecurityEventType } from '@/services/securityAuditService';
 
 export interface User {
   id: string;
@@ -202,7 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  const login = async (email: string, password: string, options?: Record<string, any>) => {
+  const login = async (email: string, password: string, redirectPath?: string) => {
     setIsLoading(true);
     try {
       // Check if we're in development mode
@@ -300,16 +302,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           throw error;
         }
 
-        return data;
+        if (data.user) {
+          // Log successful login
+          try {
+            logSecurityEvent(
+              SecurityEventType.LOGIN_SUCCESS,
+              'User logged in successfully',
+              'low',
+              data.user.id
+            );
+          } catch (logError) {
+            console.warn('Failed to log security event:', logError);
+          }
+          
+          // Update auth state
+          setUser(data.user);
+          setIsAuthenticated(true);
+          setIsSubscribed(!!data.user.subscription?.status && data.user.subscription.status === 'active');
+          setSubscriptionStatus(data.user.subscription?.status || 'free');
+          setSubscriptionPlan(data.user.subscription?.planName);
+          setSubscriptionEndDate(data.user.subscription?.currentPeriodEnd);
+          
+          return data;
+        }
       } else {
         // Normal authentication flow with captcha for production
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
-          options: options
         });
 
         if (error) {
+          // Log failed login attempt
+          try {
+            logSecurityEvent(
+              SecurityEventType.LOGIN_FAILED,
+              `Login failed: ${error.message}`,
+              'medium',
+              email // Using email as identifier since we don't have user ID
+            );
+          } catch (logError) {
+            console.warn('Failed to log security event:', logError);
+          }
+          
           // Check for specific error messages from Supabase
           if (error.message.includes('Email not confirmed')) {
             throw new Error('Please check your email to confirm your account before signing in.');
@@ -317,10 +352,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           throw error;
         }
 
-        return data;
+        if (data.user) {
+          // Log successful login
+          try {
+            logSecurityEvent(
+              SecurityEventType.LOGIN_SUCCESS,
+              'User logged in successfully',
+              'low',
+              data.user.id
+            );
+          } catch (logError) {
+            console.warn('Failed to log security event:', logError);
+          }
+          
+          // Update auth state
+          setUser(data.user);
+          setIsAuthenticated(true);
+          setIsSubscribed(!!data.user.subscription?.status && data.user.subscription.status === 'active');
+          setSubscriptionStatus(data.user.subscription?.status || 'free');
+          setSubscriptionPlan(data.user.subscription?.planName);
+          setSubscriptionEndDate(data.user.subscription?.currentPeriodEnd);
+          
+          return data;
+        }
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Error during login:', error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -330,6 +387,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const logout = async () => {
     setIsLoading(true);
     try {
+      // Log logout event if user is logged in
+      if (user?.id) {
+        try {
+          logSecurityEvent(
+            SecurityEventType.LOGOUT,
+            'User logged out',
+            'low',
+            user.id
+          );
+        } catch (logError) {
+          console.warn('Failed to log security event:', logError);
+        }
+      }
+      
       // Sign out with Supabase auth
       const { error } = await supabase.auth.signOut();
       
@@ -344,76 +415,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setSubscriptionEndDate(undefined);
       navigate("/");
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Error during logout:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const signup = async (data: SignUpData) => {
-    setIsLoading(true);
+  const signup = async (data: SignUpData): Promise<{ needsEmailConfirmation?: boolean }> => {
     try {
-      // Sign up with Supabase auth
+      // Encrypt sensitive user data
+      const { encryptedValue: encryptedEmail, iv: emailIv } = await encryptField(data.email);
+      
+      let nameIv = '';
+      let encryptedName = '';
+      if (data.name) {
+        const result = await encryptField(data.name);
+        encryptedName = result.encryptedValue;
+        nameIv = result.iv;
+      }
+
+      // Sign up the user
       const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           data: {
-            name: data.name,
+            // Store encrypted data and IVs
+            email: encryptedEmail,
+            emailIv: emailIv,
+            name: encryptedName,
+            nameIv: nameIv,
+            isPremium: false,
+            subscription: {
+              status: 'free'
+            }
           },
-        },
+          captchaToken: data.captchaToken
+        }
       });
 
       if (error) throw error;
 
-      if (!authData.user) {
-        throw new Error('Signup succeeded but no user was returned');
-      }
-
-      // Create a profile in the profiles table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: authData.user.id,
-            name: data.name,
-            is_premium: !!data.subscriptionId,
-            trial_ends_at: data.subscriptionId 
-              ? null 
-              : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            subscription: data.subscriptionId ? {
-              status: 'active',
-              plan_name: 'Premium',
-              current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            } : {
-              status: 'trialing',
-              plan_name: 'Basic',
-              current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            }
-          }
-        ]);
-
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        // Continue anyway - the user is created but profile insertion failed
-      }
-
       // Check if email confirmation is required
-      const needsEmailConfirmation = !authData.user.confirmed_at && !!authData.user.confirmation_sent_at;
+      const needsEmailConfirmation = authData.user?.identities?.length === 0;
+      return { needsEmailConfirmation };
 
-      if (needsEmailConfirmation) {
-        return { needsEmailConfirmation: true };
-      }
-
-      // User data will be loaded by the auth state change listener
-      navigate("/dashboard");
-      return {};
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('Error during signup:', error);
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 

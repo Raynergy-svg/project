@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
+import { initSecurityAuditService } from './services/securityAuditService';
 
 // Determine if we're in development mode
 const isDevelopment = import.meta.env.DEV;
@@ -151,6 +152,19 @@ if (isDebugMode) {
   console.log('Debug mode enabled');
   detectSlowResources();
 }
+
+// Initialize security services without blocking the app startup
+setTimeout(() => {
+  // Try to initialize the security service but don't block the app if it fails
+  initSecurityAuditService()
+    .then(() => {
+      console.log('Security audit service initialized successfully');
+    })
+    .catch(error => {
+      // Just log the error and let the app continue
+      console.warn('Security audit service initialization failed, but app will continue:', error);
+    });
+}, 1000); // Short delay to allow other critical services to initialize first
 
 // Start immediately
 initializeApp();

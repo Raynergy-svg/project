@@ -10,7 +10,7 @@
     "dev:all": "concurrently \"npm run dev\" \"npm run server:dev\"",
     "prebuild": "node scripts/verify-dependencies.js",
     "build": "npm run clean-debug && tsc && vite build",
-    "build:ci": "npm install --force && tsc && vite build",
+    "build:ci": "npm install && tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run",

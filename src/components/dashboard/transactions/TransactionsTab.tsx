@@ -49,8 +49,8 @@ export const TransactionsTab: React.FC<TransactionsTabProps> = ({
     
     // Sort results
     return [...results].sort((a, b) => {
-      let aValue = a[sortConfig.key as keyof Transaction];
-      let bValue = b[sortConfig.key as keyof Transaction];
+      const aValue = a[sortConfig.key as keyof Transaction];
+      const bValue = b[sortConfig.key as keyof Transaction];
       
       // Handle string comparison
       if (typeof aValue === 'string' && typeof bValue === 'string') {

@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from './useAuth';
-import { useDashboard, DashboardState } from './useDashboard';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useDashboard } from './useDashboard';
+import type { DashboardState } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DebtProjection {
   month: string;
@@ -42,9 +43,20 @@ export function useDashboardAnalytics() {
   const [isLoading, setIsLoading] = useState(true);
   const [analytics, setAnalytics] = useState<DebtAnalytics | null>(null);
 
+  // Memoize the dashboardState reference to prevent unnecessary recalculations
+  const memoizedDashboardState = useMemo(() => dashboardState, [
+    dashboardState?.totalDebt,
+    dashboardState?.debtBreakdown,
+    dashboardState?.totalBudget,
+    dashboardState?.totalSpent,
+    dashboardState?.monthlyChange,
+    dashboardState?.aiOptimizationScore,
+    dashboardState?.debtToIncomeRatio
+  ]);
+
   // Calculate analytics based on dashboard state
   useEffect(() => {
-    if (!dashboardState || !user) return;
+    if (!memoizedDashboardState || !user) return;
 
     const calculateAnalytics = async () => {
       setIsLoading(true);
@@ -63,9 +75,9 @@ export function useDashboardAnalytics() {
         const monthsSaved = 12; // 1 year saved
         
         // Calculate interest saved
-        const totalDebt = dashboardState.totalDebt || 0;
-        const avgInterestRate = totalDebt > 0 && dashboardState.debtBreakdown && dashboardState.debtBreakdown.length > 0
-          ? dashboardState.debtBreakdown.reduce(
+        const totalDebt = memoizedDashboardState.totalDebt || 0;
+        const avgInterestRate = totalDebt > 0 && memoizedDashboardState.debtBreakdown && memoizedDashboardState.debtBreakdown.length > 0
+          ? memoizedDashboardState.debtBreakdown.reduce(
               (sum, debt) => sum + debt.interestRate * debt.amount, 
               0
             ) / totalDebt
@@ -98,8 +110,8 @@ export function useDashboardAnalytics() {
         }
         
         // Determine best debt to target
-        const highestInterestDebt = dashboardState.debtBreakdown && dashboardState.debtBreakdown.length > 0 
-          ? [...dashboardState.debtBreakdown].sort(
+        const highestInterestDebt = memoizedDashboardState.debtBreakdown && memoizedDashboardState.debtBreakdown.length > 0 
+          ? [...memoizedDashboardState.debtBreakdown].sort(
               (a, b) => b.interestRate - a.interestRate
             )[0]
           : null;
@@ -158,7 +170,7 @@ export function useDashboardAnalytics() {
         
         // Recommended extra payment
         const recommendedExtraPayment = Math.round(
-          (dashboardState.totalBudget - dashboardState.totalSpent) * 0.5
+          (memoizedDashboardState.totalBudget - memoizedDashboardState.totalSpent) * 0.5
         );
         
         setAnalytics({
@@ -180,17 +192,17 @@ export function useDashboardAnalytics() {
     };
     
     calculateAnalytics();
-  }, [dashboardState, user]);
+  }, [memoizedDashboardState, user?.id]);
   
   // Derived metrics
   const metrics = useMemo(() => {
-    if (!analytics || !dashboardState) return null;
+    if (!analytics || !memoizedDashboardState) return null;
     
     return {
       // Time to debt free
       timeToDebtFree: {
-        standard: Math.ceil(dashboardState.totalDebt / 1500), // months, assuming $1500/month payment
-        optimized: Math.ceil(dashboardState.totalDebt / 2000), // months, assuming $2000/month payment
+        standard: Math.ceil(memoizedDashboardState.totalDebt / 1500), // months, assuming $1500/month payment
+        optimized: Math.ceil(memoizedDashboardState.totalDebt / 2000), // months, assuming $2000/month payment
       },
       
       // Potential interest savings
@@ -198,18 +210,18 @@ export function useDashboardAnalytics() {
       
       // Debt reduction rate
       debtReductionRate: {
-        current: Math.abs(dashboardState.monthlyChange) / dashboardState.totalDebt * 100,
+        current: Math.abs(memoizedDashboardState.monthlyChange) / memoizedDashboardState.totalDebt * 100,
         target: 5, // 5% monthly reduction target
       },
       
       // Debt freedom score (0-100)
       debtFreedomScore: Math.min(100, Math.round(
-        (dashboardState.aiOptimizationScore * 0.4) +
-        (Math.min(50, 100 - dashboardState.debtToIncomeRatio) * 0.4) +
-        (Math.min(100, Math.abs(dashboardState.monthlyChange) / 100) * 0.2)
+        (memoizedDashboardState.aiOptimizationScore * 0.4) +
+        (Math.min(50, 100 - memoizedDashboardState.debtToIncomeRatio) * 0.4) +
+        (Math.min(100, Math.abs(memoizedDashboardState.monthlyChange) / 100) * 0.2)
       )),
     };
-  }, [analytics, dashboardState]);
+  }, [analytics, memoizedDashboardState]);
 
   return {
     isLoading,

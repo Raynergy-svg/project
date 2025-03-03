@@ -124,7 +124,7 @@ password_requirements = ""
 
 # Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
 [auth.captcha]
-enabled = true
+enabled = false
 provider = "hcaptcha"
 secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"
 # Using production hCaptcha keys

@@ -183,25 +183,36 @@ export default function Navbar({
             ))}
           </div>
 
-          {/* Sign In / Dashboard Button */}
+          {/* Auth/Dashboard buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button
-              onClick={onSignIn}
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10"
-            >
-              Sign In
-            </Button>
-            <Button
-              onClick={onSignUp}
-              className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
-            >
-              Sign Up
-            </Button>
+            {isAuthenticated ? (
+              <Button
+                onClick={onDashboardClick}
+                className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+              >
+                Dashboard
+              </Button>
+            ) : (
+              <>
+                <Button
+                  onClick={onSignIn}
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  Sign In
+                </Button>
+                <Button
+                  onClick={onSignUp}
+                  className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center">
             <Button
               variant="ghost"
               size="icon"
@@ -288,27 +299,38 @@ export default function Navbar({
               
               <div className="pt-4 border-t border-white/10">
                 <div className="space-y-2">
-                  <Button
-                    onClick={() => {
-                      onSignIn();
-                      setIsMenuOpen(false);
-                      setOpenDropdowns([]);
-                    }}
-                    variant="outline"
-                    className="w-full border-white/20 text-white hover:bg-white/10"
-                  >
-                    Sign In
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      onSignUp();
-                      setIsMenuOpen(false);
-                      setOpenDropdowns([]);
-                    }}
-                    className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
-                  >
-                    Sign Up
-                  </Button>
+                  {isAuthenticated ? (
+                    <Button
+                      onClick={onDashboardClick}
+                      className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                    >
+                      Dashboard
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => {
+                          onSignIn();
+                          setIsMenuOpen(false);
+                          setOpenDropdowns([]);
+                        }}
+                        variant="outline"
+                        className="w-full border-white/20 text-white hover:bg-white/10"
+                      >
+                        Sign In
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          onSignUp();
+                          setIsMenuOpen(false);
+                          setOpenDropdowns([]);
+                        }}
+                        className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                      >
+                        Sign Up
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

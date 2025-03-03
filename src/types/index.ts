@@ -161,3 +161,141 @@ export interface FeaturePanelProps {
   isExpanded?: boolean;
   onToggle?: () => void;
 }
+
+// Re-export types from other files
+export * from './user';
+export * from './auth';
+
+// Add bank account related types
+export interface BankAccount {
+  id: string;
+  name: string;
+  type: 'checking' | 'savings' | 'credit' | 'investment' | 'loan' | 'mortgage';
+  balance: number;
+  availableBalance?: number;
+  currency: string;
+  lastUpdated: Date;
+  institution: {
+    id: string;
+    name: string;
+    logo?: string;
+  };
+}
+
+// Add transaction related types
+export interface Transaction {
+  id: string;
+  accountId: string;
+  date: Date;
+  description: string;
+  amount: number;
+  category: string;
+  isIncome: boolean;
+  pending: boolean;
+  merchantName?: string;
+  merchantLogo?: string;
+}
+
+// Add account type
+export interface Account {
+  id: string;
+  name: string;
+  type: string;
+  balance: number;
+  currency: string;
+}
+
+// Interface for the dashboard data structure
+export interface DashboardData {
+  profile: {
+    id: string;
+    email: string;
+    name: string;
+    avatar: string;
+  } | null;
+  accounts: BankAccount[];
+  transactions: Transaction[];
+  isConnected: boolean;
+}
+
+// Legacy dashboard state interface for backward compatibility
+export interface DebtInfo {
+  id: string;
+  name: string;
+  amount: number;
+  interestRate: number;
+  minimumPayment: number;
+  remainingPayments?: number;
+  type: 'credit_card' | 'student_loan' | 'mortgage' | 'auto_loan' | 'personal_loan' | 'medical' | 'other';
+  lender: string;
+  dueDate?: string;
+  paymentFrequency?: 'monthly' | 'biweekly' | 'weekly';
+  additionalPayment?: number;
+}
+
+export interface BudgetCategory {
+  id: string;
+  name: string;
+  allocated: number;
+  spent: number;
+  limit: number;
+  color: string;
+}
+
+export interface MonthlySpending {
+  month: string;
+  amount: number;
+  categories: {
+    name: string;
+    amount: number;
+  }[];
+}
+
+export interface PaymentHistory {
+  date: string;
+  amount: number;
+  debtId: string;
+  debtName: string;
+}
+
+export interface Projection {
+  date: string;
+  amount: number;
+}
+
+export interface Insight {
+  id: string;
+  title: string;
+  description: string;
+  impact: number;
+  saving?: number;
+  action?: string;
+  type: 'tip' | 'warning' | 'optimization';
+  applied?: boolean;
+}
+
+export interface DashboardState {
+  totalDebt: number;
+  monthlyPayment: number;
+  interestPaid: number;
+  debtFreeDate: string;
+  monthlyChange: number;
+  debtToIncomeRatio: number;
+  aiOptimizationScore: number;
+  debtBreakdown: DebtInfo[];
+  savingsOpportunities: number;
+  paymentHistory: PaymentHistory[];
+  projectedPayoff: Projection[];
+  insights: Insight[];
+  isAIEnabled: boolean;
+  budgetCategories: BudgetCategory[];
+  monthlySpending: MonthlySpending[];
+  monthlyIncome: number;
+  creditScore: number;
+  totalBudget: number;
+  totalSpent: number;
+  isConnectingBank: boolean;
+  bankConnectionError: string | null;
+  connectedAccounts: BankAccount[];
+  isConnected?: boolean;
+}

@@ -13,7 +13,7 @@ dotenv.config();
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.SERVER_PORT || 3001;
+const PORT = process.env.SERVER_PORT || 3002;
 
 // Set the Supabase client for the AI Agent service
 AIAgentService.setSupabaseClient(supabase);

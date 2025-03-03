@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/utils/supabase/client';
 import { createBankAccountsTable } from '@/lib/supabase/createBankAccountsTable';
+import { BankConnectionService, BankAccount, Transaction } from '../services/bankConnection';
 
 export interface BankAccount {
   id: string;
@@ -54,6 +55,8 @@ export interface UseBankConnectionReturn {
   connectAccount: (accountData: ConnectAccountParams) => void;
   linkToken: string | null;
   isPlaidReady: boolean;
+  isMockDataEnabled: boolean;
+  toggleMockData: (useMock: boolean) => void;
 }
 
 export function useBankConnection(): UseBankConnectionReturn {
@@ -62,6 +65,7 @@ export function useBankConnection(): UseBankConnectionReturn {
   const [error, setError] = useState<string | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [isPlaidReady, setIsPlaidReady] = useState(false);
+  const [isMockDataEnabled, setIsMockDataEnabled] = useState(!BankConnectionService.getInstance().getUseRealData());
   const { user } = useAuth();
 
   // Initialize - Create tables if needed and get accounts
@@ -306,6 +310,11 @@ export function useBankConnection(): UseBankConnectionReturn {
     }
   }, [user?.id]);
 
+  const toggleMockData = useCallback((useMock: boolean) => {
+    BankConnectionService.getInstance().setUseRealData(!useMock);
+    setIsMockDataEnabled(useMock);
+  }, []);
+
   return {
     accounts,
     isLoading,
@@ -315,6 +324,8 @@ export function useBankConnection(): UseBankConnectionReturn {
     disconnectAccount,
     connectAccount,
     linkToken,
-    isPlaidReady
+    isPlaidReady,
+    isMockDataEnabled,
+    toggleMockData,
   };
 } 

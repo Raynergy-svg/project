@@ -94,3 +94,9 @@ src/DebugApp.tsx
 src/index.html
 .debug-backup/
 **/debug/
+
+# Investor account related files
+scripts/investor-signup.html
+scripts/create-investor-accounts.js
+scripts/INVESTOR-SETUP.md
+scripts/manual-investor-setup.md

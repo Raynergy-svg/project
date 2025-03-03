@@ -23,10 +23,10 @@ import {
   Headphones,
   DollarSign
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Header } from './Header';
 import { Logo } from '@/components/Logo';
-import { DebtProjection } from '@/components/dashboard/DebtProjection';
+import DebtProjection from '@/components/dashboard/DebtProjection';
 import { SavingsOpportunities } from '@/components/dashboard/SavingsOpportunities';
 import { DebtPayoffCalculator } from '@/components/dashboard/DebtPayoffCalculator';
 import { Transactions } from '@/components/dashboard/Transactions';
@@ -367,7 +367,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {activeTab === 'dashboard' && (
             <div className="px-4 py-6 md:px-6">
               {activeSection === 'overview' && children}
-              {activeSection === 'debt-projection' && <DebtProjection debts={dashboardState.debtBreakdown} />}
+              {activeSection === 'debt-projection' && 
+                <DebtProjection 
+                  debts={dashboardState.debtBreakdown} 
+                  strategies={dashboardState.payoffStrategies || []} 
+                />
+              }
               {activeSection === 'transactions' && <Transactions />}
               {activeSection === 'payoff-calculator' && <DebtPayoffCalculator debts={dashboardState.debtBreakdown} />}
               {activeSection === 'savings-opportunities' && <SavingsOpportunities />}

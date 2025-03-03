@@ -1,255 +1,200 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from './useAuth';
-import { useBankConnection, BankAccount, Transaction } from '@/services/bankConnection';
-import { useFinancialAnalysis, FinancialProfile, DebtInfo } from '@/services/financialAnalysis';
+import { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { BankConnectionService } from '@/services/bankConnection';
+import type { Account, Transaction, DashboardData, BankAccount, DashboardState } from '@/types';
+import { Debt, PayoffStrategy } from '@/lib/dashboardConstants';
+import { createMockDashboardData } from '@/lib/mockDashboardData';
 
-// Define types for budget data
-interface BudgetCategory {
+// Create stable service instance
+const bankService = BankConnectionService.getInstance();
+
+// Create a mock dashboardState for backward compatibility
+const createLegacyDashboardState = (dashboard: DashboardData): DashboardState => {
+  const { accounts, transactions, isConnected } = dashboard;
+  
+  // Calculate total balances from accounts
+  const totalDebt = accounts
+    .filter(acc => acc.type === 'loan' || acc.type === 'mortgage' || acc.type === 'credit')
+    .reduce((sum, acc) => sum + Math.abs(acc.balance), 0);
+    
+  // Estimated monthly payment (20% of debt as a placeholder)
+  const monthlyPayment = totalDebt * 0.05;
+  
+  // Map accounts to debt breakdown
+  const debtBreakdown = accounts
+    .filter(acc => acc.type === 'loan' || acc.type === 'mortgage' || acc.type === 'credit')
+    .map(acc => ({
+      id: acc.id,
+      name: acc.name,
+      amount: Math.abs(acc.balance),
+      interestRate: acc.type === 'credit' ? 18.9 : acc.type === 'mortgage' ? 4.5 : 6.8, // Placeholder interest rates
+      minimumPayment: Math.abs(acc.balance) * 0.02, // Placeholder minimum payment
+      type: acc.type === 'mortgage' 
+        ? 'mortgage' 
+        : acc.type === 'credit' 
+          ? 'credit_card' 
+          : 'personal_loan',
+      lender: acc.institution.name,
+      paymentFrequency: 'monthly'
+    }));
+
+  // Mock data for the remaining fields
+  return {
+    totalDebt,
+    monthlyPayment,
+    interestPaid: totalDebt * 0.05, // Placeholder
+    debtFreeDate: new Date(Date.now() + 3 * 365 * 24 * 60 * 60 * 1000).toDateString(), // 3 years from now
+    monthlyChange: -2.5, // Placeholder for 2.5% reduction
+    debtToIncomeRatio: 0.35, // Placeholder
+    aiOptimizationScore: 78, // Placeholder
+    debtBreakdown,
+    savingsOpportunities: 1250, // Placeholder
+    paymentHistory: [], // Empty placeholder
+    projectedPayoff: [
+      { date: new Date().toISOString(), amount: totalDebt },
+      { date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), amount: totalDebt * 0.7 } // Placeholder for 30% reduction in 1 year
+    ],
+    insights: [], // Empty placeholder
+    isAIEnabled: true,
+    budgetCategories: [], // Empty placeholder
+    monthlySpending: [], // Empty placeholder
+    monthlyIncome: totalDebt * 0.25, // Placeholder
+    creditScore: 720, // Placeholder
+    totalBudget: 3000, // Placeholder
+    totalSpent: 2400, // Placeholder
+    isConnectingBank: false,
+    bankConnectionError: null,
+    connectedAccounts: accounts,
+    isConnected
+  };
+};
+
+export interface BankConnection {
+  id: string;
   name: string;
-  amount: number;
-  limit: number;
-  allocated: number;
-  spent: number;
-  color: string;
+  logoUrl?: string;
+  lastSynced?: Date;
+  status: 'connected' | 'error' | 'syncing' | 'disconnected';
+  accountCount: number;
 }
 
-interface MonthlySpending {
-  month: string;
+export interface NextPayment {
+  dueDate: Date;
   amount: number;
+  payeeName: string;
+  category: string;
 }
 
-export interface DashboardState extends FinancialProfile {
-  // Additional properties specific to the dashboard
-  isConnectingBank: boolean;
-  bankConnectionError: string | null;
-  connectedAccounts: BankAccount[];
+export interface DashboardState {
+  totalDebt: number;
+  totalMonthlyPayment: number;
+  monthlyChange: number;
+  debts: Debt[];
+  nextPayment?: NextPayment;
+  bankConnections: BankConnection[];
+  payoffStrategies: PayoffStrategy[];
 }
 
 export function useDashboard() {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const [dashboardState, setDashboardState] = useState<DashboardState | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [dashboardState, setDashboardState] = useState<DashboardState>({
-    totalDebt: 0,
-    monthlyPayment: 0,
-    interestPaid: 0,
-    debtFreeDate: 'N/A',
-    monthlyChange: 0,
-    debtToIncomeRatio: 0,
-    aiOptimizationScore: 0,
-    debtBreakdown: [],
-    savingsOpportunities: 0,
-    paymentHistory: [],
-    projectedPayoff: [],
-    insights: [],
-    isAIEnabled: true,
-    budgetCategories: [],
-    monthlySpending: [],
-    monthlyIncome: 0,
-    creditScore: 0,
-    totalBudget: 0,
-    totalSpent: 0,
-    isConnectingBank: false,
-    bankConnectionError: null,
-    connectedAccounts: []
-  });
 
-  // Initialize bank connection and financial analysis hooks
-  const { 
-    isConnecting, 
-    accounts, 
-    transactions, 
-    error: bankError, 
-    connectBank, 
-    fetchAccounts, 
-    fetchTransactions 
-  } = useBankConnection(user?.id || '');
-  
-  const { generateProfile } = useFinancialAnalysis();
+  // Fetch dashboard data
+  const refreshDashboard = useCallback(async () => {
+    if (!user) {
+      setError('User not authenticated');
+      setIsLoading(false);
+      return;
+    }
 
-  // Fetch dashboard data using bank connection and financial analysis
-  const fetchDashboardData = async () => {
     try {
-      setIsLoading(true);
-      
-      // If we don't have any accounts yet, try to fetch them
-      let currentAccounts = accounts;
-      let currentTransactions = transactions;
-      
-      if (currentAccounts.length === 0) {
-        currentAccounts = await fetchAccounts();
-      }
-      
-      if (currentTransactions.length === 0 && currentAccounts.length > 0) {
-        // Get transactions for the last 90 days
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 90);
-        
-        currentTransactions = await fetchTransactions({
-          startDate,
-          endDate,
-          accountIds: currentAccounts.map(acc => acc.id)
-        });
-      }
-      
-      // Generate financial profile from bank data
-      const profile = generateProfile(currentAccounts, currentTransactions);
-      
-      // Update dashboard state with profile data and bank connection info
-      setDashboardState({
-        ...profile,
-        isConnectingBank: isConnecting,
-        bankConnectionError: bankError,
-        connectedAccounts: currentAccounts
-      });
-      
+      setIsRefreshing(true);
       setError(null);
+
+      // Simulate API fetch delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Get mock data
+      const mockData = createMockDashboardData();
+      setDashboardState(mockData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
-  };
+  }, [user]);
 
-  // Fetch data when user changes or bank connection updates
+  // Load dashboard data on mount
   useEffect(() => {
-    if (user) {
-      fetchDashboardData();
+    if (user && isLoading) {
+      refreshDashboard();
     }
-  }, [user, accounts.length, transactions.length]);
+  }, [user, refreshDashboard, isLoading]);
 
-  // Update dashboard state when bank connection status changes
-  useEffect(() => {
-    setDashboardState(prev => ({
-      ...prev,
-      isConnectingBank: isConnecting,
-      bankConnectionError: bankError
-    }));
-  }, [isConnecting, bankError]);
-
-  // Handle AI feature toggle
-  const handleAIToggle = () => {
-    setDashboardState(prev => ({
-      ...prev,
-      isAIEnabled: !prev.isAIEnabled
-    }));
-  };
-
-  // Handle connecting to bank
-  const handleConnectBank = async () => {
-    await connectBank();
-    fetchDashboardData();
-  };
-
-  // Handle adding a new debt manually
-  const handleAddDebt = async (debt: DebtInfo) => {
-    try {
-      // In a real implementation, this would call an API to save the debt
-      // For now, we'll just update the local state
-      setDashboardState(prev => {
-        const updatedDebts = [...prev.debtBreakdown, debt];
-        const totalDebt = updatedDebts.reduce((sum, d) => sum + d.amount, 0);
-        const monthlyPayment = updatedDebts.reduce((sum, d) => sum + d.minimumPayment, 0);
-        
-        return {
-          ...prev,
-          debtBreakdown: updatedDebts,
-          totalDebt,
-          monthlyPayment
-        };
-      });
-    } catch (err) {
-      setError('Failed to add debt');
-      console.error('Error adding debt:', err);
-    }
-  };
+  // Handle adding a new debt
+  const handleAddNewDebt = useCallback((newDebt: Debt) => {
+    setDashboardState(prevState => {
+      if (!prevState) return prevState;
+      
+      const updatedDebts = [...prevState.debts, newDebt];
+      const updatedTotalDebt = prevState.totalDebt + newDebt.amount;
+      const updatedTotalMonthlyPayment = prevState.totalMonthlyPayment + newDebt.minimumPayment;
+      
+      return {
+        ...prevState,
+        debts: updatedDebts,
+        totalDebt: updatedTotalDebt,
+        totalMonthlyPayment: updatedTotalMonthlyPayment
+      };
+    });
+  }, []);
 
   // Handle viewing debt details
-  const handleViewDebtDetails = (debtId: string) => {
-    // This would typically navigate to a debt details page or open a modal
-    console.log('Viewing debt details:', debtId);
-  };
-
-  // Handle applying a recommendation
-  const handleApplyRecommendation = (recommendationId: string) => {
-    // In a real implementation, this would apply the recommendation and update the data
-    console.log('Applying recommendation:', recommendationId);
-    
-    // For now, just mark the recommendation as applied by removing it from insights
-    setDashboardState(prev => ({
-      ...prev,
-      insights: prev.insights.filter(insight => insight.id !== recommendationId)
-    }));
-  };
+  const handleViewDebtDetails = useCallback((debtId: string) => {
+    console.log(`Viewing details for debt with ID: ${debtId}`);
+    // This would typically navigate to a detail page or open a modal
+  }, []);
 
   // Handle scheduling a payment
-  const handleSchedulePayment = (amount: number, date: string) => {
-    // In a real implementation, this would call an API to schedule the payment
-    console.log('Scheduling payment:', { amount, date });
-    
-    // For demonstration, update the dashboard state to reflect the scheduled payment
-    setDashboardState(prev => {
-      // Calculate new total debt after payment
-      const newTotalDebt = Math.max(0, prev.totalDebt - amount);
-      
-      // Update projected payoff to reflect the payment
-      const updatedProjections = prev.projectedPayoff.map(projection => ({
-        ...projection,
-        amount: Math.max(0, projection.amount - amount)
-      }));
-      
-      return {
-        ...prev,
-        totalDebt: newTotalDebt,
-        projectedPayoff: updatedProjections
-      };
-    });
-  };
+  const handleSchedulePayment = useCallback(() => {
+    console.log('Scheduling a new payment');
+    // This would typically open a payment form
+  }, []);
 
-  // Handle creating a new budget
-  const handleCreateBudget = () => {
-    // In a real implementation, this would open a budget creation flow
-    console.log('Creating new budget');
-  };
+  // Handle viewing payment details
+  const handleViewPaymentDetails = useCallback(() => {
+    console.log('Viewing payment details');
+    // This would typically navigate to a payment history page
+  }, []);
 
-  // Handle adjusting a budget category
-  const handleAdjustBudget = (category: string, newAmount: number) => {
-    // Update the budget category with the new allocated amount
-    setDashboardState(prev => {
-      const updatedCategories = prev.budgetCategories.map(cat => 
-        cat.name === category 
-          ? { ...cat, allocated: newAmount, limit: newAmount } 
-          : cat
-      );
-      
-      const totalBudget = updatedCategories.reduce((sum, cat) => sum + cat.allocated, 0);
-      
-      return {
-        ...prev,
-        budgetCategories: updatedCategories,
-        totalBudget
-      };
-    });
-  };
+  // Handle adding a bank connection
+  const handleAddBankConnection = useCallback(() => {
+    console.log('Adding a new bank connection');
+    // This would typically open the bank connection flow
+  }, []);
 
-  // Refresh dashboard data
-  const refreshDashboard = () => {
-    fetchDashboardData();
-  };
+  // Handle viewing bank connection details
+  const handleViewBankConnection = useCallback((connectionId: string) => {
+    console.log(`Viewing details for bank connection with ID: ${connectionId}`);
+    // This would typically navigate to a connection details page
+  }, []);
 
   return {
-    isLoading,
-    error,
     dashboardState,
-    handleAIToggle,
-    handleConnectBank,
-    handleAddDebt,
+    isLoading,
+    isRefreshing,
+    error,
+    refreshDashboard,
+    handleAddNewDebt,
     handleViewDebtDetails,
-    handleApplyRecommendation,
     handleSchedulePayment,
-    handleCreateBudget,
-    handleAdjustBudget,
-    refreshDashboard
+    handleViewPaymentDetails,
+    handleAddBankConnection,
+    handleViewBankConnection
   };
 } 

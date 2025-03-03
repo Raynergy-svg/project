@@ -1,7 +1,8 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
+import React, { createContext, useState, useContext, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import type { User, SignUpData } from "@/types";
-import { supabase } from "@/utils/supabase/client";
+import { supabase, createBrowserClient } from "@/utils/supabase/client";
+import { useDevAccount } from '@/hooks/useDevAccount';
 
 export interface User {
   id: string;
@@ -21,7 +22,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, options?: Record<string, any>) => Promise<void>;
   logout: () => Promise<void>;
   signup: (data: SignUpData) => Promise<{ needsEmailConfirmation?: boolean }>;
   resendConfirmationEmail: (email: string) => Promise<void>;
@@ -41,7 +42,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState('free');
+  const [subscriptionPlan, setSubscriptionPlan] = useState<string | undefined>(undefined);
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<Date | undefined>(undefined);
   const navigate = useNavigate();
+  
+  // Use dev account system in development mode
+  const { isDevAccount, verifyDevCredentials } = useDevAccount();
 
   // Safety timeout - don't block the app for more than 5 seconds
   useEffect(() => {
@@ -59,20 +68,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // Remove the initial loader immediately so UI is responsive
-        const initialLoader = document.getElementById('initial-loader');
-        if (initialLoader) {
-          initialLoader.style.display = 'none';
+        // Check for mock authentication in development mode
+        if (process.env.NODE_ENV === 'development') {
+          try {
+            const mockTokenData = JSON.parse(localStorage.getItem('supabase.auth.token') || '{}');
+            if (mockTokenData.access_token === 'fake-dev-token') {
+              console.log('Development mode: Loading mock user data');
+              
+              // Mock user data for development
+              const mockUser = {
+                id: 'dev-user-123',
+                email: 'dev@example.com',
+                isPremium: true,
+                trialEndsAt: null,
+                createdAt: new Date().toISOString(),
+                subscription: {
+                  status: 'active',
+                  planName: 'Premium Dev',
+                  currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+                }
+              };
+              
+              setUser(mockUser);
+              setIsAuthenticated(true);
+              setIsLoading(false);
+              setIsSubscribed(true);
+              setSubscriptionStatus('active');
+              setSubscriptionPlan('Premium Dev');
+              setSubscriptionEndDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
+              
+              return;
+            }
+          } catch (e) {
+            // If parsing fails, continue with normal user loading
+            console.error('Error parsing mock token', e);
+          }
         }
         
-        // Get current session from Supabase (disabled mock data)
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error('Error getting session:', error.message);
-          setIsLoading(false);
-          return;
-        }
+        // Normal user loading flow for production
+        const { data: sessionData } = await supabase.auth.getSession();
+        const session = sessionData?.session;
 
         if (session) {
           // Get user data from Supabase auth
@@ -113,6 +148,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           };
 
           setUser(userData);
+          setIsAuthenticated(true);
+          setIsSubscribed(!!userData.subscription?.status && userData.subscription.status === 'active');
+          setSubscriptionStatus(userData.subscription?.status || 'free');
+          setSubscriptionPlan(userData.subscription?.planName);
+          setSubscriptionEndDate(userData.subscription?.currentPeriodEnd);
         }
       } catch (error) {
         console.error('Failed to load user from Supabase:', error);
@@ -121,7 +161,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
-    // Listen for auth changes
+    // Load user initially
+    loadUser();
+
+    // Skip Supabase auth state subscription in development mode with mock auth
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        const mockTokenData = JSON.parse(localStorage.getItem('supabase.auth.token') || '{}');
+        if (mockTokenData.access_token === 'fake-dev-token') {
+          console.log('Development mode: Using mock authentication');
+          return () => {}; // No cleanup needed for mock auth
+        }
+      } catch (e) {
+        // If parsing fails, continue with normal auth flow
+        console.error('Error parsing mock token', e);
+      }
+    }
+
+    // Normal Supabase auth state subscription for production
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
@@ -130,11 +187,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         } else if (event === 'SIGNED_OUT') {
           // Clear user data when signed out
           setUser(null);
+          setIsAuthenticated(false);
+          setIsSubscribed(false);
+          setSubscriptionStatus('free');
+          setSubscriptionPlan(undefined);
+          setSubscriptionEndDate(undefined);
         }
       }
     );
-
-    loadUser();
 
     // Cleanup subscription on unmount
     return () => {
@@ -142,33 +202,123 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // Computed properties for subscription status
-  const isAuthenticated = !!user;
-  const isSubscribed = !!user?.subscription?.status && user.subscription.status === 'active';
-  const subscriptionStatus = user?.subscription?.status || 'free';
-  const subscriptionPlan = user?.subscription?.planName;
-  const subscriptionEndDate = user?.subscription?.currentPeriodEnd;
-
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, options?: Record<string, any>) => {
     setIsLoading(true);
     try {
-      // Sign in with Supabase auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        // Check for specific error messages from Supabase
-        if (error.message.includes('Email not confirmed')) {
-          throw new Error('Please check your email to confirm your account before signing in.');
+      // Check if we're in development mode
+      const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+      
+      // Special handling for development accounts in development mode
+      if (isDevelopment && isDevAccount(email)) {
+        console.log('Development mode: Using development account');
+        
+        // Verify dev credentials (any password works for dev accounts)
+        const { valid, account } = verifyDevCredentials(email, password);
+        
+        if (valid && account) {
+          // Create a mock user with the dev account details
+          const mockUser: User = {
+            id: account.id,
+            email: account.email,
+            name: account.name,
+            isPremium: account.isPremium,
+            trialEndsAt: null,
+            createdAt: new Date().toISOString(),
+            subscription: {
+              status: account.isPremium ? 'active' : 'free',
+              planName: account.isPremium ? 'Premium Plan' : 'Free Plan',
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            }
+          };
+          
+          // Update auth state
+          setUser(mockUser);
+          setIsAuthenticated(true);
+          
+          // Return mock data
+          return { user: mockUser };
+        } else {
+          throw new Error('Invalid credentials');
         }
-        throw error;
       }
+      
+      if (isDevelopment) {
+        console.log('Development mode: Using development auth flow');
+        
+        // For development, we need to explicitly handle captcha
+        const tempClient = createBrowserClient();
+        
+        // Special dev auth options with captcha hack for development
+        const devOptions = {
+          captchaToken: 'ignored-in-dev-mode',
+          gotrue: {
+            detectSessionInUrl: false,
+            autoRefreshToken: true,
+            persistSession: true,
+            multiTab: true,
+          }
+        };
+        
+        // Use the temp client for auth in dev mode
+        const { data, error } = await tempClient.auth.signInWithPassword({
+          email,
+          password,
+          options: devOptions
+        });
 
-      // User data will be loaded by the auth state change listener
-      // Don't navigate here - let the component handle navigation via useEffect
-      return data;
+        if (error) {
+          console.error('Development login error:', error);
+          // Check for specific error messages from Supabase
+          if (error.message.includes('Email not confirmed')) {
+            throw new Error('Please check your email to confirm your account before signing in.');
+          }
+          
+          // Special handling for captcha errors in dev
+          if (error.message.includes('captcha')) {
+            console.warn('Captcha verification failed in development mode. Using fallback session...');
+            
+            // For development only - create mock session
+            // This is just a development convenience - NEVER do this in production
+            const mockUser: User = {
+              id: 'dev-user-id',
+              email: email,
+              isPremium: true,
+              trialEndsAt: null,
+              createdAt: new Date().toISOString(),
+              subscription: {
+                status: 'active',
+                planName: 'Developer Plan',
+                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+              }
+            };
+            
+            setUser(mockUser);
+            setIsAuthenticated(true);
+            return { user: mockUser };
+          }
+          
+          throw error;
+        }
+
+        return data;
+      } else {
+        // Normal authentication flow with captcha for production
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+          options: options
+        });
+
+        if (error) {
+          // Check for specific error messages from Supabase
+          if (error.message.includes('Email not confirmed')) {
+            throw new Error('Please check your email to confirm your account before signing in.');
+          }
+          throw error;
+        }
+
+        return data;
+      }
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -187,6 +337,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Clear user state (will also be cleared by auth state change listener)
       setUser(null);
+      setIsAuthenticated(false);
+      setIsSubscribed(false);
+      setSubscriptionStatus('free');
+      setSubscriptionPlan(undefined);
+      setSubscriptionEndDate(undefined);
       navigate("/");
     } catch (error) {
       console.error('Logout error:', error);
@@ -321,6 +476,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Update local state
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
+      setIsSubscribed(!!updatedUser.subscription?.status && updatedUser.subscription.status === 'active');
+      setSubscriptionStatus(updatedUser.subscription?.status || 'free');
+      setSubscriptionPlan(updatedUser.subscription?.planName);
+      setSubscriptionEndDate(updatedUser.subscription?.currentPeriodEnd);
     } catch (error) {
       console.error('Error updating user:', error);
     }

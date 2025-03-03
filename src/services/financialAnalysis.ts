@@ -1,4 +1,5 @@
 import { BankAccount, Transaction } from './bankConnection';
+import { MOCK_FINANCIAL_PROFILE } from '@/utils/mockData';
 
 export interface DebtInfo {
   id: string;
@@ -67,45 +68,153 @@ export class FinancialAnalysisService {
   }
 
   // Generate a complete financial profile from bank data
-  public generateFinancialProfile(accounts: BankAccount[], transactions: Transaction[]): FinancialProfile {
-    const debts = this.extractDebts(accounts);
-    const monthlyIncome = this.calculateMonthlyIncome(transactions);
-    const monthlySpending = this.calculateMonthlySpending(transactions);
-    const budgetCategories = this.generateBudgetCategories(transactions);
-    
-    const totalDebt = debts.reduce((sum, debt) => sum + debt.amount, 0);
-    const monthlyPayment = debts.reduce((sum, debt) => sum + debt.minimumPayment, 0);
-    
-    // Calculate debt-to-income ratio
-    const debtToIncomeRatio = monthlyIncome > 0 ? (monthlyPayment / monthlyIncome) : 0;
-    
-    // Calculate AI optimization score based on financial health indicators
-    const aiOptimizationScore = this.calculateOptimizationScore(debts, debtToIncomeRatio, monthlyIncome, monthlySpending);
-    
-    // Generate insights based on the financial data
-    const insights = this.generateInsights(debts, transactions, monthlyIncome, budgetCategories);
-    
-    return {
-      totalDebt,
-      monthlyPayment,
-      interestPaid: this.calculateInterestPaid(debts, transactions),
-      debtFreeDate: this.calculateDebtFreeDate(totalDebt, monthlyPayment),
-      monthlyChange: this.calculateMonthlyDebtChange(transactions),
-      debtToIncomeRatio: Math.round(debtToIncomeRatio * 100) / 100,
-      aiOptimizationScore,
-      debtBreakdown: debts,
-      savingsOpportunities: insights.filter(insight => insight.type === 'opportunity').length,
-      paymentHistory: this.getPaymentHistory(transactions),
-      projectedPayoff: this.generateProjectedPayoff(totalDebt, monthlyPayment),
-      insights,
-      isAIEnabled: true,
-      budgetCategories,
-      monthlySpending,
-      monthlyIncome,
-      creditScore: this.estimateCreditScore(debts, transactions),
-      totalBudget: budgetCategories.reduce((sum, cat) => sum + cat.allocated, 0),
-      totalSpent: budgetCategories.reduce((sum, cat) => sum + cat.spent, 0)
-    };
+  public async generateFinancialProfile(
+    userId: string,
+    transactions: Transaction[] = []
+  ): Promise<FinancialProfile> {
+    try {
+      console.log(`Generating financial profile for user ${userId} with ${transactions.length} transactions`);
+      
+      // If no transactions, return a minimal profile to avoid errors
+      if (transactions.length === 0) {
+        console.log('No transactions available. Returning minimal profile.');
+        
+        // Create a future date for debt-free date (30 days from now)
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 30);
+        const debtFreeDate = futureDate.toISOString().split('T')[0];
+        
+        return {
+          totalDebt: 0,
+          monthlyPayment: 0,
+          interestPaid: 0,
+          debtFreeDate,
+          monthlyChange: 0,
+          debtToIncomeRatio: 0,
+          aiOptimizationScore: 50,
+          debtBreakdown: [],
+          savingsOpportunities: 0,
+          paymentHistory: [],
+          projectedPayoff: [],
+          insights: [
+            {
+              id: 'no-data',
+              title: 'No Financial Data Available',
+              description: 'Connect your bank accounts to see personalized financial insights.',
+              type: 'warning',
+              confidence: 100
+            }
+          ],
+          isAIEnabled: false,
+          budgetCategories: [],
+          monthlySpending: [],
+          monthlyIncome: 0,
+          creditScore: 700,
+          totalBudget: 0,
+          totalSpent: 0
+        };
+      }
+      
+      // For development, create dummy accounts from transactions
+      const accounts: BankAccount[] = this.createAccountsFromTransactions(transactions);
+      
+      // Extract all debts from accounts (credit, loan, mortgage types)
+      const debts = this.extractDebts(accounts);
+      
+      // Calculate monthly income (recurring deposits)
+      const monthlyIncome = this.calculateMonthlyIncome(transactions);
+      
+      // Generate budget categories
+      const budgetCategories = this.generateBudgetCategories(transactions);
+      
+      // Calculate debt metrics
+      const totalDebt = debts.reduce((sum, debt) => sum + debt.amount, 0);
+      const monthlyPayment = this.calculateMonthlyPayment(debts);
+      const interestPaid = this.calculateInterestPaid(debts);
+      const debtFreeDate = this.calculateDebtFreeDate(debts, monthlyPayment);
+      
+      // Calculate spending metrics
+      const monthlySpending = this.calculateMonthlySpending(transactions);
+      const spendingBreakdown = this.calculateSpendingBreakdown(transactions);
+      
+      // Calculate savings metrics
+      const savedLastMonth = this.calculateSavedLastMonth(transactions);
+      const projectedSavings = this.calculateProjectedSavings(savedLastMonth, 12);
+      
+      const profile: FinancialProfile = {
+        totalDebt,
+        monthlyPayment,
+        interestPaid,
+        debtFreeDate,
+        monthlyChange: this.calculateMonthlyDebtChange(transactions),
+        debtToIncomeRatio: monthlyIncome > 0 ? totalDebt / (monthlyIncome * 12) : 0,
+        aiOptimizationScore: this.calculateOptimizationScore(
+          debts, 
+          totalDebt / (monthlyIncome * 12), 
+          monthlyIncome,
+          monthlySpending
+        ),
+        debtBreakdown: debts,
+        savingsOpportunities: savedLastMonth > 0 ? savedLastMonth : 0,
+        paymentHistory: this.generatePaymentHistory(transactions, debts),
+        projectedPayoff: this.generateProjectedPayoff(totalDebt, monthlyPayment),
+        insights: this.generateInsights(
+          transactions,
+          monthlyIncome,
+          monthlySpending,
+          savedLastMonth,
+          debts,
+          budgetCategories
+        ),
+        isAIEnabled: true,
+        budgetCategories,
+        monthlySpending,
+        monthlyIncome,
+        creditScore: this.estimateCreditScore(debts, transactions),
+        totalBudget: this.calculateTotalBudget(budgetCategories),
+        totalSpent: this.calculateTotalSpent(transactions)
+      };
+      
+      return profile;
+    } catch (error) {
+      console.error('Error generating financial profile:', error);
+      
+      // Create a future date for debt-free date (30 days from now)
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30);
+      const debtFreeDate = futureDate.toISOString().split('T')[0];
+      
+      // Return a minimal profile to avoid breaking the UI
+      return {
+        totalDebt: 0,
+        monthlyPayment: 0,
+        interestPaid: 0,
+        debtFreeDate,
+        monthlyChange: 0,
+        debtToIncomeRatio: 0,
+        aiOptimizationScore: 50,
+        debtBreakdown: [],
+        savingsOpportunities: 0,
+        paymentHistory: [],
+        projectedPayoff: [],
+        insights: [
+          {
+            id: 'error-recovery',
+            title: 'Dashboard Data Issue',
+            description: 'We encountered an issue loading your financial data. This might be due to a temporary service disruption or missing data.',
+            type: 'warning',
+            confidence: 100
+          }
+        ],
+        isAIEnabled: false,
+        budgetCategories: [],
+        monthlySpending: [],
+        monthlyIncome: 0,
+        creditScore: 700,
+        totalBudget: 0,
+        totalSpent: 0
+      };
+    }
   }
 
   // Extract debt accounts from bank accounts
@@ -243,7 +352,7 @@ export class FinancialAnalysisService {
   }
 
   // Calculate interest paid on debts
-  private calculateInterestPaid(debts: DebtInfo[], transactions: Transaction[]): number {
+  private calculateInterestPaid(debts: DebtInfo[]): number {
     // In a real implementation, this would analyze transaction history
     // For now, estimate based on debt amounts and interest rates
     return debts.reduce((sum, debt) => {
@@ -253,13 +362,13 @@ export class FinancialAnalysisService {
   }
 
   // Calculate projected debt-free date
-  private calculateDebtFreeDate(totalDebt: number, monthlyPayment: number): string {
-    if (totalDebt <= 0 || monthlyPayment <= 0) {
+  private calculateDebtFreeDate(debts: DebtInfo[], monthlyPayment: number): string {
+    if (debts.length === 0 || monthlyPayment <= 0) {
       return 'N/A';
     }
     
     // Simple calculation assuming constant payment and no additional interest
-    const monthsToPayoff = Math.ceil(totalDebt / monthlyPayment);
+    const monthsToPayoff = Math.ceil(debts.reduce((sum, debt) => sum + debt.amount, 0) / monthlyPayment);
     
     const today = new Date();
     today.setMonth(today.getMonth() + monthsToPayoff);
@@ -317,9 +426,11 @@ export class FinancialAnalysisService {
 
   // Generate financial insights
   private generateInsights(
-    debts: DebtInfo[], 
     transactions: Transaction[],
     monthlyIncome: number,
+    monthlySpending: MonthlySpending[],
+    savedLastMonth: number,
+    debts: DebtInfo[],
     budgetCategories: BudgetCategory[]
   ): FinancialInsight[] {
     const insights: FinancialInsight[] = [];
@@ -404,7 +515,7 @@ export class FinancialAnalysisService {
   }
 
   // Get payment history from transactions
-  private getPaymentHistory(transactions: Transaction[]): MonthlySpending[] {
+  private generatePaymentHistory(transactions: Transaction[], debts: DebtInfo[]): MonthlySpending[] {
     if (transactions.length === 0) return [];
     
     // Group debt payment transactions by month
@@ -498,14 +609,118 @@ export class FinancialAnalysisService {
     // Ensure score is within valid range (300-850)
     return Math.max(300, Math.min(850, score));
   }
+
+  private createAccountsFromTransactions(transactions: Transaction[]): BankAccount[] {
+    // Group transactions by account ID
+    const accountMap: Record<string, Transaction[]> = {};
+    
+    transactions.forEach(transaction => {
+      if (!accountMap[transaction.accountId]) {
+        accountMap[transaction.accountId] = [];
+      }
+      accountMap[transaction.accountId].push(transaction);
+    });
+    
+    // Create accounts from transaction groups
+    return Object.entries(accountMap).map(([accountId, txs]) => {
+      // Determine if this is likely a credit account based on transactions
+      const hasNegativeBalance = txs.some(tx => tx.amount < 0);
+      const totalBalance = txs.reduce((sum, tx) => sum + tx.amount, 0);
+      
+      // Try to determine account type from transaction patterns
+      let type: BankAccount['type'];
+      if (txs.some(tx => tx.description.toLowerCase().includes('mortgage') || 
+                        tx.description.toLowerCase().includes('home loan'))) {
+        type = 'mortgage';
+      } else if (txs.some(tx => tx.description.toLowerCase().includes('auto') || 
+                             tx.description.toLowerCase().includes('car loan'))) {
+        type = 'loan';
+      } else if (hasNegativeBalance || totalBalance < 0) {
+        type = 'credit';
+      } else {
+        type = 'checking';
+      }
+      
+      return {
+        id: accountId,
+        name: `Account ${accountId.substring(0, 4)}`,
+        type,
+        balance: totalBalance,
+        availableBalance: totalBalance > 0 ? totalBalance : 0,
+        currency: 'USD',
+        lastUpdated: new Date(),
+        institution: {
+          id: 'unknown',
+          name: 'Bank',
+        }
+      };
+    });
+  }
+
+  private calculateMonthlyPayment(debts: DebtInfo[]): number {
+    // Sum up all minimum payments for existing debts
+    return debts.reduce((total, debt) => total + debt.minimumPayment, 0);
+  }
+
+  private calculateSpendingBreakdown(transactions: Transaction[]): Record<string, number> {
+    // Group spending by category
+    const breakdown: Record<string, number> = {};
+    
+    transactions.forEach(transaction => {
+      if (transaction.amount < 0) { // Only include spending (negative amounts)
+        const category = transaction.category || 'Uncategorized';
+        breakdown[category] = (breakdown[category] || 0) + Math.abs(transaction.amount);
+      }
+    });
+    
+    return breakdown;
+  }
+
+  private calculateSavedLastMonth(transactions: Transaction[]): number {
+    // Get current date
+    const now = new Date();
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    // Filter transactions from last month
+    const lastMonthTransactions = transactions.filter(t => {
+      const txDate = new Date(t.date);
+      return txDate >= lastMonthStart && txDate <= lastMonthEnd;
+    });
+    
+    // Calculate income and expenses
+    const income = lastMonthTransactions
+      .filter(t => t.isIncome)
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const expenses = lastMonthTransactions
+      .filter(t => !t.isIncome)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    
+    // Return money saved (income - expenses)
+    return income - expenses;
+  }
+
+  private calculateProjectedSavings(monthlySavings: number, months: number): number {
+    // Simple projection of savings over time
+    return monthlySavings * months;
+  }
+
+  private calculateTotalBudget(categories: BudgetCategory[]): number {
+    return categories.reduce((total, category) => total + category.limit, 0);
+  }
+
+  private calculateTotalSpent(transactions: Transaction[]): number {
+    return transactions.filter(t => t.amount < 0).reduce((total, t) => total + Math.abs(t.amount), 0);
+  }
 }
 
 // React hook for financial analysis
 export function useFinancialAnalysis() {
   const analysisService = FinancialAnalysisService.getInstance();
   
-  const generateProfile = (accounts: BankAccount[], transactions: Transaction[]): FinancialProfile => {
-    return analysisService.generateFinancialProfile(accounts, transactions);
+  const generateProfile = (userId: string, transactions: Transaction[] = []): Promise<FinancialProfile> => {
+    return analysisService.generateFinancialProfile(userId, transactions);
   };
   
   return {

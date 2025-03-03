@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { User } from '@/types';
+import { MOCK_BANK_ACCOUNTS, MOCK_TRANSACTIONS, MOCK_BANK_CONNECTION_DATA } from '@/utils/mockData';
 
 // Types for bank connection
 export interface BankAccount {
@@ -44,10 +45,21 @@ export interface BankConnectionOptions {
 // This would typically use a third-party service like Plaid, Teller, or MX
 export class BankConnectionService {
   private static instance: BankConnectionService;
-  private apiUrl: string = import.meta.env.VITE_BANK_API_URL || 'https://api.example.com/banking';
-  private apiKey: string = import.meta.env.VITE_BANK_API_KEY || '';
+  private apiUrl: string;
+  private apiKey: string;
+  private isMockMode: boolean;
 
-  private constructor() {}
+  private constructor() {
+    this.apiUrl = import.meta.env.VITE_BANK_API_URL || '';
+    this.apiKey = import.meta.env.VITE_BANK_API_KEY || '';
+    // Determine if we're in mock mode (no real API configured)
+    this.isMockMode = !this.apiUrl || !this.apiKey;
+    
+    // Only log this once during initialization
+    if (this.isMockMode) {
+      console.info('Bank API not configured. Running in mock mode with empty data.');
+    }
+  }
 
   public static getInstance(): BankConnectionService {
     if (!BankConnectionService.instance) {
@@ -62,12 +74,18 @@ export class BankConnectionService {
       // In a real implementation, this would open a secure iframe or redirect to a bank selection UI
       console.log('Initializing bank connection for user:', options.userId);
       
-      // For now, we'll simulate a successful connection with a timeout
-      setTimeout(() => {
-        if (options.onSuccess) {
-          options.onSuccess(this.getMockInitialData());
-        }
-      }, 2000);
+      // Check if we can make real API call
+      if (this.apiUrl && this.apiKey) {
+        // Implement real API call here
+        console.log('Using real bank API connection');
+      } else {
+        // Simulate a successful connection with timeout (temporary)
+        setTimeout(() => {
+          if (options.onSuccess) {
+            options.onSuccess(this.getEmptyConnectionData());
+          }
+        }, 1000);
+      }
     } catch (error) {
       console.error('Error initializing bank connection:', error);
       if (options.onExit) {
@@ -78,38 +96,31 @@ export class BankConnectionService {
 
   // Fetch user's bank accounts
   public async fetchAccounts(userId: string): Promise<BankAccount[]> {
+    // Return mock data immediately if in mock mode
+    if (this.isMockMode) {
+      return [];
+    }
+
     try {
-      // Instead of making an API call that violates CSP, use mock data
-      console.log('Using mock bank account data instead of API call');
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Return mock accounts from the getMockInitialData method
-      return this.getMockInitialData().accounts;
-      
-      /* Original API call code - commented out to fix CSP issue
       const response = await fetch(`${this.apiUrl}/accounts?userId=${userId}`, {
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
-      
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch accounts: ${response.statusText}`);
+        throw new Error(`Failed to fetch accounts: ${response.status}`);
       }
-      
-      return await response.json();
-      */
+
+      const data = await response.json();
+      return data.accounts || [];
     } catch (error) {
-      console.error('Error fetching bank accounts:', error);
-      // Return empty array for now, but in production would handle this differently
+      console.error('Error fetching accounts:', error);
       return [];
     }
   }
 
-  // Fetch user's transactions
   public async fetchTransactions(userId: string, options?: {
     startDate?: Date;
     endDate?: Date;
@@ -117,148 +128,77 @@ export class BankConnectionService {
     limit?: number;
   }): Promise<Transaction[]> {
     try {
-      // Instead of making an API call that violates CSP, use mock data
-      console.log('Using mock transaction data instead of API call');
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Return mock transactions from the getMockInitialData method
-      let transactions = this.getMockInitialData().transactions;
-      
-      // Apply filters similar to what the API would do
-      if (options?.startDate) {
-        transactions = transactions.filter(t => new Date(t.date) >= options.startDate!);
-      }
-      
-      if (options?.endDate) {
-        transactions = transactions.filter(t => new Date(t.date) <= options.endDate!);
-      }
-      
-      if (options?.accountIds?.length) {
-        transactions = transactions.filter(t => options.accountIds!.includes(t.accountId));
-      }
-      
-      if (options?.limit) {
-        transactions = transactions.slice(0, options.limit);
-      }
-      
-      return transactions;
-      
-      /* Original API call code - commented out to fix CSP issue
-      let url = `${this.apiUrl}/transactions?userId=${userId}`;
-      
-      if (options?.startDate) {
-        url += `&startDate=${options.startDate.toISOString()}`;
-      }
-      
-      if (options?.endDate) {
-        url += `&endDate=${options.endDate.toISOString()}`;
-      }
-      
-      if (options?.accountIds?.length) {
-        url += `&accountIds=${options.accountIds.join(',')}`;
-      }
-      
-      if (options?.limit) {
-        url += `&limit=${options.limit}`;
-      }
-      
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
+      if (this.apiUrl && this.apiKey) {
+        // Make real API call
+        let url = `${this.apiUrl}/transactions?userId=${userId}`;
+        
+        if (options?.startDate) {
+          url += `&startDate=${options.startDate.toISOString()}`;
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch transactions: ${response.statusText}`);
+        
+        if (options?.endDate) {
+          url += `&endDate=${options.endDate.toISOString()}`;
+        }
+        
+        if (options?.accountIds?.length) {
+          url += `&accountIds=${options.accountIds.join(',')}`;
+        }
+        
+        if (options?.limit) {
+          url += `&limit=${options.limit}`;
+        }
+        
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch transactions: ${response.statusText}`);
+        }
+        
+        return await response.json();
+      } else {
+        // Return empty array if no real API is configured
+        console.warn('No bank API configured. Returning empty transactions array.');
+        return [];
       }
-      
-      return await response.json();
-      */
     } catch (error) {
       console.error('Error fetching transactions:', error);
-      // Return empty array for now, but in production would handle this differently
       return [];
     }
   }
 
-  // Disconnect a bank account
   public async disconnectAccount(accountId: string): Promise<boolean> {
     try {
-      // Instead of making an API call that violates CSP, simulate disconnection
-      console.log('Simulating account disconnection instead of API call');
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Always return success in mock implementation
-      return true;
-      
-      /* Original API call code - commented out to fix CSP issue
-      const response = await fetch(`${this.apiUrl}/accounts/${accountId}/disconnect`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      return response.ok;
-      */
+      if (this.apiUrl && this.apiKey) {
+        // Make real API call
+        const response = await fetch(`${this.apiUrl}/accounts/${accountId}/disconnect`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        return response.ok;
+      } else {
+        // Simulate success if no real API is configured
+        console.warn('No bank API configured. Simulating successful account disconnection.');
+        return true;
+      }
     } catch (error) {
       console.error('Error disconnecting account:', error);
       return false;
     }
   }
 
-  // This is a temporary method that will be removed once real API integration is complete
-  private getMockInitialData(): BankConnectionData {
+  // Return empty connection data
+  private getEmptyConnectionData(): BankConnectionData {
     return {
-      accounts: [
-        {
-          id: 'acc_1',
-          name: 'Primary Checking',
-          type: 'checking',
-          balance: 2450.75,
-          availableBalance: 2450.75,
-          currency: 'USD',
-          lastUpdated: new Date(),
-          institution: {
-            id: 'inst_1',
-            name: 'Chase Bank',
-            logo: 'https://logo.clearbit.com/chase.com'
-          }
-        },
-        {
-          id: 'acc_2',
-          name: 'Savings Account',
-          type: 'savings',
-          balance: 12500.50,
-          availableBalance: 12500.50,
-          currency: 'USD',
-          lastUpdated: new Date(),
-          institution: {
-            id: 'inst_1',
-            name: 'Chase Bank',
-            logo: 'https://logo.clearbit.com/chase.com'
-          }
-        },
-        {
-          id: 'acc_3',
-          name: 'Credit Card',
-          type: 'credit',
-          balance: -3250.45,
-          currency: 'USD',
-          lastUpdated: new Date(),
-          institution: {
-            id: 'inst_2',
-            name: 'American Express',
-            logo: 'https://logo.clearbit.com/americanexpress.com'
-          }
-        }
-      ],
+      accounts: [],
       transactions: []
     };
   }

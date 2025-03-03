@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -13,15 +13,12 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { Toaster } from "@/components/ui/toaster";
 import Navbar from "@/components/layout/Navbar";
 import { Layout } from "@/components/layout/Layout";
-import PaymentSuccess from './pages/PaymentSuccess';
-import SnowballMethodArticle from './components/help/articles/SnowballMethod';
-import AvalancheMethodArticle from './components/help/articles/AvalancheMethod';
-import AccountSetupArticle from './components/help/articles/account-setup';
-import UnderstandingDashboardArticle from './components/help/articles/understanding-dashboard';
-import AddingFirstDebtArticle from './components/help/articles/adding-first-debt';
+import { lazyLoad, preloadComponents } from "@/utils/lazyLoad";
 import { createDebtTable, checkExecuteSqlFunction } from "@/lib/supabase/createDebtTable";
 import { createBankAccountsTable } from "@/lib/supabase/createBankAccountsTable";
+import { createTransactionHistoryTable } from "@/lib/supabase/createTransactionHistoryTable";
 import { supabase } from "@/utils/supabase/client";
+import SkipToContent from "@/components/SkipToContent";
 
 // Import debug components only in development mode
 const isDevelopment = import.meta.env.DEV;
@@ -34,34 +31,70 @@ if (isDevelopment) {
   });
 }
 
-// Lazy load routes with prefetching
-const Landing = lazy(() => import("@/pages/Landing"));
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const DebtPlanner = lazy(() => import("@/pages/DebtPlanner"));
-const Settings = lazy(() => import("@/pages/Settings"));
-const About = lazy(() => import("@/pages/About"));
-const Privacy = lazy(() => import("@/pages/Privacy"));
-const Terms = lazy(() => import("@/pages/Terms"));
-const Support = lazy(() => import("@/pages/Support"));
-const Blog = lazy(() => import("@/pages/Blog"));
-const Press = lazy(() => import("@/pages/Press"));
-const Help = lazy(() => import("@/pages/Help"));
-const Docs = lazy(() => import("@/pages/Docs"));
-const Api = lazy(() => import("@/pages/Api"));
-const Status = lazy(() => import("@/pages/Status"));
-const Careers = lazy(() => import("@/pages/Careers"));
-const JobApplication = lazy(() => import("@/pages/JobApplication"));
-const Compliance = lazy(() => import("@/pages/Compliance"));
-const SignUp = lazy(() => 
+// Lazy load routes with enhanced error handling and loading
+const Landing = lazyLoad(() => import("@/pages/Landing"));
+const Dashboard = lazyLoad(() => import("@/pages/Dashboard"));
+const DebtPlanner = lazyLoad(() => import("@/pages/DebtPlanner"));
+const Settings = lazyLoad(() => import("@/pages/Settings"));
+const About = lazyLoad(() => import("@/pages/About"));
+const Privacy = lazyLoad(() => import("@/pages/Privacy"));
+const Terms = lazyLoad(() => import("@/pages/Terms"));
+const Support = lazyLoad(() => import("@/pages/Support"));
+const Blog = lazyLoad(() => import("@/pages/Blog"));
+const Press = lazyLoad(() => import("@/pages/Press"));
+const Help = lazyLoad(() => import("@/pages/Help"));
+const Docs = lazyLoad(() => import("@/pages/Docs"));
+const Api = lazyLoad(() => import("@/pages/Api"));
+const Status = lazyLoad(() => import("@/pages/Status"));
+const Careers = lazyLoad(() => import("@/pages/Careers"));
+const JobApplication = lazyLoad(() => import("@/pages/JobApplication"));
+const Compliance = lazyLoad(() => import("@/pages/Compliance"));
+const AdminTools = lazyLoad(() => import("@/pages/AdminTools"));
+const SignUp = lazyLoad(() => 
   import("@/pages/SignUp").catch(error => {
     console.error("Error loading SignUp component:", error);
     return { default: () => <div>Error loading signup page</div> };
-  })
+  }),
+  { retry: 3, retryDelay: 1000 }
 );
-const SignIn = lazy(() => import("@/pages/SignIn"));
-const AuthDemo = lazy(() => import("@/pages/AuthDemo"));
+const SignIn = lazyLoad(() => import("@/pages/SignIn"));
+const AuthDemo = lazyLoad(() => import("@/pages/AuthDemo"));
+const PaymentSuccess = lazyLoad(() => import("@/pages/PaymentSuccess"));
+
+// Lazy load articles
+const SnowballMethodArticle = lazyLoad(() => import('@/components/help/articles/SnowballMethod'));
+const AvalancheMethodArticle = lazyLoad(() => import('@/components/help/articles/AvalancheMethod'));
+const AccountSetupArticle = lazyLoad(() => import('@/components/help/articles/account-setup'));
+const UnderstandingDashboardArticle = lazyLoad(() => import('@/components/help/articles/understanding-dashboard'));
+const AddingFirstDebtArticle = lazyLoad(() => import('@/components/help/articles/adding-first-debt'));
+
+// Preload critical components for better user experience
+preloadComponents([
+  () => import("@/pages/Landing"),
+  () => import("@/pages/SignIn"),
+  () => import("@/pages/SignUp")
+]);
+
+// Helper function to get page class based on path
+const getPageClass = (pathname: string): string => {
+  if (pathname === '/') return 'landing-page';
+  if (pathname === '/signin' || pathname === '/signup') return 'auth-page';
+  if (pathname.startsWith('/dashboard')) return 'dashboard-page';
+  return '';
+};
 
 function AppRoutes() {
+  const location = useLocation();
+  const pageClass = getPageClass(location.pathname);
+  
+  // Apply page-specific class to main content
+  useEffect(() => {
+    const mainContent = document.getElementById('main-content');
+    if (mainContent) {
+      mainContent.className = pageClass;
+    }
+  }, [location.pathname, pageClass]);
+  
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
@@ -88,6 +121,11 @@ function AppRoutes() {
       <Route path="/signup" element={<SignUp />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/auth-demo" element={<AuthDemo />} />
+      <Route path="/admin" element={
+        <ProtectedRoute>
+          <AdminTools />
+        </ProtectedRoute>
+      } />
       <Route
         path="/dashboard/*"
         element={
@@ -143,9 +181,11 @@ function AppNavbar() {
 
 // This component will be used inside the AuthProvider
 function AppContent() {
+  const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { isInitialized, isAuthenticated, user } = useAuth();
   const { isMobile } = useDeviceContext();
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // Initialize database tables when the app starts
   useEffect(() => {
@@ -176,6 +216,14 @@ function AppContent() {
           console.error('Failed to initialize bank_accounts table:', bankAccountsResult.error);
         }
         
+        // Create the payment_transactions table if it doesn't exist
+        const transactionHistoryResult = await createTransactionHistoryTable();
+        if (transactionHistoryResult.success) {
+          console.log('Payment transactions table initialization successful');
+        } else {
+          console.error('Failed to initialize payment_transactions table:', transactionHistoryResult.error);
+        }
+        
       } catch (err) {
         console.error('Error initializing database:', err);
         // Continue with the application regardless of database initialization
@@ -195,6 +243,7 @@ function AppContent() {
 
   return (
     <Layout>
+      <SkipToContent />
       {shouldShowTour && <OnboardingTour />}
       {!isAuthPage && !isDashboardPage && <AppNavbar />}
       <Suspense
@@ -204,9 +253,11 @@ function AppContent() {
           </div>
         }
       >
-        <ErrorBoundary>
-          <AppRoutes />
-        </ErrorBoundary>
+        <main id="main-content">
+          <ErrorBoundary>
+            <AppRoutes />
+          </ErrorBoundary>
+        </main>
       </Suspense>
       <Toaster />
     </Layout>

@@ -2,6 +2,7 @@ import { DollarSign, TrendingDown, ChevronRight, Shield, BarChart4, PieChart, Ar
 import { Badge } from '@/components/ui/badge';
 import { DashboardState } from '@/hooks/useDashboard';
 import { Button } from '@/components/ui/button';
+import { memo } from 'react';
 
 export interface OverviewCardsProps {
   data: DashboardState;
@@ -9,7 +10,7 @@ export interface OverviewCardsProps {
   onViewPayoffPlan?: () => void;
 }
 
-export function OverviewCards({ data, onViewPayoffPlan }: OverviewCardsProps) {
+export const OverviewCards = memo(function OverviewCards({ data, onViewPayoffPlan }: OverviewCardsProps) {
   return (
     <div className="mb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
       {/* Debt Overview */}
@@ -182,4 +183,7 @@ export function OverviewCards({ data, onViewPayoffPlan }: OverviewCardsProps) {
       </div>
     </div>
   );
-} 
+});
+
+// Add default export for lazy loading
+export default OverviewCards; 

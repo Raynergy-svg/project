@@ -98,6 +98,87 @@ registerRoute(
   })
 );
 
+// Handle push notifications
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+  
+  try {
+    const data = event.data.json();
+    
+    // Show notification
+    event.waitUntil(
+      self.registration.showNotification(data.title, {
+        body: data.message,
+        icon: '/icons/app-icon-192x192.png',
+        badge: '/icons/badge-icon-96x96.png',
+        tag: data.id || 'payment-reminder',
+        data: {
+          url: data.url || '/dashboard?source=notification',
+          reminderId: data.id,
+          paymentTransactionId: data.paymentTransactionId,
+        },
+        actions: [
+          {
+            action: 'view',
+            title: 'View Payment',
+          },
+          {
+            action: 'dismiss',
+            title: 'Dismiss',
+          },
+        ],
+        vibrate: [100, 50, 100],
+        requireInteraction: true,
+      })
+    );
+  } catch (error) {
+    console.error('Error showing notification:', error);
+  }
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  // Extract data from notification
+  const { url, reminderId, paymentTransactionId } = event.notification.data || {};
+  
+  let navigateUrl = url || '/dashboard';
+  
+  // Handle action buttons
+  if (event.action === 'view' && paymentTransactionId) {
+    navigateUrl = `/payments/${paymentTransactionId}?source=notification`;
+  }
+  
+  // Focus or open window
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clientList) => {
+      // If client already open, focus it
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(navigateUrl);
+          return client.focus();
+        }
+      }
+      // Otherwise, open new window
+      return self.clients.openWindow(navigateUrl);
+    })
+  );
+  
+  // If a reminder ID was provided, mark the reminder as read
+  if (reminderId) {
+    event.waitUntil(
+      fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: reminderId }),
+      }).catch(error => console.error('Failed to mark notification as read:', error))
+    );
+  }
+});
+
 // Handle offline fallback
 self.addEventListener('install', (event) => {
   const offlineFallbackPage = '/offline.html';
@@ -116,4 +197,35 @@ self.addEventListener('fetch', (event) => {
       })
     );
   }
-}); 
+});
+
+// Sync background payments
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'process-reminders') {
+    event.waitUntil(processDueReminders());
+  }
+});
+
+// Process due reminders
+async function processDueReminders() {
+  try {
+    const response = await fetch('/api/notifications/process-due', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Failed to process reminders: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    console.log(`Processed ${result.processed} reminders`);
+    
+    return result;
+  } catch (error) {
+    console.error('Error processing due reminders:', error);
+    throw error;
+  }
+} 

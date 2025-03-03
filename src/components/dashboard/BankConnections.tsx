@@ -1,163 +1,109 @@
-import { motion } from 'framer-motion';
-import { Building2, Plus, RefreshCcw, XCircle, Shield, Lock, AlertCircle } from 'lucide-react';
+import { memo } from 'react';
+import { PlusCircle, Building2, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useBankConnection } from '@/services/bankConnection';
-import { formatCurrency } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
-import { useDashboard } from '@/hooks/useDashboard';
+import { Badge } from '@/components/ui/badge';
 
-export function BankConnections() {
-  const { user } = useAuth();
-  const { dashboardState, refreshDashboard, handleConnectBank } = useDashboard();
-  
-  const {
-    accounts,
-    isConnecting,
-    error: connectionError,
-    connectBank,
-    fetchAccounts,
-    disconnectAccount
-  } = useBankConnection(user?.id || '');
+export interface BankConnection {
+  id: string;
+  name: string;
+  logoUrl?: string;
+  lastSynced?: Date;
+  status: 'connected' | 'error' | 'syncing' | 'disconnected';
+  accountCount: number;
+}
 
-  const handleRefreshAccounts = async () => {
-    await fetchAccounts();
-    refreshDashboard();
-  };
+export interface BankConnectionsProps {
+  connections: BankConnection[];
+  onAddConnection: () => void;
+  onViewConnection: (connectionId: string) => void;
+}
 
-  const handleConnectBankAccount = async () => {
-    await handleConnectBank();
-  };
-
-  const handleDisconnectAccount = async (accountId: string) => {
-    const success = await disconnectAccount(accountId);
-    if (success) {
-      refreshDashboard();
-    }
-  };
-
+export const BankConnections = memo(function BankConnections({ 
+  connections = [], 
+  onAddConnection, 
+  onViewConnection 
+}: BankConnectionsProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="p-6 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-sm"
-    >
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Connected Accounts</h2>
-          <p className="text-white/60">Manage your financial accounts</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={handleRefreshAccounts}
-            disabled={isConnecting || dashboardState.isConnectingBank}
-          >
-            <RefreshCcw className="w-4 h-4" />
-            Refresh
-          </Button>
-          <Button
-            size="sm"
-            className="gap-2"
-            onClick={handleConnectBankAccount}
-            disabled={isConnecting || dashboardState.isConnectingBank}
-          >
-            <Plus className="w-4 h-4" />
-            Add Account
-          </Button>
-        </div>
+    <div className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-semibold text-white">Bank Connections</h2>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-white border-white/20 hover:bg-white/10"
+          onClick={onAddConnection}
+        >
+          <PlusCircle className="w-4 h-4 mr-2" /> Add Bank
+        </Button>
       </div>
-
-      {(connectionError || dashboardState.bankConnectionError) && (
-        <div className="mb-4 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-start gap-2">
-          <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium">Connection Error</p>
-            <p className="text-sm">{connectionError || dashboardState.bankConnectionError}</p>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-4">
-        {dashboardState.connectedAccounts.map((account) => (
-          <div
-            key={account.id}
-            className="p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-2 rounded-lg bg-[#88B04B]/20">
-                  <Building2 className="w-5 h-5 text-[#88B04B]" />
-                </div>
+      
+      {connections.length > 0 ? (
+        <div className="space-y-3">
+          {connections.map((connection) => (
+            <div 
+              key={connection.id}
+              className="p-4 bg-black/30 rounded-lg flex items-center justify-between cursor-pointer hover:bg-black/40 transition-colors"
+              onClick={() => onViewConnection(connection.id)}
+            >
+              <div className="flex items-center">
+                {connection.logoUrl ? (
+                  <img 
+                    src={connection.logoUrl} 
+                    alt={connection.name} 
+                    className="w-8 h-8 mr-3 rounded"
+                  />
+                ) : (
+                  <div className="w-8 h-8 mr-3 rounded bg-white/10 flex items-center justify-center">
+                    <Building2 className="w-4 h-4 text-white/70" />
+                  </div>
+                )}
                 <div>
-                  <h3 className="font-medium text-white">{account.name}</h3>
-                  <p className="text-sm text-white/60">
-                    {account.institution.name} • {account.type}
-                  </p>
+                  <h3 className="font-medium text-white">{connection.name}</h3>
+                  <div className="flex items-center mt-1">
+                    <Badge className={`
+                      ${connection.status === 'connected' ? 'bg-green-500/20 text-green-400' : 
+                        connection.status === 'error' ? 'bg-red-500/20 text-red-400' :
+                        connection.status === 'syncing' ? 'bg-blue-500/20 text-blue-400' :
+                        'bg-gray-500/20 text-gray-400'}
+                      text-xs
+                    `}>
+                      {connection.status === 'connected' ? 'Connected' : 
+                       connection.status === 'error' ? 'Error' :
+                       connection.status === 'syncing' ? 'Syncing' :
+                       'Disconnected'}
+                    </Badge>
+                    
+                    {connection.lastSynced && (
+                      <span className="text-xs text-white/50 ml-3">
+                        Last synced {connection.lastSynced.toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                <p className={`font-medium ${account.balance < 0 ? 'text-red-400' : 'text-white'}`}>
-                  {formatCurrency(account.balance)}
-                </p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                  onClick={() => handleDisconnectAccount(account.id)}
-                >
-                  <XCircle className="w-4 h-4" />
-                </Button>
+              
+              <div className="flex items-center">
+                <span className="text-sm text-white/60 mr-3">
+                  {connection.accountCount} {connection.accountCount === 1 ? 'account' : 'accounts'}
+                </span>
+                <ChevronRight className="w-4 h-4 text-white/40" />
               </div>
             </div>
-          </div>
-        ))}
-
-        {dashboardState.connectedAccounts.length === 0 && !isConnecting && !dashboardState.isConnectingBank && (
-          <div className="text-center py-8">
-            <Building2 className="w-12 h-12 text-white/20 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-white mb-2">
-              No accounts connected
-            </h3>
-            <p className="text-white/60 mb-4">
-              Connect your bank accounts to get personalized insights
-            </p>
-            <Button onClick={handleConnectBankAccount}>
-              Connect Your First Account
-            </Button>
-          </div>
-        )}
-
-        {(isConnecting || dashboardState.isConnectingBank) && (
-          <div className="text-center py-8">
-            <div className="animate-spin w-12 h-12 border-4 border-[#88B04B] border-t-transparent rounded-full mx-auto mb-4"></div>
-            <h3 className="text-lg font-medium text-white mb-2">
-              Connecting to your bank
-            </h3>
-            <p className="text-white/60">
-              This may take a few moments...
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="mt-6 p-4 rounded-lg bg-white/5">
-        <div className="flex items-center gap-3 mb-2">
-          <Shield className="w-5 h-5 text-[#88B04B]" />
-          <h3 className="font-medium text-white">Bank-Level Security</h3>
+          ))}
         </div>
-        <div className="grid grid-cols-2 gap-4 text-sm text-white/60">
-          <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4" />
-            <span>256-bit encryption</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Shield className="w-4 h-4" />
-            <span>SOC2 Type II certified</span>
-          </div>
+      ) : (
+        <div className="text-center p-10 bg-black/30 rounded-xl">
+          <Building2 className="w-10 h-10 text-white/30 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-white mb-2">No banks connected</h3>
+          <p className="text-white/60 mb-6">Connect your banks to automatically track your finances</p>
+          <Button onClick={onAddConnection} className="bg-white/10 hover:bg-white/20 text-white">
+            <PlusCircle className="w-4 h-4 mr-2" /> Connect Bank
+          </Button>
         </div>
-      </div>
-    </motion.div>
+      )}
+    </div>
   );
-} 
+});
+
+// Add default export for lazy loading
+export default BankConnections; 

@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Eye, EyeOff, ArrowRight, Lock, Shield, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { useSecurity } from "@/contexts/SecurityContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDevSignIn } from "@/utils/useDevSignIn";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface FormData {
@@ -19,11 +20,23 @@ interface FormErrors {
 
 export default function SignIn() {
   const { sensitiveDataHandler } = useSecurity();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { handleDevSignIn, loading: devSignInLoading, error: devSignInError, devAccountInfo } = useDevSignIn();
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: ""
   });
   
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [showConfirmationAlert, setShowConfirmationAlert] = useState(false);
+  
+  const navigate = useNavigate();
+  const location = useLocation();
+
   useEffect(() => {
     // Try to get saved email from localStorage if exists
     const getSavedEmail = async () => {
@@ -47,20 +60,9 @@ export default function SignIn() {
     getSavedEmail();
   }, [sensitiveDataHandler]);
 
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [showConfirmationAlert, setShowConfirmationAlert] = useState(false);
-  
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { isAuthenticated } = useAuth();
-
   // Reset error when user types
   useEffect(() => {
-    setErrors({});
+    setFormErrors({});
   }, [formData]);
 
   // Handle rate limiting
@@ -102,7 +104,7 @@ export default function SignIn() {
       newErrors.password = "Password must be at least 8 characters";
     }
 
-    setErrors(newErrors);
+    setFormErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [formData, sensitiveDataHandler]);
 
@@ -111,29 +113,34 @@ export default function SignIn() {
       e.preventDefault();
       
       if (failedAttempts >= 3) {
-        setErrors({ general: "Too many failed attempts. Please try again in 30 seconds." });
+        setFormErrors({ general: "Too many failed attempts. Please try again in 30 seconds." });
         return;
       }
 
       if (validateForm()) {
         setIsSubmitting(true);
         try {
-          // Sanitize and encrypt sensitive data before sending
+          // Sanitize sensitive data
           const sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
           const sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(formData.password);
           
-          const { encryptedData: encryptedEmail, iv: emailIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
-          const { encryptedData: encryptedPassword, iv: passwordIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedPassword);
+          // Show development mode message if in development
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Development mode: Using direct authentication');
+          }
           
-          // Simulate API call with encrypted data
-          await new Promise(resolve => setTimeout(() => {
-            // Use the encrypted values in the simulated API call
-            console.log('Sending encrypted data:', { encryptedEmail, emailIv, encryptedPassword, passwordIv });
-            resolve(void 0);
-          }, 1000));
+          // Use our dev sign-in hook which handles authentication
+          const result = await handleDevSignIn(sanitizedEmail, sanitizedPassword);
           
-          // Save encrypted email if remember me is checked
+          if (!result.success) {
+            // Handle authentication failure
+            throw new Error(result.message || 'Authentication failed');
+          }
+          
+          // If we reach here, authentication was successful
+          // Save email if remember me is checked
           if (rememberMe) {
+            const { encryptedData: encryptedEmail, iv: emailIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
             localStorage.setItem('lastUsedEmail', encryptedEmail);
             localStorage.setItem('lastUsedEmail_iv', emailIv);
           } else {
@@ -141,19 +148,40 @@ export default function SignIn() {
             localStorage.removeItem('lastUsedEmail_iv');
           }
           
-          // Navigate to dashboard or return URL
-          const returnUrl = new URLSearchParams(location.search).get('returnUrl');
-          navigate(returnUrl || '/dashboard');
+          // The useEffect hook will handle navigation if isAuthenticated becomes true
         } catch (error) {
-          setErrors({ general: "Invalid email or password" });
+          console.error('Login error:', error);
+          
+          // Handle specific error messages
+          let errorMessage = "Invalid email or password";
+          if (error instanceof Error) {
+            if (error.message.includes('Email not confirmed')) {
+              errorMessage = "Please check your email to confirm your account before signing in.";
+              setShowConfirmationAlert(true);
+            } else {
+              errorMessage = error.message;
+            }
+          }
+          
+          setFormErrors({ general: errorMessage });
           setFailedAttempts(prev => prev + 1);
         } finally {
           setIsSubmitting(false);
         }
       }
     },
-    [formData, validateForm, navigate, location, failedAttempts, rememberMe, sensitiveDataHandler]
+    [formData, validateForm, handleDevSignIn, failedAttempts, rememberMe, sensitiveDataHandler, navigate]
   );
+
+  // Update form errors if there are errors from the useDevSignIn hook
+  useEffect(() => {
+    if (devSignInError) {
+      setFormErrors(prev => ({ ...prev, general: devSignInError }));
+    }
+  }, [devSignInError]);
+
+  // Update the button UI to show when auth is loading too
+  const isButtonDisabled = isSubmitting || authLoading || devSignInLoading || failedAttempts >= 3;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1E1E1E] to-[#121212] text-white py-4 px-4">
@@ -172,6 +200,14 @@ export default function SignIn() {
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold">Welcome Back</h1>
           <p className="text-gray-400 mt-2">Sign in to continue your debt-free journey</p>
+          
+          {/* Development mode helper - only shows in development */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-2 bg-blue-900/30 border border-blue-700/50 rounded-md text-blue-300 text-sm">
+              <p>🧪 Development Mode</p>
+              <p className="font-mono mt-1">{devAccountInfo}</p>
+            </div>
+          )}
         </div>
 
         {showConfirmationAlert && (
@@ -218,7 +254,7 @@ export default function SignIn() {
                 id="email"
                 name="email"
                 className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
-                  errors.email ? "border-red-500" : "border-white/10"
+                  formErrors.email ? "border-red-500" : "border-white/10"
                 } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
                 value={formData.email}
                 onChange={(e) =>
@@ -226,17 +262,17 @@ export default function SignIn() {
                 }
                 placeholder="you@example.com"
                 autoComplete="email"
-                aria-invalid={Boolean(errors.email)}
-                aria-describedby={errors.email ? "email-error" : undefined}
+                aria-invalid={Boolean(formErrors.email)}
+                aria-describedby={formErrors.email ? "email-error" : undefined}
                 disabled={isSubmitting}
               />
-              {errors.email && (
+              {formErrors.email && (
                 <p 
                   id="email-error" 
                   className="mt-2 text-red-400 text-sm"
                   role="alert"
                 >
-                  {errors.email}
+                  {formErrors.email}
                 </p>
               )}
             </div>
@@ -251,15 +287,15 @@ export default function SignIn() {
                   id="password"
                   name="password"
                   className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
-                    errors.password ? "border-red-500" : "border-white/10"
+                    formErrors.password ? "border-red-500" : "border-white/10"
                   } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({ ...formData, password: e.target.value })
                   }
                   autoComplete="current-password"
-                  aria-invalid={Boolean(errors.password)}
-                  aria-describedby={errors.password ? "password-error" : undefined}
+                  aria-invalid={Boolean(formErrors.password)}
+                  aria-describedby={formErrors.password ? "password-error" : undefined}
                   disabled={isSubmitting}
                 />
                 <button
@@ -273,13 +309,13 @@ export default function SignIn() {
                   {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                 </button>
               </div>
-              {errors.password && (
+              {formErrors.password && (
                 <p 
                   id="password-error" 
                   className="mt-2 text-red-400 text-sm"
                   role="alert"
                 >
-                  {errors.password}
+                  {formErrors.password}
                 </p>
               )}
             </div>
@@ -311,7 +347,7 @@ export default function SignIn() {
                 id="sign-in-button"
                 name="sign-in-button"
                 className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isSubmitting || failedAttempts >= 3}
+                disabled={isButtonDisabled}
               >
                 {isSubmitting ? (
                   <>

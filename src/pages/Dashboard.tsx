@@ -1,69 +1,93 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/hooks/useDashboard';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { OverviewCards } from '@/components/dashboard/OverviewCards';
-import { DebtBreakdown } from '@/components/dashboard/DebtBreakdown';
-import { NextPayment } from '@/components/dashboard/NextPayment';
-import { BankConnections } from '@/components/dashboard/BankConnections';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { createBankAccountsTable } from '@/lib/supabase/createBankAccountsTable';
+import type { DebtInfo as Debt, BudgetCategory, MonthlySpending } from '@/services/financialAnalysis';
+import { ErrorAlert } from '@/components/ui/ErrorAlert';
+import { RefreshButton } from '@/components/ui/RefreshButton';
+import { Skeleton, SkeletonCardGrid } from '@/components/ui/Skeleton';
+import { LazyLoad } from '@/components/ui/LazyLoad';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
 
-// Define DebtCategory type to match expected enum
-type DebtCategory = 'Credit Card' | 'Student Loan' | 'Auto Loan' | 'Mortgage' | 'Personal Loan' | 'Medical Debt' | 'Other';
+// Lazy loaded components for better performance
+const OverviewCards = lazy(() => import('@/components/dashboard/OverviewCards'));
+const DebtBreakdown = lazy(() => import('@/components/dashboard/DebtBreakdown'));
+const NextPayment = lazy(() => import('@/components/dashboard/NextPayment'));
+const BankConnections = lazy(() => import('@/components/dashboard/BankConnections'));
+const DebtProjection = lazy(() => import('@/components/dashboard/DebtProjection'));
+const LoadingSpinner = lazy(() => import('@/components/ui/LoadingSpinner').then(module => ({ default: module.LoadingSpinner })));
 
-// Define Debt interface to match expected type
-interface Debt {
-  id: string;
-  name: string;
-  amount: number;
-  interestRate: number;
-  minimumPayment: number;
-  category: DebtCategory;
-}
-
-// Define BudgetCategory interface to match expected type
-interface BudgetCategory {
-  name: string;
-  amount: number;
-  limit: number;
-  allocated: number;
-  spent: number;
-  color: string;
-}
-
-// Define MonthlySpending interface to match expected type
-interface MonthlySpending {
-  month: string;
-  amount: number;
-}
+const DashboardSkeleton = () => (
+  <div className="space-y-6">
+    {/* Skeleton for top cards */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <Skeleton variant="card" className="h-52" />
+      <Skeleton variant="card" className="h-52" />
+      <Skeleton variant="card" className="h-52" />
+    </div>
+    
+    {/* Skeleton for main content */}
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Skeleton variant="card" className="h-96" />
+      <Skeleton variant="card" className="h-96" />
+    </div>
+  </div>
+);
 
 export function Dashboard() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isFixingDatabase, setIsFixingDatabase] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isMountedRef = useRef(true);
   
   const { 
     isLoading, 
     error, 
     dashboardState, 
-    handleAddDebt, 
+    handleAddNewDebt,
     handleViewDebtDetails,
-    handleApplyRecommendation,
     handleSchedulePayment,
-    handleAdjustBudget,
-    handleToggleAI,
-    handleViewPayoffPlan
+    handleViewPaymentDetails,
+    handleAddBankConnection,
+    handleViewBankConnection,
+    refreshDashboard,
+    bankError
   } = useDashboard();
 
   // For demo purposes, we'll assume onboarding is complete
   const isOnboardingComplete = true;
 
+  // Prevent duplicate refreshes
+  const handleRefreshDashboard = useCallback(() => {
+    refreshDashboard();
+  }, [refreshDashboard]);
+
+  // Initial data load only when user ID changes
+  useEffect(() => {
+    // Set up mounted flag
+    isMountedRef.current = true;
+    
+    // Only fetch if we have a user ID
+    if (user?.id) {
+      handleRefreshDashboard();
+    }
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [user?.id, handleRefreshDashboard]); // Adding handleRefreshDashboard with proper memoization is safe
+
   // Try to fix database issues if they occur
   useEffect(() => {
+    if (!error) return; // Skip if no error
+    
     const checkAndFixDatabase = async () => {
       if (error && (error.includes('404') || error.includes('does not exist'))) {
         setIsFixingDatabase(true);
@@ -84,7 +108,7 @@ export function Dashboard() {
     };
     
     checkAndFixDatabase();
-  }, [error]);
+  }, [error]); // Only run when error changes
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -129,14 +153,19 @@ export function Dashboard() {
   if (isLoading || isFixingDatabase) {
     return (
       <DashboardLayout>
-        <div className="flex flex-col items-center justify-center h-[80vh]">
-          <LoadingSpinner size="lg" />
-          <p className="mt-4 text-white/70">
-            {isFixingDatabase 
-              ? 'Setting up your database. This may take a moment...' 
-              : 'Loading your financial dashboard...'}
-          </p>
+        <DashboardSkeleton />
+      </DashboardLayout>
+    );
+  }
+
+  if (isRefreshing) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <RefreshButton isRefreshing={true} onClick={() => {}} />
         </div>
+        <DashboardSkeleton />
       </DashboardLayout>
     );
   }
@@ -189,10 +218,16 @@ export function Dashboard() {
   }
 
   // Check if we have connected accounts
-  const hasConnectedAccounts = dashboardState.connectedAccounts.length > 0;
+  const hasConnectedAccounts = dashboardState?.bankConnections?.length > 0;
+
+  // Handle the case when data is incomplete but not throwing errors
+  const isDataIncomplete = !dashboardState || 
+                          (!dashboardState.debts?.items?.length && 
+                           !dashboardState.insights?.length && 
+                           !dashboardState.spending?.monthly);
 
   // If no accounts are connected, show a simplified dashboard with bank connection prompt
-  if (!hasConnectedAccounts) {
+  if (!hasConnectedAccounts || isDataIncomplete) {
     return (
       <DashboardLayout>
         <div className="space-y-6">
@@ -204,9 +239,22 @@ export function Dashboard() {
           >
             <h2 className="text-2xl font-bold text-white mb-4">Welcome to Your Financial Dashboard</h2>
             <p className="text-white/70 mb-6">
-              Connect your bank accounts to get personalized insights and start tracking your financial progress.
+              {isDataIncomplete 
+                ? "We're having trouble loading complete financial data. Connect your accounts or try refreshing."
+                : "Connect your bank accounts to get personalized insights and start tracking your financial progress."
+              }
             </p>
-            <BankConnections />
+            <Suspense fallback={<Skeleton height="8rem" />}>
+              <BankConnections />
+            </Suspense>
+            {isDataIncomplete && (
+              <button
+                onClick={handleRefreshDashboard}
+                className="mt-4 rounded-md bg-[#88B04B] px-4 py-2 text-white hover:bg-[#7a9d43]"
+              >
+                Refresh Data
+              </button>
+            )}
           </motion.div>
         </div>
       </DashboardLayout>
@@ -215,57 +263,98 @@ export function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Overview Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <OverviewCards 
-            data={dashboardState} 
-            onAIToggle={handleToggleAI}
-            onViewPayoffPlan={handleViewPayoffPlan}
-          />
-        </motion.div>
-
-        {/* Main Dashboard Content */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Debt Breakdown - Takes up 2/3 of the width */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="md:col-span-2"
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-white">Financial Dashboard</h1>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefreshDashboard}
+            disabled={isRefreshing}
+            className="flex items-center text-white border-white/20 hover:bg-white/10"
           >
-            <DebtBreakdown 
-              debts={dashboardState.debtBreakdown} 
-              onAddDebt={() => handleAddDebt({
-                id: crypto.randomUUID(),
-                category: 'Credit Card',
-                amount: 0,
-                interestRate: 0,
-                minimumPayment: 0,
-                name: '',
-              })} 
-              onViewDetails={(id: string) => handleViewDebtDetails(id)} 
-            />
-          </motion.div>
-
-          {/* Next Payment - Takes up 1/3 of the width */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <NextPayment 
-              dueDate={dashboardState.debtBreakdown.length > 0 ? new Date().toISOString().split('T')[0] : ''}
-              amount={dashboardState.monthlyPayment}
-              isAutomated={false}
-              onSchedule={handleSchedulePayment}
-            />
-          </motion.div>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
+        
+        {(isLoading || isRefreshing) && !dashboardState ? (
+          <DashboardSkeleton />
+        ) : error ? (
+          <div className="p-6 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400">
+            <h3 className="text-lg font-semibold mb-2">Error Loading Dashboard</h3>
+            <p>{error}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4 bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20"
+              onClick={handleRefreshDashboard}
+            >
+              Try Again
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {/* Overview Cards */}
+            <LazyLoad height="180px" skeletonVariant="card">
+              <Suspense fallback={<Skeleton variant="card" className="h-40" />}>
+                <OverviewCards 
+                  totalDebt={dashboardState?.totalDebt || 0}
+                  totalMonthlyPayment={dashboardState?.totalMonthlyPayment || 0}
+                  monthlyChange={dashboardState?.monthlyChange || 0}
+                />
+              </Suspense>
+            </LazyLoad>
+            
+            {/* Main Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Debt Breakdown */}
+              <LazyLoad height="500px" skeletonVariant="card">
+                <Suspense fallback={<Skeleton variant="card" className="h-[500px]" />}>
+                  <DebtBreakdown 
+                    debts={dashboardState?.debts || []}
+                    onAddDebt={handleAddNewDebt}
+                    onViewDetails={handleViewDebtDetails}
+                  />
+                </Suspense>
+              </LazyLoad>
+              
+              {/* Next Payment */}
+              <LazyLoad height="250px" skeletonVariant="card">
+                <Suspense fallback={<Skeleton variant="card" className="h-[250px]" />}>
+                  <NextPayment 
+                    dueDate={dashboardState?.nextPayment?.dueDate ? new Date(dashboardState.nextPayment.dueDate) : undefined}
+                    amount={dashboardState?.nextPayment?.amount}
+                    payeeName={dashboardState?.nextPayment?.payeeName}
+                    category={dashboardState?.nextPayment?.category}
+                    onAddPayment={handleSchedulePayment}
+                    onViewDetails={handleViewPaymentDetails}
+                  />
+                </Suspense>
+              </LazyLoad>
+              
+              {/* Bank Connections */}
+              <LazyLoad height="250px" skeletonVariant="card">
+                <Suspense fallback={<Skeleton variant="card" className="h-[250px]" />}>
+                  <BankConnections 
+                    connections={dashboardState?.bankConnections || []}
+                    onAddConnection={handleAddBankConnection}
+                    onViewConnection={handleViewBankConnection}
+                  />
+                </Suspense>
+              </LazyLoad>
+              
+              {/* Debt Projection */}
+              <LazyLoad height="500px" skeletonVariant="card">
+                <Suspense fallback={<Skeleton variant="card" className="h-[500px]" />}>
+                  <DebtProjection 
+                    debts={dashboardState?.debts || []}
+                    strategies={dashboardState?.payoffStrategies || []}
+                  />
+                </Suspense>
+              </LazyLoad>
+            </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );

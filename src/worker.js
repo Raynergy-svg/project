@@ -15,6 +15,13 @@ export default {
         });
       }
 
+      // Redirect apex domain to www
+      if (url.hostname === "smartdebtflow.com") {
+        const redirectUrl = new URL(url);
+        redirectUrl.hostname = "www.smartdebtflow.com";
+        return Response.redirect(redirectUrl.toString(), 301);
+      }
+
       // Special handling for manifest files (both .json and .webmanifest)
       if (
         url.pathname === "/manifest.json" ||

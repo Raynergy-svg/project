@@ -10,8 +10,9 @@ watch_dir = "src"
 [site]
 bucket = "dist"
 
-# Remove this as it's not a recognized configuration
-# assets_handler = true
+# Enable assets for serving static files
+# This will create an ASSETS binding that your worker can use
+assets = {browser_TTL = 86400, serve_single_page_app = true}
 
 [[kv_namespaces]]
 binding = "STATIC_ASSETS"
@@ -30,7 +31,8 @@ preview_id = "d6fecc982467413a96246f7ac901db8b"
 
 # Domain Routes Configuration
 routes = [
-  "www.smartdebtflow.com/*"
+  "www.smartdebtflow.com/*",
+  "smartdebtflow.com/*"
 ]
 
 # Non-sensitive environment variables

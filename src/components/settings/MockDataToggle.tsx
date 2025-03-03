@@ -1,6 +1,6 @@
 import React from 'react';
 import { useBankConnection } from '@/hooks/useBankConnection';
-import { Switch } from '@/components/ui/Switch';
+import { Switch } from '@/components/ui/switch';
 
 export function MockDataToggle() {
   // Check if this is a production environment - if so, don't render anything

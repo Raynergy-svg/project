@@ -1,3 +1,4 @@
+# SmartDebtFlow Worker Configuration
 name = "project"
 main = "src/worker.js"
 compatibility_date = "2024-02-22"
@@ -10,9 +11,11 @@ watch_dir = "src"
 [site]
 bucket = "dist"
 
-# Enable assets for serving static files
-# This will create an ASSETS binding that your worker can use
-assets = {browser_TTL = 86400, serve_single_page_app = true}
+# Static assets configuration
+assets = {
+  browser_TTL = 86400,
+  serve_single_page_app = true
+}
 
 [[kv_namespaces]]
 binding = "STATIC_ASSETS"

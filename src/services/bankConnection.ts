@@ -48,12 +48,18 @@ export class BankConnectionService {
   private apiUrl: string;
   private apiKey: string;
   private isMockMode: boolean;
+  private useRealData: boolean = true; // Default to real data
 
   private constructor() {
     this.apiUrl = import.meta.env.VITE_BANK_API_URL || '';
     this.apiKey = import.meta.env.VITE_BANK_API_KEY || '';
     // Determine if we're in mock mode (no real API configured)
     this.isMockMode = !this.apiUrl || !this.apiKey;
+    
+    // Always force real data in production environment
+    if (import.meta.env.PROD) {
+      this.useRealData = true;
+    }
     
     // Only log this once during initialization
     if (this.isMockMode) {
@@ -66,6 +72,26 @@ export class BankConnectionService {
       BankConnectionService.instance = new BankConnectionService();
     }
     return BankConnectionService.instance;
+  }
+
+  // Get whether real data should be used
+  public getUseRealData(): boolean {
+    // Always force real data in production
+    if (import.meta.env.PROD) {
+      return true;
+    }
+    return this.useRealData;
+  }
+
+  // Set whether real data should be used
+  public setUseRealData(useReal: boolean): void {
+    // Don't allow setting to mock data in production
+    if (import.meta.env.PROD) {
+      this.useRealData = true;
+      console.warn('Mock data is not allowed in production. Forcing real data.');
+      return;
+    }
+    this.useRealData = useReal;
   }
 
   // Initialize bank connection flow

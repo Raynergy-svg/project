@@ -1,27 +1,42 @@
-import React from 'react';
+import * as React from "react";
+import * as SwitchPrimitives from "@radix-ui/react-switch";
+import { cn } from "@/utils/cn";
 
-interface SwitchProps {
-  checked: boolean;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  label: string;
+export interface SwitchProps extends React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> {
+  label?: string;
   labelClassName?: string;
-  disabled?: boolean;
 }
 
-export function Switch({ checked, onChange, label, labelClassName = "", disabled = false }: SwitchProps) {
-  return (
-    <label className={`inline-flex items-center cursor-pointer ${disabled ? 'opacity-60' : ''}`}>
-      <input 
-        type="checkbox" 
-        className="sr-only peer" 
-        checked={checked} 
-        onChange={onChange}
-        disabled={disabled}
+export const Switch = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitives.Root>,
+  SwitchProps
+>(({ className, label, labelClassName, ...props }, ref) => (
+  <div className="flex items-center space-x-2">
+    <SwitchPrimitives.Root
+      className={cn(
+        "peer inline-flex h-5 w-10 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+        className
+      )}
+      {...props}
+      ref={ref}
+    >
+      <SwitchPrimitives.Thumb
+        className={cn(
+          "pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+        )}
       />
-      <div className="relative w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#88B04B]/50 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#88B04B]"></div>
-      <span className={`ml-3 ${labelClassName}`}>{label}</span>
-    </label>
-  );
-}
+    </SwitchPrimitives.Root>
+    {label && (
+      <label 
+        className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", labelClassName)}
+        htmlFor={props.id}
+      >
+        {label}
+      </label>
+    )}
+  </div>
+));
+
+Switch.displayName = "Switch";
 
 export default Switch; 

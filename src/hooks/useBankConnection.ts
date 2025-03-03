@@ -311,6 +311,16 @@ export function useBankConnection(): UseBankConnectionReturn {
   }, [user?.id]);
 
   const toggleMockData = useCallback((useMock: boolean) => {
+    // Additional safeguard for production environments
+    if (typeof window !== 'undefined' && (
+        process.env.NODE_ENV === 'production' || 
+        import.meta.env.PROD
+      )) {
+      console.warn('SECURITY WARNING: Attempt to use mock data in production environment has been blocked.');
+      setIsMockDataEnabled(false);
+      return;
+    }
+    
     BankConnectionService.getInstance().setUseRealData(!useMock);
     setIsMockDataEnabled(useMock);
   }, []);

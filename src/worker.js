@@ -1,4 +1,4 @@
-const DEBUG = true;
+const DEBUG = false;
 
 export default {
   async fetch(request, env, ctx) {
@@ -20,6 +20,29 @@ export default {
         const redirectUrl = new URL(url);
         redirectUrl.hostname = "www.smartdebtflow.com";
         return Response.redirect(redirectUrl.toString(), 301);
+      }
+
+      // Special handling for favicon.ico
+      if (url.pathname === "/favicon.ico") {
+        // Try to fetch from ASSETS if available, otherwise return an empty icon to prevent 500
+        if (env.ASSETS) {
+          try {
+            response = await env.ASSETS.fetch(request);
+            return response;
+          } catch (e) {
+            // Return a transparent 1x1 favicon to prevent browser errors
+            return new Response(
+              "AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              {
+                status: 200,
+                headers: {
+                  "Content-Type": "image/x-icon",
+                  "Cache-Control": "public, max-age=86400",
+                },
+              }
+            );
+          }
+        }
       }
 
       // Special handling for manifest files (both .json and .webmanifest)

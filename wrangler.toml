@@ -8,6 +8,7 @@ workers_dev = true
 command = "npm run build"
 watch_dir = "src"
 
+# Site configuration - this automatically creates an ASSETS binding for the worker
 [site]
 bucket = "dist"
 
@@ -15,6 +16,13 @@ bucket = "dist"
 [site.assets]
 browser_TTL = 86400
 serve_single_page_app = true
+
+# Explicitly add ASSETS binding for clarity
+# Note: This binding is automatically created by Workers when using [site],
+# but we're making it explicit to avoid confusion
+# [[bindings]]
+# name = "ASSETS"
+# type = "assets"
 
 [[kv_namespaces]]
 binding = "STATIC_ASSETS"

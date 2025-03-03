@@ -1,6 +1,6 @@
+import React from 'react';
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,6 +11,46 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Bell, Clock, AlertCircle } from 'lucide-react';
 import notificationService from '@/services/notificationService';
 import { updateUserProfile } from '@/lib/supabase/profileService';
+
+// Simple Switch component for this component only
+interface SimpleSwitchProps {
+  checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  label?: string;
+  labelClassName?: string;
+  id?: string;
+  disabled?: boolean;
+}
+
+const SimpleSwitch: React.FC<SimpleSwitchProps> = ({ 
+  checked, 
+  onChange, 
+  label, 
+  labelClassName,
+  id,
+  disabled = false
+}) => {
+  return (
+    <div className="flex items-center space-x-2">
+      <label className="relative inline-flex items-center cursor-pointer">
+        <input 
+          type="checkbox" 
+          checked={checked} 
+          onChange={onChange}
+          className="sr-only peer"
+          id={id}
+          disabled={disabled}
+        />
+        <div className={`w-10 h-5 bg-gray-500 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+        {label && (
+          <span className={`text-sm font-medium leading-none ml-2 ${labelClassName || ''} ${disabled ? 'opacity-50' : ''}`}>
+            {label}
+          </span>
+        )}
+      </label>
+    </div>
+  );
+};
 
 interface PaymentReminderPreferences {
   enabled: boolean;
@@ -147,10 +187,10 @@ export function PaymentReminderSettings() {
                 </p>
               </div>
             </div>
-            <Switch
+            <SimpleSwitch
               id="enable-reminders"
               checked={reminderPreferences.enabled}
-              onCheckedChange={handleToggleReminders}
+              onChange={(e) => handleToggleReminders(e.target.checked)}
               disabled={loading}
             />
           </div>

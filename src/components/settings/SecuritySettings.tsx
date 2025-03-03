@@ -1,6 +1,6 @@
+import React from 'react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,40 @@ import { updateUserProfile } from '@/lib/supabase/profileService';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Shield, Mail, Bell, Lock } from 'lucide-react';
+
+// Simple Switch component for this component only
+interface SimpleSwitchProps {
+  checked: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  label?: string;
+  labelClassName?: string;
+}
+
+const SimpleSwitch: React.FC<SimpleSwitchProps> = ({ 
+  checked, 
+  onChange, 
+  label, 
+  labelClassName 
+}) => {
+  return (
+    <div className="flex items-center space-x-2">
+      <label className="relative inline-flex items-center cursor-pointer">
+        <input 
+          type="checkbox" 
+          checked={checked} 
+          onChange={onChange}
+          className="sr-only peer"
+        />
+        <div className="w-10 h-5 bg-gray-500 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+        {label && (
+          <span className={`text-sm font-medium leading-none ml-2 ${labelClassName || ''}`}>
+            {label}
+          </span>
+        )}
+      </label>
+    </div>
+  );
+};
 
 export function SecuritySettings() {
   const { user, updateUser } = useAuth();
@@ -116,11 +150,10 @@ export function SecuritySettings() {
                   </p>
                 </div>
               </div>
-              <Switch
-                id="email-notifications"
+              <SimpleSwitch
                 checked={emailNotifications}
-                onCheckedChange={handleToggleEmailNotifications}
-                disabled={loading}
+                onChange={handleToggleEmailNotifications}
+                label="Email Notifications"
               />
             </div>
 

@@ -1,0 +1,52 @@
+{
+  "name": "Smart Debt Flow",
+  "short_name": "DebtFlow",
+  "description": "Manage and track your debt payoff journey",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "icons": [
+    {
+      "src": "/icons/icon-64x64.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "View your debt payoff progress"
+    },
+    {
+      "name": "Add Debt",
+      "url": "/dashboard/add-debt",
+      "description": "Add a new debt to track"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "display_override": ["standalone", "window-controls-overlay"]
+}

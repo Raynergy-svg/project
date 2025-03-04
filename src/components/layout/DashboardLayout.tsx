@@ -24,7 +24,6 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Header } from './Header';
 import { Logo } from '@/components/Logo';
 import DebtProjection from '@/components/dashboard/DebtProjection';
 import { SavingsOpportunities } from '@/components/dashboard/SavingsOpportunities';
@@ -77,7 +76,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     
     if (hash) {
       // Check if hash is a main section or a tab
-      const isMainSection = [...mainNavItems].some(item => item.id === hash);
+      const isMainSection = mainNavItems.some(item => item.id === hash);
       const isTab = dashboardTabs.some(tab => tab.id === hash);
       
       if (isMainSection) {
@@ -85,7 +84,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         // Reset active section to overview when changing main sections
         setActiveSection('overview');
         // Update page title based on active tab
-        const tab = [...mainNavItems, ...settingsNavItems].find(item => item.id === hash);
+        const tab = mainNavItems.find(item => item.id === hash);
         if (tab) {
           setPageTitle(tab.name);
         }
@@ -95,12 +94,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         setActiveSection(hash);
         setPageTitle('Dashboard');
       } else {
-        // Handle settings or other sections
+        // Handle other sections
         setActiveTab(hash);
-        const tab = [...settingsNavItems].find(item => item.id === hash);
-        if (tab) {
-          setPageTitle(tab.name);
-        }
+        setPageTitle(hash.charAt(0).toUpperCase() + hash.slice(1));
       }
     } else {
       // If no hash, set default tab and update URL
@@ -111,15 +107,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [location.hash]);
 
+  // Modified navigation structure - moved settings items to main nav
   const mainNavItems: NavItem[] = [
     { name: 'Dashboard', id: 'dashboard', icon: Home },
     { name: 'Debts', id: 'debts', icon: CreditCard },
     { name: 'Savings', id: 'savings', icon: PiggyBank },
     { name: 'Reports', id: 'reports', icon: BarChart3 },
     { name: 'Bank Connections', id: 'bank-connections', icon: Building },
-  ];
-
-  const settingsNavItems: NavItem[] = [
     { name: 'Account', id: 'account', icon: User },
     { name: 'Support', id: 'support', icon: Headphones },
     { name: 'Billing', id: 'billing', icon: BillingIcon },
@@ -146,12 +140,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const handleNavClick = (id: string, name: string) => {
-    // Special case for settings items - route to /settings with appropriate tab
-    if (settingsNavItems.some(item => item.id === id)) {
-      navigate(`/settings?tab=${id}`);
-      return;
-    }
-    
     setActiveTab(id);
     setPageTitle(name);
     navigate(`#${id}`);
@@ -225,37 +213,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 );
               })}
             </div>
-
-            <div className="mt-6 pt-3 border-t border-white/5">
-              <h3 className="px-3 text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-2">
-                Settings
-              </h3>
-              <div className="space-y-0.5">
-                {settingsNavItems.map((item) => {
-                  // Create a local variable for the icon component
-                  const IconComponent = item.icon;
-                  return (
-                    <div
-                      key={item.id}
-                      onClick={() => handleNavClick(item.id, item.name)}
-                      className={`group flex items-center rounded-md px-3 py-2 text-sm font-medium cursor-pointer transition-all ${
-                        isActive(item.id)
-                          ? 'bg-[#88B04B]/20 text-white border border-[#88B04B]/30'
-                          : 'text-gray-300 hover:bg-gray-800/60 hover:text-white'
-                      }`}
-                    >
-                      {/* Render the icon component explicitly */}
-                      <IconComponent
-                        className={`mr-2.5 h-4 w-4 flex-shrink-0 ${
-                          isActive(item.id) ? 'text-[#88B04B]' : 'text-gray-400 group-hover:text-white'
-                        }`}
-                      />
-                      {item.name}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </nav>
 
           {/* User section */}
@@ -318,11 +275,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Dashboard header and tabs */}
         {activeTab === 'dashboard' && (
           <div className="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-md border-b border-white/10">
-            <div className="px-6 pt-3">
-              <Header title="" subtitle="Manage your financial journey" />
-            </div>
-            
-            {/* Dashboard tabs - simplified design */}
+            {/* Only keep the dashboard tabs - removed Header component */}
             <div className="px-6 py-3">
               <nav className="flex overflow-x-auto bg-gray-800/40 backdrop-blur-sm rounded-lg border border-white/5 no-scrollbar">
                 {dashboardTabs.map((tab) => {
@@ -360,10 +313,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         )}
         
-        {/* Section-specific headers */}
+        {/* Section-specific headers - removed Header component */}
         {activeTab !== 'dashboard' && (
           <div className="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-md border-b border-white/10 px-6 py-3">
-            <Header title={pageTitle} subtitle="Manage your financial journey" />
+            <div className="flex items-center py-2">
+              <h1 className="text-xl font-semibold text-white">{pageTitle}</h1>
+            </div>
           </div>
         )}
 

@@ -300,8 +300,8 @@ function createFinalClient() {
   // Wrap with dev mode handler for missing tables
   const devClient = createDevModeClient(baseClient);
   
-  // Override with mock client if needed
-  const FORCE_MOCK_SUPABASE = import.meta.env.VITE_MOCK_SUPABASE === 'true' || true; // Force to true for now
+  // Check if we should use mock client 
+  const FORCE_MOCK_SUPABASE = import.meta.env.VITE_MOCK_SUPABASE === 'true';
   
   if (FORCE_MOCK_SUPABASE) {
     console.log('⚠️ Using mock Supabase client - all services will use mock data');

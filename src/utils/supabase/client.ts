@@ -10,14 +10,15 @@ export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbG
 // Ensure environment variables are properly set
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing required Supabase environment variables');
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  // Don't throw in production, use fallbacks instead
+  if (import.meta.env.DEV) {
+    throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  }
 }
 
-// Log connection details in development mode only
-if (import.meta.env.DEV) {
-  console.log(`Initializing Supabase client with URL: ${supabaseUrl}`);
-  console.log(`Using Anon Key: ${supabaseAnonKey.substring(0, 10)}...`);
-}
+// Log connection details in both development and production
+console.log(`Initializing Supabase client with URL: ${supabaseUrl}`);
+console.log(`Using Anon Key: ${supabaseAnonKey.substring(0, 10)}...`);
 
 const defaultOptions = {
   auth: {
@@ -297,35 +298,69 @@ export const createMockSupabaseClient = () => {
 
 // Function to create either a real or mock client based on environment
 function createFinalClient() {
-  // Wrap with dev mode handler for missing tables
-  const devClient = createDevModeClient(baseClient);
-  
-  // Check if we should use mock client 
-  const FORCE_MOCK_SUPABASE = import.meta.env.VITE_MOCK_SUPABASE === 'true';
-  
-  if (FORCE_MOCK_SUPABASE) {
-    console.log('⚠️ Using mock Supabase client - all services will use mock data');
+  try {
+    console.log('Creating final Supabase client');
     
-    // Create the mock client
-    const mockClient = createMockSupabaseClient();
+    // Create a single instance to reuse with standard configuration
+    const baseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, defaultOptions);
+    console.log('Base Supabase client created successfully');
     
-    // Return a proxy that forwards calls to the mock client when possible
-    // @ts-ignore: Type mismatch is expected, but functionally this works for mock data
-    return new Proxy(devClient, {
-      get(target, prop, receiver) {
-        // Check if the mock client has this property
-        if (prop in mockClient) {
-          return mockClient[prop];
+    // Wrap with dev mode handler for missing tables
+    const devClient = createDevModeClient(baseClient);
+    
+    // Check if we should use mock client 
+    const FORCE_MOCK_SUPABASE = import.meta.env.VITE_MOCK_SUPABASE === 'true';
+    
+    if (FORCE_MOCK_SUPABASE) {
+      console.log('⚠️ Using mock Supabase client - all services will use mock data');
+      
+      // Create the mock client
+      const mockClient = createMockSupabaseClient();
+      
+      // Return a proxy that forwards calls to the mock client when possible
+      // @ts-ignore: Type mismatch is expected, but functionally this works for mock data
+      return new Proxy(devClient, {
+        get(target, prop, receiver) {
+          // Check if the mock client has this property
+          if (prop in mockClient) {
+            return mockClient[prop];
+          }
+          
+          // Fall back to the original client for properties not in the mock
+          return Reflect.get(target, prop, receiver);
         }
-        
-        // Fall back to the original client for properties not in the mock
-        return Reflect.get(target, prop, receiver);
-      }
-    });
+      });
+    }
+    
+    console.log('Using real Supabase client');
+    // If no mock is needed, return the regular dev client
+    return devClient;
+  } catch (error) {
+    console.error('Error creating Supabase client:', error);
+    // In production, return a fallback client that won't crash the app
+    if (!import.meta.env.DEV) {
+      console.warn('Using fallback Supabase client');
+      return createFallbackClient();
+    }
+    throw error;
   }
-  
-  // If no mock is needed, return the regular dev client
-  return devClient;
+}
+
+// Create a fallback client that won't crash the app in production
+function createFallbackClient() {
+  // Create a minimal client that won't throw errors
+  return {
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+      signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Auth unavailable' } }),
+      signUp: () => Promise.resolve({ data: null, error: { message: 'Auth unavailable' } }),
+      signOut: () => Promise.resolve({ error: null })
+    },
+    from: () => ({
+      select: () => ({ data: null, error: { message: 'Database unavailable' } })
+    })
+  } as unknown as ReturnType<typeof createClient<Database>>;
 }
 
 // Export the appropriate client based on environment

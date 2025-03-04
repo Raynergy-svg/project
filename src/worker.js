@@ -1,4 +1,4 @@
-const DEBUG = false;
+const DEBUG = true;
 
 export default {
   async fetch(request, env, ctx) {
@@ -7,13 +7,12 @@ export default {
       let response;
 
       // Debug environment bindings
-      if (DEBUG) {
-        console.log("Environment bindings:", {
-          hasAssets: !!env.ASSETS,
-          hasStaticAssets: !!env.STATIC_ASSETS,
-          pathname: url.pathname,
-        });
-      }
+      console.log("Environment bindings:", {
+        hasAssets: !!env.ASSETS,
+        hasStaticAssets: !!env.STATIC_ASSETS,
+        pathname: url.pathname,
+        url: url.toString(),
+      });
 
       // Redirect apex domain to www
       if (url.hostname === "smartdebtflow.com") {
@@ -24,25 +23,18 @@ export default {
 
       // Special handling for favicon.ico
       if (url.pathname === "/favicon.ico") {
-        // Try to fetch from ASSETS if available, otherwise return an empty icon to prevent 500
-        if (env.ASSETS) {
-          try {
-            response = await env.ASSETS.fetch(request);
-            return response;
-          } catch (e) {
-            // Return a transparent 1x1 favicon to prevent browser errors
-            return new Response(
-              "AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              {
-                status: 200,
-                headers: {
-                  "Content-Type": "image/x-icon",
-                  "Cache-Control": "public, max-age=86400",
-                },
-              }
-            );
+        console.log("Handling favicon.ico request");
+        // Always return a transparent 1x1 favicon to prevent browser errors
+        return new Response(
+          "AAABAAEAAQEAAAEAIAAwAAAAFgAAACgAAAABAAAAAgAAAAEAIAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+          {
+            status: 200,
+            headers: {
+              "Content-Type": "image/x-icon",
+              "Cache-Control": "public, max-age=86400",
+            },
           }
-        }
+        );
       }
 
       // Special handling for manifest files (both .json and .webmanifest)
@@ -50,6 +42,7 @@ export default {
         url.pathname === "/manifest.json" ||
         url.pathname === "/manifest.webmanifest"
       ) {
+        console.log("Serving static manifest");
         // Instead of trying to fetch from KV or Assets, return a static manifest
         return serveStaticManifest(url);
       }
@@ -57,29 +50,66 @@ export default {
       // For all other requests, try to use the ASSETS binding if available
       if (env.ASSETS) {
         try {
+          console.log(`Fetching asset: ${url.pathname}`);
           response = await env.ASSETS.fetch(request);
+          console.log(`Asset fetch result: ${response.status}`);
         } catch (e) {
-          if (DEBUG) {
-            console.error("Asset fetch error:", e);
-          }
+          console.error("Asset fetch error:", e);
 
           // If the asset is not found, serve index.html for client-side routing
           try {
+            console.log("Falling back to index.html");
             response = await env.ASSETS.fetch(`${url.origin}/index.html`);
           } catch (err) {
-            return new Response(`Failed to serve index.html: ${err.message}`, {
-              status: 500,
-              headers: { "Content-Type": "text/plain;charset=UTF-8" },
-            });
+            console.error("Failed to serve index.html:", err);
+            return new Response(
+              `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>Service Unavailable</title>
+                  <style>
+                    body { font-family: sans-serif; padding: 2rem; text-align: center; }
+                    h1 { color: #e53e3e; }
+                  </style>
+                </head>
+                <body>
+                  <h1>Service Temporarily Unavailable</h1>
+                  <p>We're experiencing technical difficulties. Please try again in a few moments.</p>
+                  <p>Error: ${err.message}</p>
+                </body>
+              </html>
+            `,
+              {
+                status: 503,
+                headers: { "Content-Type": "text/html;charset=UTF-8" },
+              }
+            );
           }
         }
       } else {
+        console.error("ASSETS binding is missing");
         // Just serve a basic response if ASSETS binding is missing
         return new Response(
-          "Site assets not available. Please check your worker configuration.",
+          `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Configuration Error</title>
+              <style>
+                body { font-family: sans-serif; padding: 2rem; text-align: center; }
+                h1 { color: #e53e3e; }
+              </style>
+            </head>
+            <body>
+              <h1>Configuration Error</h1>
+              <p>Site assets not available. Please check your worker configuration.</p>
+            </body>
+          </html>
+        `,
           {
             status: 500,
-            headers: { "Content-Type": "text/plain;charset=UTF-8" },
+            headers: { "Content-Type": "text/html;charset=UTF-8" },
           }
         );
       }
@@ -102,108 +132,88 @@ export default {
 
       return response;
     } catch (e) {
-      if (DEBUG) {
-        return new Response(`Error: ${e.message}\n${e.stack}`, {
+      console.error(`Worker error: ${e.message}\n${e.stack}`);
+      return new Response(
+        `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Service Error</title>
+            <style>
+              body { font-family: sans-serif; padding: 2rem; text-align: center; }
+              h1 { color: #e53e3e; }
+              pre { text-align: left; background: #f7fafc; padding: 1rem; border-radius: 0.25rem; }
+            </style>
+          </head>
+          <body>
+            <h1>Service Error</h1>
+            <p>We're experiencing technical difficulties. Please try again in a few moments.</p>
+            ${DEBUG ? `<pre>${e.message}\n${e.stack}</pre>` : ""}
+          </body>
+        </html>
+      `,
+        {
           status: 500,
-          headers: { "Content-Type": "text/plain;charset=UTF-8" },
-        });
-      }
-      return new Response("Internal Error", {
-        status: 500,
-        headers: { "Content-Type": "text/plain;charset=UTF-8" },
-      });
+          headers: { "Content-Type": "text/html;charset=UTF-8" },
+        }
+      );
     }
   },
 };
 
-// Helper function to serve static manifest
+/**
+ * Serves a static manifest file for PWA support
+ * @param {URL} url The request URL
+ * @returns {Response} A response with the manifest JSON
+ */
 function serveStaticManifest(url) {
-  // Hard-coded manifest content as a fallback
   const manifest = {
     name: "Smart Debt Flow",
-    short_name: "DebtFlow",
-    description: "Manage and track your debt payoff journey",
+    short_name: "SmartDebtFlow",
+    description: "Manage your debt smartly",
     start_url: "/",
-    scope: "/",
     display: "standalone",
-    background_color: "#0A0A0A",
-    theme_color: "#0A0A0A",
+    background_color: "#ffffff",
+    theme_color: "#4f46e5",
     icons: [
       {
-        src: "/pwa-64x64.png",
-        sizes: "64x64",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/pwa-192x192.png",
+        src: "/icons/icon-192x192.png",
         sizes: "192x192",
         type: "image/png",
-        purpose: "any",
       },
       {
-        src: "/pwa-512x512.png",
+        src: "/icons/icon-512x512.png",
         sizes: "512x512",
         type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/maskable-icon-512x512.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "maskable",
       },
     ],
-    shortcuts: [
-      {
-        name: "Dashboard",
-        url: "/dashboard",
-        description: "View your debt payoff progress",
-      },
-      {
-        name: "Add Debt",
-        url: "/dashboard/add-debt",
-        description: "Add a new debt to track",
-      },
-    ],
-    categories: ["finance", "productivity"],
-    orientation: "any",
-    prefer_related_applications: false,
-    display_override: ["standalone", "window-controls-overlay"],
   };
 
-  const manifestContent = JSON.stringify(manifest, null, 2);
-  const contentType =
-    url.pathname === "/manifest.json"
-      ? "application/json"
-      : "application/manifest+json";
-
-  return new Response(manifestContent, {
+  return new Response(JSON.stringify(manifest), {
     status: 200,
     headers: {
-      "Content-Type": `${contentType};charset=UTF-8`,
-      "X-XSS-Protection": "1; mode=block",
-      "X-Content-Type-Options": "nosniff",
-      "X-Frame-Options": "DENY",
-      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Content-Type": "application/json",
       "Cache-Control": "public, max-age=86400",
     },
   });
 }
 
-// Helper function to determine content type
+/**
+ * Gets the content type based on file extension
+ * @param {string} pathname The URL pathname
+ * @returns {string|null} The content type or null if not determined
+ */
 function getContentType(pathname) {
   const extension = pathname.split(".").pop().toLowerCase();
-
   const contentTypes = {
     html: "text/html;charset=UTF-8",
-    css: "text/css;charset=UTF-8",
-    js: "application/javascript;charset=UTF-8",
-    json: "application/json;charset=UTF-8",
-    webmanifest: "application/manifest+json;charset=UTF-8",
+    css: "text/css",
+    js: "application/javascript",
+    json: "application/json",
     png: "image/png",
     jpg: "image/jpeg",
     jpeg: "image/jpeg",
+    gif: "image/gif",
     svg: "image/svg+xml",
     ico: "image/x-icon",
     webp: "image/webp",
@@ -211,7 +221,8 @@ function getContentType(pathname) {
     woff2: "font/woff2",
     ttf: "font/ttf",
     otf: "font/otf",
+    webmanifest: "application/manifest+json",
   };
 
-  return contentTypes[extension] || "application/octet-stream";
+  return contentTypes[extension] || null;
 }

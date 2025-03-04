@@ -1,157 +1,186 @@
-import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import React from "react";
+import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { BrowserRouter } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { registerSW } from "virtual:pwa-register";
 import { initSecurityAuditService } from './services/securityAuditService';
 
-// Determine if we're in development mode
-const isDevelopment = import.meta.env.DEV;
-
-// Explicitly set production flag - this will be tree-shaken in production build
-window.IS_PRODUCTION = import.meta.env.PROD || import.meta.env.MODE === 'production';
-console.log('App running in production mode:', window.IS_PRODUCTION);
-
-// Global error handler
-window.addEventListener('error', (event) => {
-  console.error('Global error caught:', event.error || event.message);
-  
-  // Try to remove loader in case of error
-  const loader = document.getElementById('initial-loader');
-  if (loader && loader.parentNode) {
-    console.warn('Removing loader after error');
-    loader.parentNode.removeChild(loader);
-  }
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
-// Detect slow resource loading - only in development
-const detectSlowResources = () => {
-  if (!isDevelopment) return;
-  
-  const observer = new PerformanceObserver((list) => {
-    for (const entry of list.getEntries()) {
-      // If a resource takes more than 3 seconds to load, log it
-      if (entry.duration > 3000) {
-        console.warn(`Slow resource: ${entry.name} took ${entry.duration}ms to load`);
+// Register service worker for PWA
+const updateSW = registerSW({
+  onNeedRefresh() {
+    if (confirm("New content available. Reload?")) {
+      updateSW(true);
+    }
+  },
+  onOfflineReady() {
+    console.log("App ready to work offline");
+  },
+  onRegisteredSW(swUrl, registration) {
+    console.log(`Service Worker registered: ${swUrl}`);
+  },
+  onRegisterError(error) {
+    console.error("Service worker registration error:", error);
+  },
+});
+
+// Debug flag for production logging
+const DEBUG = true;
+
+/**
+ * Safely logs messages in both development and production
+ * @param {string} message - The message to log
+ * @param {any} data - Optional data to log
+ * @param {'log'|'warn'|'error'} level - Log level
+ */
+function safeLog(message: string, data?: any, level: 'log' | 'warn' | 'error' = 'log') {
+  try {
+    if (DEBUG || import.meta.env.DEV) {
+      if (data) {
+        console[level](`[SmartDebtFlow] ${message}`, data);
+      } else {
+        console[level](`[SmartDebtFlow] ${message}`);
       }
     }
-  });
-  
-  try {
-    observer.observe({ entryTypes: ['resource'] });
   } catch (e) {
-    console.error('PerformanceObserver not supported:', e);
+    // Silent fail for logging
   }
-};
+}
 
-// Remove initial loader - with multiple fallbacks and debugging
-const removeInitialLoader = () => {
-  const loader = document.getElementById('initial-loader');
-  if (loader) {
-    if (isDevelopment) console.log('Removing initial loader');
+/**
+ * Removes the initial loader element with multiple fallback strategies
+ */
+function removeInitialLoader() {
+  try {
+    safeLog("Attempting to remove initial loader");
+    const loader = document.getElementById("initial-loader");
     
-    // Try multiple approaches to ensure it's removed
-    try {
-      // First set display to none for immediate visual hiding
-      loader.style.display = 'none';
-      if (isDevelopment) console.log('Set loader display to none');
-      
-      // Then set opacity and remove it after animation
-      loader.style.opacity = '0';
-      if (isDevelopment) console.log('Set loader opacity to 0');
-      
-      // Finally remove from DOM
-      setTimeout(() => {
+    if (!loader) {
+      safeLog("Loader element not found, may have been already removed");
+      return;
+    }
+    
+    // Strategy 1: Set display to none
+    safeLog("Strategy 1: Setting display to none");
+    loader.style.display = "none";
+    
+    // Strategy 2: Fade out with opacity
+    safeLog("Strategy 2: Fading out with opacity");
+    loader.style.opacity = "0";
+    loader.style.transition = "opacity 0.5s ease";
+    
+    // Strategy 3: Remove from DOM after transition
+    setTimeout(() => {
+      try {
+        safeLog("Strategy 3: Removing from DOM");
         if (loader.parentNode) {
           loader.parentNode.removeChild(loader);
-          if (isDevelopment) console.log('Removed loader from DOM');
+          safeLog("Loader successfully removed from DOM");
         }
-      }, 300);
-    } catch (e) {
-      console.error('Error removing loader:', e);
-      // Fallback if the above fails
-      if (loader.parentNode) {
-        loader.parentNode.removeChild(loader);
-        if (isDevelopment) console.log('Used fallback method to remove loader');
+      } catch (e) {
+        safeLog("Error removing loader from DOM", e, 'error');
       }
-    }
-  } else if (isDevelopment) {
-    console.warn('Initial loader element not found');
-  }
-};
-
-// Add debug info to page - only in development
-const addDebugInfo = () => {
-  if (!isDevelopment) {
-    return {
-      update: (_text: string) => { /* No-op in production */ }
-    };
-  }
-  
-  const debugDiv = document.createElement('div');
-  debugDiv.style.position = 'fixed';
-  debugDiv.style.bottom = '0';
-  debugDiv.style.right = '0';
-  debugDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
-  debugDiv.style.color = '#00FF00';
-  debugDiv.style.padding = '5px';
-  debugDiv.style.fontSize = '10px';
-  debugDiv.style.fontFamily = 'monospace';
-  debugDiv.style.zIndex = '9999';
-  debugDiv.textContent = 'DEBUG: App initializing...';
-  
-  document.body.appendChild(debugDiv);
-  
-  return {
-    update: (text: string) => {
-      debugDiv.textContent = `DEBUG: ${text} (${new Date().toLocaleTimeString()})`;
-    }
-  };
-};
-
-// Initialize the application with better error handling
-const initializeApp = () => {
-  const debugInfo = addDebugInfo();
-  if (isDevelopment) debugInfo.update('Finding root element');
-  
-  const root = document.getElementById('root');
-  if (!root) {
-    if (isDevelopment) debugInfo.update('ERROR: Root element not found');
-    console.error('Root element not found');
-    return;
-  }
-
-  if (isDevelopment) debugInfo.update('Preparing to render React app');
-  
-  try {
-    if (isDevelopment) debugInfo.update('Creating React root');
-    const reactRoot = createRoot(root);
-    
-    if (isDevelopment) debugInfo.update('Rendering App component');
-    reactRoot.render(
-      <StrictMode>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </StrictMode>
-    );
-
-    if (isDevelopment) debugInfo.update('React render called');
-    
-    // Remove loader after a short delay to ensure React has started rendering
-    setTimeout(() => {
-      removeInitialLoader();
-      if (isDevelopment) debugInfo.update('App initialized successfully');
-    }, 100);
+    }, 600);
   } catch (e) {
-    if (isDevelopment) debugInfo.update(`ERROR: ${e instanceof Error ? e.message : 'Unknown error'}`);
-    console.error('Error initializing app:', e);
-    removeInitialLoader(); // Try to remove loader even if app fails
+    safeLog("Error removing initial loader", e, 'error');
+    
+    // Final fallback: Try direct DOM manipulation
+    try {
+      document.body.classList.add('app-loaded');
+      const loader = document.querySelector('#initial-loader');
+      if (loader) {
+        loader.remove();
+      }
+    } catch (err) {
+      safeLog("All loader removal strategies failed", err, 'error');
+    }
   }
-};
+}
+
+/**
+ * Initialize the application with error handling
+ */
+async function initializeApp() {
+  try {
+    safeLog("Initializing application");
+    
+    // Get the root element
+    const rootElement = document.getElementById("root");
+    
+    if (!rootElement) {
+      throw new Error("Root element not found");
+    }
+    
+    safeLog("Root element found, creating React root");
+    const root = ReactDOM.createRoot(rootElement);
+    
+    safeLog("Rendering React application");
+    root.render(
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <App />
+            <Toaster position="top-right" />
+          </BrowserRouter>
+          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+        </QueryClientProvider>
+      </React.StrictMode>
+    );
+    
+    safeLog("React application rendered successfully");
+    
+    // Remove the initial loader
+    removeInitialLoader();
+    
+    safeLog("Application initialization complete");
+  } catch (error) {
+    safeLog("Error initializing application", error, 'error');
+    
+    // Display error message to user
+    const rootElement = document.getElementById("root");
+    if (rootElement) {
+      rootElement.innerHTML = `
+        <div style="font-family: sans-serif; padding: 2rem; text-align: center;">
+          <h1 style="color: #e53e3e;">Application Error</h1>
+          <p>We're experiencing technical difficulties. Please try refreshing the page.</p>
+          ${DEBUG ? `<pre style="text-align: left; background: #f7fafc; padding: 1rem; border-radius: 0.25rem;">${error instanceof Error ? error.message : String(error)}</pre>` : ''}
+        </div>
+      `;
+    }
+    
+    // Still try to remove the loader
+    removeInitialLoader();
+  }
+}
+
+// Start the application
+initializeApp();
+
+// Safety timeout to ensure loader is removed even if app fails to initialize
+setTimeout(() => {
+  const loader = document.getElementById("initial-loader");
+  if (loader && loader.style.display !== "none") {
+    safeLog("Safety timeout: Forcing loader removal after 10s", null, 'warn');
+    removeInitialLoader();
+  }
+}, 10000);
 
 // Enable debugging with query parameter, but only in development
-const isDebugMode = isDevelopment && new URLSearchParams(window.location.search).has('debug');
+const isDebugMode = import.meta.env.DEV && new URLSearchParams(window.location.search).has('debug');
 if (isDebugMode) {
   console.log('Debug mode enabled');
   detectSlowResources();
@@ -170,11 +199,22 @@ setTimeout(() => {
     });
 }, 1000); // Short delay to allow other critical services to initialize first
 
-// Start immediately
-initializeApp();
-
-// Extra safety - ensure loader is removed even if something above fails
-window.addEventListener('load', () => {
-  if (isDevelopment) console.log('Window load event fired');
-  setTimeout(removeInitialLoader, 1000);
-});
+// Detect slow resource loading - only in development
+const detectSlowResources = () => {
+  if (!import.meta.env.DEV) return;
+  
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      // If a resource takes more than 3 seconds to load, log it
+      if (entry.duration > 3000) {
+        console.warn(`Slow resource: ${entry.name} took ${entry.duration}ms to load`);
+      }
+    }
+  });
+  
+  try {
+    observer.observe({ entryTypes: ['resource'] });
+  } catch (e) {
+    console.error('PerformanceObserver not supported:', e);
+  }
+};

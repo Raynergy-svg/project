@@ -118,13 +118,18 @@ export default function JobApplication() {
       }
       const functionUrl = `${supabaseUrl}/functions/v1/job-application`;
 
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (!supabaseAnonKey) {
+        throw new Error('Supabase anon key is missing');
+      }
+
       // Send application
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey
         },
         body: JSON.stringify({
           fullName: formData.fullName,

@@ -1,11 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 // Import Database type without creating circular dependency
 // Use direct path to the types file
 import type { Database } from '../../lib/supabase/types';
 
 // Use environment variables with proper fallbacks for development
 export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://gnwdahoiauduyncppbdb.supabase.co';
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U';
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.wLiLa-B6gYS9VX7-7-K1i_4d2qX52UDmIUVniBpQZK4';
 
 // Ensure environment variables are properly set
 if (!supabaseUrl || !supabaseAnonKey) {
@@ -35,6 +36,55 @@ const defaultOptions = {
   }
 };
 
+// Create a development mock client if needed
+const createMockClient = () => {
+  console.log('Creating mock Supabase client for development');
+  
+  // This is a simple mock client for development purposes
+  return {
+    auth: {
+      getSession: async () => ({ data: { session: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      getUser: async () => ({ data: { user: null }, error: null }),
+      signInWithPassword: async () => ({ data: null, error: { message: 'Mock auth error' } }),
+      signOut: async () => ({ error: null }),
+    },
+    from: (table: string) => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: null, error: null }),
+          eq: () => ({ data: [], error: null }),
+          data: [],
+          error: null
+        }),
+        data: [],
+        error: null
+      }),
+      insert: () => ({ data: null, error: null }),
+      update: () => ({ data: null, error: null }),
+      delete: () => ({ data: null, error: null }),
+    }),
+    rpc: () => ({ data: null, error: null }),
+  } as unknown as ReturnType<typeof createClient>;
+};
+
+// Force mock supabase if environment variable is set
+const FORCE_MOCK_SUPABASE = import.meta.env.VITE_MOCK_SUPABASE === 'true';
+
+// Create the base Supabase client
+const baseSupabaseClient = FORCE_MOCK_SUPABASE
+  ? createMockClient()
+  : createClient<Database>(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        auth: {
+          autoRefreshToken: true,
+          persistSession: true
+        }
+      }
+    );
+
 // Helper for better error messages in dev mode
 function createDevModeClient(client: ReturnType<typeof createClient<Database>>) {
   // Only apply the wrapper in development mode
@@ -61,16 +111,6 @@ function createDevModeClient(client: ReturnType<typeof createClient<Database>>) 
           if (result instanceof Promise) {
             return result.catch((error) => {
               console.error(`Supabase error in method ${String(prop)}:`, error);
-              
-              // Common errors checking
-              if (error.code === 'PGRST116') {
-                console.warn('Table or view might not exist. Check your migrations and database setup.');
-              }
-              
-              if (error.code === '42501') {
-                console.warn('Permission denied. Check your RLS policies.');
-              }
-              
               throw error;
             });
           }
@@ -85,302 +125,27 @@ function createDevModeClient(client: ReturnType<typeof createClient<Database>>) 
   });
 }
 
-// Create a single instance to reuse with standard configuration
-const baseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, defaultOptions);
+// Export the final supabase client with dev mode enhancements if needed
+export const supabase = import.meta.env.DEV 
+  ? createDevModeClient(baseSupabaseClient)
+  : baseSupabaseClient;
 
-// Create a mock Supabase client for development without backend
-export const createMockSupabaseClient = () => {
-  // Helper function to create a standard error response
-  const mockError = (message = 'Mock error') => ({ 
-    data: null, 
-    error: { message, code: '42P01' } 
-  });
-  
-  // Create a proxy that simulates Supabase client but always returns errors
-  // This will force services to fall back to mock implementations
-  const mockClient = {
-    from: () => {
-      // Create a query builder that properly chains all methods
-      const queryBuilder = {
-        // Basic query methods
-        select: () => {
-          const selectChain = {
-            eq: () => selectChain,
-            neq: () => selectChain,
-            gt: () => selectChain,
-            gte: () => selectChain,
-            lt: () => selectChain,
-            lte: () => selectChain,
-            like: () => selectChain,
-            ilike: () => selectChain,
-            is: () => selectChain,
-            in: () => selectChain,
-            contains: () => selectChain,
-            containedBy: () => selectChain,
-            rangeGt: () => selectChain,
-            rangeGte: () => selectChain,
-            rangeLt: () => selectChain,
-            rangeLte: () => selectChain,
-            rangeAdjacent: () => selectChain,
-            overlaps: () => selectChain,
-            textSearch: () => selectChain,
-            filter: () => selectChain,
-            not: () => selectChain,
-            or: () => selectChain,
-            and: () => selectChain,
-            
-            // Execution methods
-            limit: () => selectChain,
-            single: () => Promise.resolve(mockError()),
-            maybeSingle: () => Promise.resolve(mockError()),
-            order: () => selectChain,
-            range: () => selectChain,
-            execute: () => Promise.resolve(mockError()),
-          };
-          return selectChain;
-        },
-        
-        // Insert operations
-        insert: () => {
-          const insertChain = {
-            select: () => ({
-              single: () => Promise.resolve(mockError()),
-              execute: () => Promise.resolve(mockError()),
-            }),
-            execute: () => Promise.resolve(mockError()),
-          };
-          return insertChain;
-        },
-        
-        // Update operations
-        update: () => {
-          const updateChain = {
-            eq: () => ({
-              select: () => ({
-                single: () => Promise.resolve(mockError()),
-              }),
-              execute: () => Promise.resolve(mockError()),
-            }),
-            match: () => ({
-              execute: () => Promise.resolve(mockError()),
-            }),
-            select: () => ({
-              single: () => Promise.resolve(mockError()),
-            }),
-            execute: () => Promise.resolve(mockError()),
-          };
-          return updateChain;
-        },
-        
-        // Delete operations
-        delete: () => {
-          const deleteChain = {
-            eq: () => Promise.resolve(mockError()),
-            match: () => Promise.resolve(mockError()),
-            execute: () => Promise.resolve(mockError()),
-          };
-          return deleteChain;
-        },
-      };
-      
-      return queryBuilder;
-    },
-    
-    // Functions API
-    functions: {
-      invoke: (name: string, params?: any) => {
-        console.log(`Mock mode: Intercepted function call to "${name}"`, params);
-        return Promise.resolve(mockError(`Mock mode: Function call to "${name}" intercepted`));
-      },
-    },
-    
-    // RPC API
-    rpc: (functionName: string, params?: any) => {
-      console.log(`Mock mode: Intercepted RPC call to "${functionName}"`, params);
-      
-      // Special handling for execute_sql and security_execute_sql
-      if (functionName === 'execute_sql' || functionName === 'security_execute_sql') {
-        // Parse the SQL query to log what's being attempted
-        const sqlQuery = params?.sql || params?.sql_query || '';
-        console.log('Mock mode: SQL query intercepted:', sqlQuery?.substring(0, 150) + (sqlQuery?.length > 150 ? '...' : ''));
-        
-        // Return error to force fallback to mock implementations
-        return Promise.resolve({ 
-          data: null, 
-          error: { 
-            message: `Mock mode: SQL execution blocked for "${functionName}"`, 
-            code: '42P01',
-            details: 'Function intercepted by mock mode' 
-          } 
-        });
-      }
-      
-      // Default behavior for other RPC calls
-      return Promise.resolve({ 
-        data: null, 
-        error: { 
-          message: `Mock mode: RPC call to "${functionName}" intercepted`, 
-          code: '42P01' 
-        } 
-      });
-    },
-    
-    // Auth API
-    auth: {
-      getUser: () => Promise.resolve({ 
-        data: { 
-          user: { 
-            id: 'mock-user-id',
-            email: 'mock@example.com',
-            user_metadata: {
-              full_name: 'Mock User'
-            }
-          } 
-        }, 
-        error: null 
-      }),
-      getSession: () => Promise.resolve({
-        data: {
-          session: {
-            user: {
-              id: 'mock-user-id',
-              email: 'mock@example.com',
-              user_metadata: {
-                full_name: 'Mock User'
-              }
-            },
-            access_token: 'mock-token'
-          }
-        },
-        error: null
-      }),
-      onAuthStateChange: (callback: any) => {
-        console.log('Mock mode: Auth state change listener registered');
-        // Return a mock unsubscribe function
-        return {
-          data: { subscription: { unsubscribe: () => console.log('Mock unsubscribe called') } },
-          error: null
-        };
-      },
-      signOut: () => Promise.resolve({ error: null }),
-      signInWithPassword: () => Promise.resolve({
-        data: {
-          user: {
-            id: 'mock-user-id',
-            email: 'mock@example.com',
-            user_metadata: {
-              full_name: 'Mock User'
-            }
-          },
-          session: {
-            access_token: 'mock-token'
-          }
-        },
-        error: null
-      }),
-      signInWithOAuth: () => Promise.resolve({ error: null }),
-    },
-    
-    // Storage API
-    storage: {
-      from: (bucket: string) => ({
-        upload: () => Promise.resolve(mockError()),
-        download: () => Promise.resolve(mockError()),
-        getPublicUrl: () => ({ data: { publicUrl: 'https://mock-storage-url.com/file.png' } }),
-        list: () => Promise.resolve(mockError()),
-        remove: () => Promise.resolve(mockError()),
-      }),
-    },
-  };
+// Export createBrowserClient for compatibility
+export function createBrowserClient(): SupabaseClient<Database> {
+  return supabase;
+}
 
-  return mockClient;
-};
-
-// Function to create either a real or mock client based on environment
-function createFinalClient() {
+// Helper function to check if Supabase is properly configured
+export async function checkSupabaseConnection() {
   try {
-    console.log('Creating final Supabase client');
-    
-    // Create a single instance to reuse with standard configuration
-    const baseClient = createClient<Database>(supabaseUrl, supabaseAnonKey, defaultOptions);
-    console.log('Base Supabase client created successfully');
-    
-    // Wrap with dev mode handler for missing tables
-    const devClient = createDevModeClient(baseClient);
-    
-    // Check if we should use mock client 
-    const FORCE_MOCK_SUPABASE = import.meta.env.VITE_MOCK_SUPABASE === 'true';
-    
-    if (FORCE_MOCK_SUPABASE) {
-      console.log('⚠️ Using mock Supabase client - all services will use mock data');
-      
-      // Create the mock client
-      const mockClient = createMockSupabaseClient();
-      
-      // Return a proxy that forwards calls to the mock client when possible
-      // @ts-ignore: Type mismatch is expected, but functionally this works for mock data
-      return new Proxy(devClient, {
-        get(target, prop, receiver) {
-          // Check if the mock client has this property
-          if (prop in mockClient) {
-            return mockClient[prop];
-          }
-          
-          // Fall back to the original client for properties not in the mock
-          return Reflect.get(target, prop, receiver);
-        }
-      });
+    const { error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('Supabase connection error:', error);
+      return false;
     }
-    
-    console.log('Using real Supabase client');
-    // If no mock is needed, return the regular dev client
-    return devClient;
+    return true;
   } catch (error) {
-    console.error('Error creating Supabase client:', error);
-    // In production, return a fallback client that won't crash the app
-    if (!import.meta.env.DEV) {
-      console.warn('Using fallback Supabase client');
-      return createFallbackClient();
-    }
-    throw error;
+    console.error('Failed to check Supabase connection:', error);
+    return false;
   }
-}
-
-// Create a fallback client that won't crash the app in production
-function createFallbackClient() {
-  // Create a minimal client that won't throw errors
-  return {
-    auth: {
-      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      getUser: () => Promise.resolve({ data: { user: null }, error: null }),
-      signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Auth unavailable' } }),
-      signUp: () => Promise.resolve({ data: null, error: { message: 'Auth unavailable' } }),
-      signOut: () => Promise.resolve({ error: null })
-    },
-    from: () => ({
-      select: () => ({ data: null, error: { message: 'Database unavailable' } })
-    })
-  } as unknown as ReturnType<typeof createClient<Database>>;
-}
-
-// Export the appropriate client based on environment
-export const supabase = createFinalClient();
-
-// For cases where we need a new instance with specific options
-export const createBrowserClient = () => {
-  // In development mode, configure the client to bypass captcha verification
-  const options = { 
-    ...defaultOptions,
-    ...(import.meta.env.DEV && { 
-      auth: {
-        ...defaultOptions.auth,
-        autoRefreshToken: true,
-        // Development-specific settings to make auth easier in dev mode
-        debug: true 
-      }
-    })
-  };
-  
-  const client = createClient<Database>(supabaseUrl, supabaseAnonKey, options);
-  return createDevModeClient(client);
-}; 
+} 

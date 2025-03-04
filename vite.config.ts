@@ -77,8 +77,36 @@ export default defineConfig(({ mode }) => {
       }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'logo.svg'],
-        manifest: false,
+        includeAssets: ['favicon.ico', 'logo.svg', 'pwa-64x64.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
+        manifest: {
+          name: 'Smart Debt Flow',
+          short_name: 'DebtFlow',
+          description: 'Manage and track your debt payoff journey',
+          theme_color: '#0A0A0A',
+          icons: [
+            {
+              src: '/pwa-64x64.png',
+              sizes: '64x64',
+              type: 'image/png'
+            },
+            {
+              src: '/pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png'
+            },
+            {
+              src: '/pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png'
+            },
+            {
+              src: '/maskable-icon-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
+            }
+          ]
+        },
         useCredentials: true,
         workbox: {
           sourcemap: true,

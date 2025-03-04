@@ -116,22 +116,15 @@ export default function JobApplication() {
       if (!supabaseUrl) {
         throw new Error('Supabase URL configuration is missing');
       }
-      const functionUrl = `${supabaseUrl}/functions/v1/job-application`;
 
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       if (!supabaseAnonKey) {
         throw new Error('Supabase anon key is missing');
       }
 
-      // Send application
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'apikey': supabaseAnonKey
-        },
-        body: JSON.stringify({
+      // Directly call the function using Supabase client instead of fetch
+      const { data, error } = await supabase.functions.invoke('job-application', {
+        body: {
           fullName: formData.fullName,
           email: formData.email,
           phone: formData.phone,
@@ -141,15 +134,13 @@ export default function JobApplication() {
           position,
           department,
           resumeFile,
-        }),
+        },
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit application');
+      if (error) {
+        throw new Error(error.message || 'Failed to submit application');
       }
 
-      const data = await response.json();
       console.log('Application submission response:', data);
       
       toast({

@@ -38,6 +38,7 @@ const extractImports = (filePath) => {
   try {
     const content = fs.readFileSync(filePath, "utf8");
     const imports = [];
+    const ignoredVirtualImports = [];
 
     // Match import statements
     const importRegex = /import\s+(?:.+\s+from\s+)?['"]([^.'"][^'"]+)['"]/g;
@@ -45,6 +46,16 @@ const extractImports = (filePath) => {
 
     while ((match = importRegex.exec(content)) !== null) {
       const importPath = match[1];
+
+      // Skip virtual modules (used by Vite plugins)
+      if (importPath.startsWith("virtual:")) {
+        ignoredVirtualImports.push(importPath);
+        console.log(
+          `[DEBUG] Found virtual module import: ${importPath} in ${filePath}`
+        );
+        continue;
+      }
+
       // Exclude relative imports and alias imports (starting with @/)
       if (
         !importPath.startsWith("./") &&
@@ -60,6 +71,14 @@ const extractImports = (filePath) => {
 
         imports.push(fullPackageName);
       }
+    }
+
+    // Log ignored virtual imports if any are found
+    if (ignoredVirtualImports.length > 0) {
+      console.log(
+        `Skipping virtual imports in ${filePath}:`,
+        ignoredVirtualImports
+      );
     }
 
     return imports;
@@ -96,14 +115,24 @@ const main = () => {
     }
   });
 
-  if (missingDependencies.length > 0) {
+  // Hard-coded list of virtual modules to exclude from missing dependencies
+  const virtualModules = ["virtual:pwa-register"];
+
+  // Filter out any virtual modules from the missing dependencies list
+  const filteredMissingDependencies = missingDependencies.filter(
+    (dep) => !virtualModules.includes(dep)
+  );
+
+  if (filteredMissingDependencies.length > 0) {
     console.error("\n⚠️ Missing dependencies detected:");
-    missingDependencies.forEach((dep) => console.error(`- ${dep}`));
+    filteredMissingDependencies.forEach((dep) => console.error(`- ${dep}`));
     console.error(
       "\nThese packages are imported in the code but not listed in package.json."
     );
     console.error("Consider adding them to package.json with:");
-    console.error(`npm install --save ${missingDependencies.join(" ")}`);
+    console.error(
+      `npm install --save ${filteredMissingDependencies.join(" ")}`
+    );
     process.exit(1);
   } else {
     console.log(

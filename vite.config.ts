@@ -77,7 +77,7 @@ export default defineConfig(({ mode }) => {
       }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'logo.svg', 'pwa-64x64.png', 'pwa-192x192.png', 'pwa-512x512.png', 'maskable-icon-512x512.png'],
+        includeAssets: ['favicon.ico', 'logo.svg', 'icons/icon-64x64.png', 'icons/icon-192x192.png', 'icons/icon-512x512.png', 'icons/maskable-icon-512x512.png'],
         manifest: {
           name: 'Smart Debt Flow',
           short_name: 'DebtFlow',
@@ -85,22 +85,22 @@ export default defineConfig(({ mode }) => {
           theme_color: '#0A0A0A',
           icons: [
             {
-              src: '/pwa-64x64.png',
+              src: '/icons/icon-64x64.png',
               sizes: '64x64',
               type: 'image/png'
             },
             {
-              src: '/pwa-192x192.png',
+              src: '/icons/icon-192x192.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: '/pwa-512x512.png',
+              src: '/icons/icon-512x512.png',
               sizes: '512x512',
               type: 'image/png'
             },
             {
-              src: '/maskable-icon-512x512.png',
+              src: '/icons/maskable-icon-512x512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'maskable'

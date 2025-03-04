@@ -71,64 +71,14 @@ const createMockClient = () => {
 // Force mock supabase if environment variable is set
 const FORCE_MOCK_SUPABASE = import.meta.env.VITE_MOCK_SUPABASE === 'true';
 
-// Create the base Supabase client
+// Create the Supabase client directly without conditional logic that might cause issues
+// in production builds
 const baseSupabaseClient = FORCE_MOCK_SUPABASE
   ? createMockClient()
-  : createClient<Database>(
-      supabaseUrl,
-      supabaseAnonKey,
-      {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: true
-        }
-      }
-    );
-
-// Helper for better error messages in dev mode
-function createDevModeClient(client: ReturnType<typeof createClient<Database>>) {
-  // Only apply the wrapper in development mode
-  if (!import.meta.env.DEV) {
-    return client;
-  }
-
-  // Create proxy to intercept methods and add error handling
-  return new Proxy(client, {
-    get(target, prop, receiver) {
-      const value = Reflect.get(target, prop, receiver);
-      
-      // Only intercept functions
-      if (typeof value !== 'function') {
-        return value;
-      }
-      
-      // Wrap method calls to add error handling
-      return function(...args: any[]) {
-        try {
-          const result = value.apply(target, args);
-          
-          // If it's a promise, add error handling
-          if (result instanceof Promise) {
-            return result.catch((error) => {
-              console.error(`Supabase error in method ${String(prop)}:`, error);
-              throw error;
-            });
-          }
-          
-          return result;
-        } catch (error) {
-          console.error(`Error calling Supabase method ${String(prop)}:`, error);
-          throw error;
-        }
-      };
-    },
-  });
-}
+  : createClient<Database>(supabaseUrl, supabaseAnonKey, defaultOptions);
 
 // Export the final supabase client with dev mode enhancements if needed
-export const supabase = import.meta.env.DEV 
-  ? createDevModeClient(baseSupabaseClient)
-  : baseSupabaseClient;
+export const supabase = baseSupabaseClient;
 
 // Export createBrowserClient for compatibility
 export function createBrowserClient(): SupabaseClient<Database> {
@@ -141,11 +91,14 @@ export async function checkSupabaseConnection() {
     const { error } = await supabase.auth.getSession();
     if (error) {
       console.error('Supabase connection error:', error);
-      return false;
+      return { isConnected: false, error: error.message };
     }
-    return true;
+    return { isConnected: true, error: null };
   } catch (error) {
     console.error('Failed to check Supabase connection:', error);
-    return false;
+    return { 
+      isConnected: false, 
+      error: error instanceof Error ? error.message : 'Unknown connection error' 
+    };
   }
 } 

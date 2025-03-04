@@ -21,7 +21,8 @@ import {
   Calculator,
   Building,
   Headphones,
-  DollarSign
+  DollarSign,
+  Brain
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/Logo';
@@ -34,6 +35,7 @@ import { Debts } from '@/components/sections/Debts';
 import { Savings } from '@/components/sections/Savings';
 import { Reports } from '@/components/sections/Reports';
 import { BankConnections } from '@/components/sections/BankConnections';
+import { AIAssistant } from '@/components/ai/AIAssistant';
 import { BackgroundAnimation } from './BackgroundAnimation';
 import { Button } from '@/components/ui/button';
 
@@ -125,6 +127,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: 'Transactions', id: 'transactions', icon: DollarSign },
     { name: 'Payoff Calculator', id: 'payoff-calculator', icon: Calculator },
     { name: 'Savings', id: 'savings-opportunities', icon: Wallet },
+    { name: 'AI Assistant', id: 'ai-assistant', icon: Brain },
   ];
 
   const toggleSidebar = () => {
@@ -337,6 +340,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {activeSection === 'transactions' && <Transactions />}
               {activeSection === 'payoff-calculator' && <DebtPayoffCalculator debts={dashboardState.debtBreakdown} />}
               {activeSection === 'savings-opportunities' && <SavingsOpportunities />}
+              {activeSection === 'ai-assistant' && <AIAssistant />}
             </div>
           )}
 

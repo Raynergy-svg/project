@@ -50,7 +50,7 @@ routes = [
 ENVIRONMENT = "production"
 STRIPE_MODE = "live"
 S3_REGION = "us-east-1"
-SUPABASE_URL = "https://sdagcazfszlumwbatfcr.supabase.co"
+SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
 ASSETS_URL = ""
 
 # Production environment variables
@@ -58,7 +58,7 @@ ASSETS_URL = ""
 ENVIRONMENT = "production"
 STRIPE_MODE = "live"
 S3_REGION = "us-east-1"
-SUPABASE_URL = "https://sdagcazfszlumwbatfcr.supabase.co"
+SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
 ASSETS_URL = ""
 
 # Set these secrets using 'npx wrangler secret put SECRET_NAME'
@@ -70,3 +70,34 @@ ASSETS_URL = ""
 # - S3_SECRET_KEY
 # - SERVICE_JWT_SECRET
 # - WEBHOOK_SECRET 
+
+# AI Worker Configuration
+[env.ai]
+name = "curly-tooth-d4a2"
+main = "src/ai-worker.js"
+compatibility_date = "2024-02-22"
+workers_dev = true
+
+# AI Worker Environment Variables
+[env.ai.vars]
+ENVIRONMENT = "production"
+STRIPE_MODE = "live"
+S3_REGION = "us-east-1"
+SUPABASE_URL = "https://gnwdahoiauduyncppbdb.supabase.co"
+ASSETS_URL = ""
+
+# KV namespaces for AI worker
+[[env.ai.kv_namespaces]]
+binding = "STATIC_ASSETS"
+id = "dc953a65f10c424d94803328e066b5a9"
+preview_id = "28111915119942eca5dc83a27d0a4ca7"
+
+[[env.ai.kv_namespaces]]
+binding = "CACHE_STORAGE"
+id = "fc94361a012149a786110694590856af"
+preview_id = "d6fecc982467413a96246f7ac901db8b"
+
+# Routes for the AI Worker
+[[env.ai.routes]]
+pattern = "www.smartdebtflow.com/api/ai*"
+zone_name = "smartdebtflow.com" 

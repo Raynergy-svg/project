@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/utils/supabase/client';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -17,8 +17,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     async function checkSubscription() {
       // Always bypass subscription check in development mode
-      if (window.location.hostname === 'localhost' && 
+      if (window.location.hostname === 'localhost' || 
           import.meta.env.MODE === 'development') {
+        console.log('Development mode detected - bypassing subscription check');
         setHasSubscription(true);
         setIsLoading(false);
         return;
@@ -39,14 +40,27 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
         if (error) {
           console.error('Error checking subscription:', error);
-          setHasSubscription(false);
+          // If we can't check the subscription (API error, etc.), allow access in development
+          // but block in production
+          if (import.meta.env.MODE === 'development') {
+            console.warn('Development mode - allowing access despite subscription check error');
+            setHasSubscription(true);
+          } else {
+            setHasSubscription(false);
+          }
         } else {
           // Check if subscription is active
           setHasSubscription(data && data.status === 'active');
         }
       } catch (error) {
         console.error('Error checking subscription:', error);
-        setHasSubscription(false);
+        // Same fallback behavior as above
+        if (import.meta.env.MODE === 'development') {
+          console.warn('Development mode - allowing access despite error');
+          setHasSubscription(true);
+        } else {
+          setHasSubscription(false);
+        }
       } finally {
         setIsLoading(false);
       }

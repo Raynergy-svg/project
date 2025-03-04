@@ -146,6 +146,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   const handleNavClick = (id: string, name: string) => {
+    // Special case for settings items - route to /settings with appropriate tab
+    if (settingsNavItems.some(item => item.id === id)) {
+      navigate(`/settings?tab=${id}`);
+      return;
+    }
+    
     setActiveTab(id);
     setPageTitle(name);
     navigate(`#${id}`);

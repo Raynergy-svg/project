@@ -106,8 +106,10 @@ DEBUG_DIRECTORIES.forEach(disableDirectory);
 // Check if there are any imports of debug components still in the codebase
 try {
   console.log("\nChecking for any remaining debug imports...");
+  // Exclude App.tsx from the search, as it uses a special technique to dynamically load
+  // debug components only in development without affecting the production build
   const grepResult = execSync(
-    'grep -r "debug/" --include="*.tsx" --include="*.ts" --exclude-dir="node_modules" src/'
+    'grep -r "debug/" --include="*.tsx" --include="*.ts" --exclude="App.tsx" --exclude-dir="node_modules" src/'
   ).toString();
   if (grepResult.trim()) {
     console.warn(

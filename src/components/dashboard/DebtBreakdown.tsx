@@ -1,10 +1,13 @@
-import { memo } from 'react';
-import { Plus, ArrowRight, CreditCard, Home, Car, GraduationCap, Briefcase, FileText, RefreshCw, Link, Clock } from 'lucide-react';
+import { memo, useMemo } from 'react';
+import { Plus, ArrowRight, CreditCard, Home, Car, GraduationCap, Briefcase, FileText, BarChart2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Debt } from '@/lib/dashboardConstants';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Badge } from '@/components/ui/badge';
 import { useChartColorScheme } from '@/hooks/useChartOptimization';
+import { motion } from 'framer-motion';
+import { formatCurrency } from '@/lib/utils';
+import { useDashboardAnalytics } from '@/hooks/useDashboardAnalytics';
 
 // Define a mapping for debt category icons
 const DEBT_CATEGORY_DISPLAY = {
@@ -38,165 +41,179 @@ const DEBT_CATEGORY_DISPLAY = {
   }
 };
 
+// Animation variants
+const fadeInVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: (i) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.05,
+      duration: 0.3,
+    }
+  }),
+};
+
 export interface DebtBreakdownProps {
   debts: Debt[];
-  onAddDebt: (debt: Debt) => void;
-  onViewDetails: (debtId: string) => void;
+  onAddNewDebt: () => void;
+  onViewDebtDetails: (debtId: string) => void;
 }
 
-// Memoized PieChart component to prevent unnecessary re-renders
-const DebtPieChart = memo(({ debts }) => {
-  const colors = useChartColorScheme(debts.length);
+function DebtBreakdown({ debts, onAddNewDebt, onViewDebtDetails }: DebtBreakdownProps) {
+  const { trackCardInteraction } = useDashboardAnalytics();
   
-  // Prepare data for pie chart
-  const chartData = debts.map((debt, index) => ({
-    name: debt.category,
-    value: debt.amount,
-    color: DEBT_CATEGORY_DISPLAY[debt.category]?.color || colors[index]
-  }));
+  const handleInteraction = () => {
+    trackCardInteraction('debt-breakdown');
+  };
   
-  return (
-    <div className="h-64">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={chartData}
-            cx="50%"
-            cy="50%"
-            labelLine={false}
-            outerRadius={80}
-            fill="#8884d8"
-            dataKey="value"
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip 
-            formatter={(value) => [`$${Number(value).toLocaleString()}`, '']}
-            contentStyle={{ 
-              backgroundColor: 'rgba(0,0,0,0.8)', 
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '8px',
-              color: 'white'
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-    </div>
+  // Calculate total debt
+  const totalDebt = useMemo(() => 
+    debts.reduce((sum, debt) => sum + debt.currentBalance, 0), 
+    [debts]
   );
-});
-
-export const DebtBreakdown = memo(function DebtBreakdown({ debts, onAddDebt, onViewDetails }: DebtBreakdownProps) {
-  // Calculate totals
-  const totalDebt = debts.reduce((sum, debt) => sum + debt.amount, 0);
-  const totalMonthlyPayment = debts.reduce((sum, debt) => sum + debt.minimumPayment, 0);
+  
+  // Prepare pie chart data
+  const chartData = useMemo(() => {
+    if (!debts.length) return [];
+    
+    return debts.map(debt => ({
+      name: debt.name,
+      value: debt.currentBalance,
+      category: debt.category,
+    }));
+  }, [debts]);
+  
+  // Get colors for the chart
+  const colors = useChartColorScheme(debts.length || 1, '#88B04B');
+  
+  // Calculate percentage of each debt relative to total
+  const calculatePercentage = (amount: number) => {
+    if (!totalDebt) return 0;
+    return Math.round((amount / totalDebt) * 100);
+  };
   
   return (
-    <div className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-white">Debt Breakdown</h2>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="text-white border-white/20 hover:bg-white/10" 
-          onClick={() => onAddDebt({
-            id: crypto.randomUUID(),
-            category: 'Credit Card',
-            amount: 0,
-            interestRate: 0,
-            minimumPayment: 0,
-            name: '',
-          })}
-        >
-          <Plus className="w-4 h-4 mr-2" /> Add Debt
-        </Button>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Pie Chart */}
-        <div className="flex items-center justify-center lg:col-span-1">
-          {debts.length > 0 ? (
-            <DebtPieChart debts={debts} />
-          ) : (
-            <div className="text-center p-6 bg-black/30 rounded-xl">
-              <p className="text-white/60">No debt information available</p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="mt-4 text-white border-white/20 hover:bg-white/10"
-                onClick={() => onAddDebt({
-                  id: crypto.randomUUID(),
-                  category: 'Credit Card',
-                  amount: 0,
-                  interestRate: 0,
-                  minimumPayment: 0,
-                  name: '',
-                })}
-              >
-                <Plus className="w-4 h-4 mr-2" /> Add Your First Debt
-              </Button>
-            </div>
-          )}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      onClick={handleInteraction}
+      className="bg-[#2A2A2A] rounded-xl border border-white/10 overflow-hidden"
+    >
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <BarChart2 className="text-[#88B04B]" /> 
+            Debt Breakdown
+          </h3>
+          <Button 
+            onClick={onAddNewDebt}
+            className="bg-[#88B04B] hover:bg-[#79A042] text-black"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Debt
+          </Button>
         </div>
         
-        {/* Debt List */}
-        <div className="lg:col-span-2">
-          <div className="space-y-4">
-            {debts.length === 0 ? (
-              <div className="text-center p-6 bg-black/30 rounded-xl">
-                <p className="text-white/60">No debt information available</p>
-              </div>
-            ) : (
-              <>
-                {/* Debt totals */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="p-4 bg-black/30 rounded-lg">
-                    <p className="text-sm text-white/60 mb-1">Total Debt</p>
-                    <p className="text-2xl font-bold text-white">${totalDebt.toLocaleString()}</p>
-                  </div>
-                  <div className="p-4 bg-black/30 rounded-lg">
-                    <p className="text-sm text-white/60 mb-1">Monthly Payments</p>
-                    <p className="text-2xl font-bold text-white">${totalMonthlyPayment.toLocaleString()}</p>
-                  </div>
-                </div>
-                
-                {/* List of debts */}
-                <div className="space-y-3">
-                  {debts.map((debt) => (
-                    <div 
-                      key={debt.id} 
-                      className="p-4 bg-black/30 rounded-lg flex items-center justify-between cursor-pointer hover:bg-black/40 transition-colors"
-                      onClick={() => onViewDetails(debt.id)}
-                    >
-                      <div className="flex items-center">
-                        <div className="p-2 rounded-full bg-[#88B04B]/20 mr-3">
-                          {DEBT_CATEGORY_DISPLAY[debt.category]?.icon || <FileText className="w-3 h-3 text-white" />}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-white">{debt.name || debt.category}</h3>
-                          <div className="flex items-center space-x-3 mt-1">
-                            <Badge className="bg-white/10 text-white/60 text-xs">
-                              ${debt.amount.toLocaleString()}
-                            </Badge>
-                            <Badge className="bg-white/10 text-white/60 text-xs">
-                              {debt.interestRate}% APR
-                            </Badge>
-                          </div>
+        {debts.length === 0 ? (
+          <div className="text-center p-6 bg-white/5 rounded-lg">
+            <p className="text-white/80 mb-3">No debts added yet</p>
+            <p className="text-sm text-white/60 mb-4">
+              Add your debts to see a breakdown and track your progress to becoming debt-free.
+            </p>
+            <Button 
+              onClick={onAddNewDebt}
+              className="bg-[#88B04B] hover:bg-[#79A042] text-black"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Your First Debt
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Pie Chart */}
+            <div className="flex justify-center items-center p-4 bg-white/5 rounded-lg h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    innerRadius={40}
+                    paddingAngle={2}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={DEBT_CATEGORY_DISPLAY[entry.category]?.color || colors[index % colors.length]} 
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value) => [formatCurrency(Number(value)), 'Balance']}
+                    contentStyle={{ 
+                      backgroundColor: 'rgba(0,0,0,0.8)', 
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '8px',
+                      color: 'white'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            {/* Debt List */}
+            <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+              {debts.map((debt, index) => (
+                <motion.div
+                  key={debt.id}
+                  initial="hidden"
+                  animate="visible"
+                  custom={index}
+                  variants={fadeInVariants}
+                  onClick={() => onViewDebtDetails(debt.id)}
+                  className="p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-md bg-[#88B04B]/20">
+                        {DEBT_CATEGORY_DISPLAY[debt.category]?.icon || 
+                          DEBT_CATEGORY_DISPLAY['Other'].icon}
+                      </div>
+                      <div>
+                        <p className="text-white font-medium">{debt.name}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs bg-transparent border-white/20 text-white/70">
+                            {debt.category}
+                          </Badge>
+                          <span className="text-xs text-white/50">
+                            {debt.interestRate}%
+                          </span>
                         </div>
                       </div>
-                      <ArrowRight className="w-4 h-4 text-white/40" />
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
+                    <div className="text-right">
+                      <p className="text-white font-medium">{formatCurrency(debt.currentBalance)}</p>
+                      <p className="text-xs text-white/50">
+                        {calculatePercentage(debt.currentBalance)}% of total
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
-});
+}
 
-// Add default export for lazy loading
-export default DebtBreakdown; 
+export default memo(DebtBreakdown); 

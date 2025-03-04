@@ -4,6 +4,7 @@ import { BankConnectionService } from '@/services/bankConnection';
 import type { Account, Transaction, DashboardData, BankAccount, DashboardState } from '@/types';
 import { Debt, PayoffStrategy } from '@/lib/dashboardConstants';
 import { createMockDashboardData } from '@/lib/mockDashboardData';
+import { supabase } from '@/utils/supabase/client';
 
 // Create stable service instance
 const bankService = BankConnectionService.getInstance();
@@ -101,6 +102,7 @@ export function useDashboard() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [bankError, setBankError] = useState<string | null>(null);
 
   // Fetch dashboard data
   const refreshDashboard = useCallback(async () => {
@@ -113,12 +115,89 @@ export function useDashboard() {
     try {
       setIsRefreshing(true);
       setError(null);
+      setBankError(null);
 
+      // First, check if the user has any connected bank accounts
+      let hasConnectedBanks = false;
+      let bankAccounts: BankAccount[] = [];
+      
+      try {
+        // Try to fetch bank accounts from Supabase
+        const { data: accountsData, error: accountsError } = await supabase
+          .from('bank_accounts')
+          .select('*')
+          .eq('user_id', user.id);
+          
+        if (!accountsError && accountsData && accountsData.length > 0) {
+          hasConnectedBanks = true;
+          bankAccounts = accountsData.map(acc => ({
+            id: acc.id,
+            name: acc.name,
+            type: acc.type,
+            balance: acc.balance,
+            institution: {
+              id: acc.institution_id || '',
+              name: acc.institution || '',
+            },
+            availableBalance: acc.available_balance,
+            currency: acc.currency || 'USD',
+            lastUpdated: new Date(acc.last_updated || Date.now()),
+          }));
+        }
+      } catch (bankErr) {
+        console.warn('Error fetching bank accounts:', bankErr);
+        // Don't fail the whole dashboard if bank fetch fails
+        setBankError('Failed to load bank account data. You can still use the dashboard.');
+      }
+      
+      // If no connected banks, return a minimal dashboard state
+      if (!hasConnectedBanks) {
+        const mockData = createMockDashboardData();
+        // Clear any mock debt data when no banks are connected
+        mockData.debts = [];
+        mockData.bankConnections = [];
+        setDashboardState(mockData);
+        setIsLoading(false);
+        setIsRefreshing(false);
+        return;
+      }
+      
+      // If we have connected banks, fetch actual data or use mock data
       // Simulate API fetch delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1200));
 
-      // Get mock data
+      // Get mock data enhanced with actual bank info if available
       const mockData = createMockDashboardData();
+      
+      // If we have real bank accounts, use that data to enhance our dashboard
+      if (bankAccounts.length > 0) {
+        // Transform bank accounts into bank connections
+        const connections = transformBankAccountsToConnections(bankAccounts);
+        mockData.bankConnections = connections;
+        
+        // Use bank account data to create more realistic debt data
+        // This logic would depend on your specific data model
+        const debtAccounts = bankAccounts.filter(acc => 
+          acc.type === 'loan' || acc.type === 'mortgage' || acc.type === 'credit');
+          
+        if (debtAccounts.length > 0) {
+          mockData.debts = debtAccounts.map(acc => ({
+            id: acc.id,
+            name: acc.name,
+            category: acc.type === 'mortgage' ? 'Mortgage' : 
+                     acc.type === 'credit' ? 'Credit Card' : 'Personal Loan',
+            amount: Math.abs(acc.balance),
+            interestRate: acc.type === 'credit' ? 18.99 : 
+                          acc.type === 'mortgage' ? 4.5 : 6.8,
+            minimumPayment: Math.abs(acc.balance) * 0.02,
+          }));
+          
+          // Update total debt and monthly payment based on actual accounts
+          mockData.totalDebt = debtAccounts.reduce((sum, acc) => sum + Math.abs(acc.balance), 0);
+          mockData.totalMonthlyPayment = mockData.debts.reduce((sum, debt) => sum + debt.minimumPayment, 0);
+        }
+      }
+      
       setDashboardState(mockData);
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -128,6 +207,29 @@ export function useDashboard() {
       setIsRefreshing(false);
     }
   }, [user]);
+
+  // Helper function to transform bank accounts to connections
+  const transformBankAccountsToConnections = (accounts: BankAccount[]) => {
+    // Group accounts by institution
+    const accountsByInstitution = accounts.reduce((result, account) => {
+      const institutionName = account.institution.name;
+      if (!result[institutionName]) {
+        result[institutionName] = [];
+      }
+      result[institutionName].push(account);
+      return result;
+    }, {} as Record<string, BankAccount[]>);
+    
+    // Create connections from grouped accounts
+    return Object.entries(accountsByInstitution).map(([name, accounts], index) => ({
+      id: `conn-${index}`,
+      name: name,
+      logoUrl: `https://logo.clearbit.com/${name.toLowerCase().replace(/\s+/g, '')}.com`,
+      lastSynced: accounts[0].lastUpdated,
+      status: 'connected' as const,
+      accountCount: accounts.length,
+    }));
+  };
 
   // Load dashboard data on mount
   useEffect(() => {
@@ -175,7 +277,9 @@ export function useDashboard() {
   // Handle adding a bank connection
   const handleAddBankConnection = useCallback(() => {
     console.log('Adding a new bank connection');
-    // This would typically open the bank connection flow
+    // In a real implementation, you would open a modal or redirect to a bank connection flow
+    // For now, we'll just show this message
+    alert('This would open the Plaid bank connection flow in a production app.');
   }, []);
 
   // Handle viewing bank connection details
@@ -189,6 +293,7 @@ export function useDashboard() {
     isLoading,
     isRefreshing,
     error,
+    bankError,
     refreshDashboard,
     handleAddNewDebt,
     handleViewDebtDetails,

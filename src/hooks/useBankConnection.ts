@@ -4,6 +4,46 @@ import { supabase } from '@/utils/supabase/client';
 import { createBankAccountsTable } from '@/lib/supabase/createBankAccountsTable';
 import { BankConnectionService, BankAccount, Transaction } from '../services/bankConnection';
 
+// Mock accounts data
+const MOCK_BANK_ACCOUNTS: BankAccount[] = [
+  {
+    id: 'acct_123456',
+    name: 'Chase Checking',
+    type: 'checking',
+    balance: 2543.21,
+    lastUpdated: new Date(),
+    institution: 'Chase',
+    accountNumber: '****4567',
+    plaidItemId: 'item_12345',
+    plaidAccountId: 'account_12345',
+    institutionId: 'ins_123'
+  },
+  {
+    id: 'acct_234567',
+    name: 'Chase Credit Card',
+    type: 'credit',
+    balance: -1250.75,
+    lastUpdated: new Date(),
+    institution: 'Chase',
+    accountNumber: '****5678',
+    plaidItemId: 'item_12345',
+    plaidAccountId: 'account_23456',
+    institutionId: 'ins_123'
+  },
+  {
+    id: 'acct_345678',
+    name: 'Bank of America Savings',
+    type: 'savings',
+    balance: 8750.42,
+    lastUpdated: new Date(),
+    institution: 'Bank of America',
+    accountNumber: '****6789',
+    plaidItemId: 'item_23456',
+    plaidAccountId: 'account_34567',
+    institutionId: 'ins_234'
+  }
+];
+
 export interface BankAccount {
   id: string;
   name: string;
@@ -64,35 +104,21 @@ export function useBankConnection(): UseBankConnectionReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [isPlaidReady, setIsPlaidReady] = useState(false);
-  const [isMockDataEnabled, setIsMockDataEnabled] = useState(!BankConnectionService.getInstance().getUseRealData());
+  const [isPlaidReady, setIsPlaidReady] = useState(true); // Set to true by default
+  const [isMockDataEnabled, setIsMockDataEnabled] = useState(true); // Always use mock data
   const { user } = useAuth();
 
-  // Initialize - Create tables if needed and get accounts
+  // Initialize - Load mock accounts data
   useEffect(() => {
     const initialize = async () => {
-      if (!user?.id) return;
-      
       setIsLoading(true);
       try {
-        // Create the bank_accounts table if it doesn't exist
-        // We'll try to create it, but won't show errors to the user if it fails
-        try {
-          const result = await createBankAccountsTable();
-          if (!result.success) {
-            console.error("Failed to create bank_accounts table:", result.error);
-            // Continue anyway - the table will be created when needed
-          }
-        } catch (tableError) {
-          console.error("Error setting up bank_accounts table:", tableError);
-          // Continue anyway
-        }
+        // Load mock accounts instead of trying to create tables
+        setAccounts(MOCK_BANK_ACCOUNTS);
         
-        // Fetch accounts (this function now handles missing tables gracefully)
-        await fetchAccounts();
-        
-        // Get a link token for Plaid
-        await getLinkToken();
+        // Set a mock link token
+        const mockLinkToken = 'link-sandbox-' + Math.random().toString(36).substring(2, 15);
+        setLinkToken(mockLinkToken);
         
         setIsPlaidReady(true);
       } catch (err) {
@@ -106,113 +132,58 @@ export function useBankConnection(): UseBankConnectionReturn {
     initialize();
   }, [user?.id]);
 
-  // Fetch bank accounts from Supabase
+  // Fetch bank accounts - returns mock data instead of calling Supabase
   const fetchAccounts = useCallback(async () => {
-    if (!user?.id) return [];
-    
     try {
-      const { data, error: fetchError } = await supabase
-        .from('bank_accounts')
-        .select('*')
-        .eq('user_id', user.id);
-        
-      if (fetchError) {
-        // Handle different error cases
-        if (fetchError.code === '42P01' || // Table doesn't exist error
-            fetchError.message?.includes('does not exist') ||
-            fetchError.status === 404 || // HTTP 404 error
-            fetchError.message?.includes('404')) {
-          console.log('Bank accounts table does not exist yet or API endpoint has issues');
-          setAccounts([]);
-          return [];
-        }
-        
-        throw fetchError;
-      }
-      
-      if (data) {
-        // Transform data to match our interface
-        const transformedAccounts = data.map(acc => ({
-          id: acc.id,
-          name: acc.name,
-          type: acc.type as 'checking' | 'savings' | 'credit',
-          balance: acc.balance,
-          lastUpdated: new Date(acc.last_updated),
-          institution: acc.institution,
-          accountNumber: acc.account_number,
-          plaidItemId: acc.plaid_item_id,
-          plaidAccountId: acc.plaid_account_id,
-          institutionId: acc.institution_id
-        }));
-        
-        setAccounts(transformedAccounts);
-        return transformedAccounts;
-      }
-      
-      return [];
+      // Return mock accounts
+      setAccounts(MOCK_BANK_ACCOUNTS);
+      return MOCK_BANK_ACCOUNTS;
     } catch (err) {
       console.error('Error fetching bank accounts:', err);
-      
-      const errMsg = err instanceof Error ? err.message : String(err);
-      
-      // Don't show errors to users for database setup issues or 404 errors
-      if (errMsg.includes('42P01') || 
-          errMsg.includes('does not exist') || 
-          errMsg.includes('404')) {
-        console.log('Bank accounts table does not exist yet or API has connectivity issues');
-        setAccounts([]);
-        return [];
-      } else {
-        setError('Failed to fetch bank accounts');
-        return [];
-      }
+      setError('Failed to fetch bank accounts');
+      return [];
     }
-  }, [user?.id]);
+  }, []);
 
-  // Get a link token from Plaid
+  // Get a mock link token
   const getLinkToken = useCallback(async () => {
-    if (!user?.id) return;
-    
     try {
-      // In a real app, you would have a server endpoint to get a link token
-      // For demonstration, we'll mock this response
-      // const response = await fetch('/api/plaid/create-link-token', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ userId: user.id })
-      // });
-      // const data: LinkTokenResponse = await response.json();
-      
-      // Mock a link token for development
+      // Create a mock link token
       const mockLinkToken = 'link-sandbox-' + Math.random().toString(36).substring(2, 15);
       setLinkToken(mockLinkToken);
-      
-      // In production, you would use:
-      // setLinkToken(data.link_token);
     } catch (err) {
       console.error('Error getting Plaid link token:', err);
       setError('Failed to initialize Plaid');
     }
-  }, [user?.id]);
+  }, []);
 
-  // Open Plaid Link
+  // Open Plaid Link - simulated
   const openBankConnection = useCallback(() => {
-    // This function will be called by the component
-    // The actual Plaid Link opening happens in the component using usePlaidLink
-    console.log('Ready to open Plaid Link with token:', linkToken);
-    
-    // For our mock implementation, we'll just make sure we have a link token
-    if (!linkToken) {
-      getLinkToken();
-    }
-  }, [linkToken, getLinkToken]);
+    console.log('Simulating opening Plaid Link with token:', linkToken);
+    // Simulate successful connection by adding a mock account after a delay
+    setTimeout(() => {
+      const newAccount: BankAccount = {
+        id: 'acct_' + Math.random().toString(36).substring(2, 9),
+        name: 'New Connected Account',
+        type: 'checking',
+        balance: 1234.56,
+        lastUpdated: new Date(),
+        institution: 'New Bank',
+        accountNumber: '****' + Math.floor(1000 + Math.random() * 9000).toString(),
+      };
+      
+      setAccounts(prev => [...prev, newAccount]);
+    }, 2000);
+  }, [linkToken]);
 
-  // Refresh accounts
+  // Refresh accounts - load mock data
   const refreshAccounts = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     
     try {
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       await fetchAccounts();
     } catch (err) {
       setError('Failed to refresh accounts');
@@ -224,28 +195,16 @@ export function useBankConnection(): UseBankConnectionReturn {
     return Promise.resolve();
   }, [fetchAccounts]);
 
-  // Disconnect an account
+  // Disconnect an account - simulate success
   const disconnectAccount = useCallback(async (accountId: string) => {
-    if (!user?.id) return Promise.resolve();
-    
     setIsLoading(true);
     
     try {
-      // Delete from Supabase
-      const { error: deleteError } = await supabase
-        .from('bank_accounts')
-        .delete()
-        .eq('id', accountId)
-        .eq('user_id', user.id);
-        
-      if (deleteError) {
-        throw deleteError;
-      }
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Remove from state
       setAccounts(prev => prev.filter(acc => acc.id !== accountId));
-      
-      // In a real app, you might also want to remove the Plaid Item via your server
     } catch (err) {
       setError('Failed to disconnect account');
       console.error('Error disconnecting account:', err);
@@ -254,76 +213,36 @@ export function useBankConnection(): UseBankConnectionReturn {
     }
     
     return Promise.resolve();
-  }, [user?.id]);
-
-  // Connect a new account
-  const connectAccount = useCallback(async (accountData: ConnectAccountParams) => {
-    if (!user?.id) return;
-    
-    setIsLoading(true);
-    
-    try {
-      // Insert into Supabase
-      const { data, error: insertError } = await supabase
-        .from('bank_accounts')
-        .insert({
-          user_id: user.id,
-          name: accountData.accountName,
-          type: accountData.accountType,
-          balance: accountData.balance,
-          institution: accountData.institutionName,
-          account_number: `****${Math.floor(1000 + Math.random() * 9000)}`,
-          plaid_item_id: accountData.plaidItemId,
-          plaid_account_id: accountData.plaidAccountId,
-          institution_id: accountData.institutionId,
-          last_updated: new Date().toISOString()
-        })
-        .select()
-        .single();
-        
-      if (insertError) {
-        throw insertError;
-      }
-      
-      if (data) {
-        // Add to state
-        const newAccount: BankAccount = {
-          id: data.id,
-          name: data.name,
-          type: data.type as 'checking' | 'savings' | 'credit',
-          balance: data.balance,
-          lastUpdated: new Date(data.last_updated),
-          institution: data.institution,
-          accountNumber: data.account_number,
-          plaidItemId: data.plaid_item_id,
-          plaidAccountId: data.plaid_account_id,
-          institutionId: data.institution_id
-        };
-        
-        setAccounts(prev => [...prev, newAccount]);
-      }
-    } catch (err) {
-      setError('Failed to connect account');
-      console.error('Error connecting account:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user?.id]);
-
-  const toggleMockData = useCallback((useMock: boolean) => {
-    // Additional safeguard for production environments
-    if (typeof window !== 'undefined' && (
-        process.env.NODE_ENV === 'production' || 
-        import.meta.env.PROD
-      )) {
-      console.warn('SECURITY WARNING: Attempt to use mock data in production environment has been blocked.');
-      setIsMockDataEnabled(false);
-      return;
-    }
-    
-    BankConnectionService.getInstance().setUseRealData(!useMock);
-    setIsMockDataEnabled(useMock);
   }, []);
+
+  // Connect account - simulate adding a new account
+  const connectAccount = useCallback((accountData: ConnectAccountParams) => {
+    // Create a new account from the provided data
+    const newAccount: BankAccount = {
+      id: accountData.id,
+      name: accountData.accountName,
+      type: accountData.accountType as 'checking' | 'savings' | 'credit',
+      balance: accountData.balance,
+      lastUpdated: accountData.lastUpdated,
+      institution: accountData.institutionName,
+      accountNumber: '****' + Math.floor(1000 + Math.random() * 9000).toString(),
+      plaidItemId: accountData.plaidItemId,
+      plaidAccountId: accountData.plaidAccountId,
+      institutionId: accountData.institutionId
+    };
+    
+    // Add to state
+    setAccounts(prev => [...prev, newAccount]);
+  }, []);
+
+  // Toggle between mock and real data
+  const toggleMockData = useCallback((useMock: boolean) => {
+    setIsMockDataEnabled(useMock);
+    BankConnectionService.getInstance().setUseRealData(!useMock);
+    
+    // Reload accounts
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   return {
     accounts,
@@ -336,6 +255,6 @@ export function useBankConnection(): UseBankConnectionReturn {
     linkToken,
     isPlaidReady,
     isMockDataEnabled,
-    toggleMockData,
+    toggleMockData
   };
 } 

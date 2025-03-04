@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 interface DevAccount {
   id: string;
@@ -7,66 +7,54 @@ interface DevAccount {
   isPremium: boolean;
 }
 
-const DEV_ACCOUNTS = [
-  {
-    id: 'dev-user-1',
-    email: 'dev@example.com',
-    name: 'Dev User',
-    isPremium: true
-  },
-  {
-    id: 'dev-user-2',
-    email: 'test@example.com',
-    name: 'Test User',
-    isPremium: false
-  }
-];
-
 /**
- * Hook to provide development account functionality
- * Only for use in development environment!
+ * Hook to handle development accounts in dev mode
  */
 export function useDevAccount() {
-  const [accounts] = useState<DevAccount[]>(DEV_ACCOUNTS);
-  
-  /**
-   * Find a dev account by email
-   */
-  const findDevAccount = (email: string): DevAccount | undefined => {
-    return accounts.find(account => account.email.toLowerCase() === email.toLowerCase());
-  };
-  
-  /**
-   * Check if email is a valid dev account
-   */
-  const isDevAccount = (email: string): boolean => {
-    return !!findDevAccount(email);
-  };
-  
-  /**
-   * Verify dev account credentials
-   * In development mode, any password is accepted for dev accounts
-   */
-  const verifyDevCredentials = (email: string, password: string): { valid: boolean; account?: DevAccount } => {
-    // For development, we'll accept any password for dev accounts
-    const account = findDevAccount(email);
-    
-    if (!account) {
-      return { valid: false };
-    }
-    
-    // In development mode, password can be anything for dev accounts
-    return { 
-      valid: true,
+  // List of development accounts for local testing
+  const devAccounts = useMemo<DevAccount[]>(() => {
+    return [
+      {
+        id: '00000000-0000-0000-0000-000000000001', // Fixed UUID format for dev user 1
+        email: 'dev@example.com',
+        name: 'Development User',
+        isPremium: true
+      },
+      {
+        id: '00000000-0000-0000-0000-000000000002', // Fixed UUID format for dev user 2
+        email: 'free@example.com',
+        name: 'Free User',
+        isPremium: false
+      }
+    ];
+  }, []);
+
+  // Check if email matches a dev account
+  const isDevAccount = useCallback((email: string): boolean => {
+    if (!email) return false;
+    return devAccounts.some(account => account.email.toLowerCase() === email.toLowerCase());
+  }, [devAccounts]);
+
+  // Get dev account by email
+  const getDevAccount = useCallback((email: string): DevAccount | null => {
+    if (!email) return null;
+    return devAccounts.find(account => account.email.toLowerCase() === email.toLowerCase()) || null;
+  }, [devAccounts]);
+
+  // Verify dev credentials (any password works for dev accounts)
+  const verifyDevCredentials = useCallback((email: string, password: string): { valid: boolean, account: DevAccount | null } => {
+    const account = getDevAccount(email);
+    return {
+      valid: !!account && password.length > 0,
       account
     };
-  };
-  
+  }, [getDevAccount]);
+
   return {
     isDevAccount,
+    getDevAccount,
     verifyDevCredentials,
-    findDevAccount,
-    devAccounts: accounts
+    devAccounts
   };
 }
 

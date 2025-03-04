@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { IS_DEV } from '@/utils/environment';
 
 /**
  * Hook to handle development sign-in logic.
@@ -22,9 +23,9 @@ export function useDevSignIn() {
       // The login function in AuthContext will detect if this is a dev account
       const result = await login(email, password);
       
-      // If login succeeded, navigate to dashboard
+      // The login function now handles the navigation to dashboard
+      // So we don't need to navigate here anymore
       if (result && result.user) {
-        navigate('/dashboard');
         return { success: true };
       }
       
@@ -52,8 +53,10 @@ export function useDevSignIn() {
     handleDevSignIn,
     loading,
     error,
-    // Add helper text for dev mode
-    devAccountInfo: 'For testing, use dev@example.com with any password'
+    // Only provide dev account info in development mode, using our environment utility
+    devAccountInfo: IS_DEV 
+      ? 'For testing, use dev@example.com with any password'
+      : ''
   };
 }
 

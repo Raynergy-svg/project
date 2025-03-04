@@ -8,6 +8,10 @@ import { initSecurityAuditService } from './services/securityAuditService';
 // Determine if we're in development mode
 const isDevelopment = import.meta.env.DEV;
 
+// Explicitly set production flag - this will be tree-shaken in production build
+window.IS_PRODUCTION = import.meta.env.PROD || import.meta.env.MODE === 'production';
+console.log('App running in production mode:', window.IS_PRODUCTION);
+
 // Global error handler
 window.addEventListener('error', (event) => {
   console.error('Global error caught:', event.error || event.message);

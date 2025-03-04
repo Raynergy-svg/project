@@ -383,29 +383,57 @@ const notifySecurityAdmin = async (event: SecurityEvent): Promise<void> => {
  */
 export const checkSqlExecutionFunction = async (): Promise<boolean> => {
   try {
-    console.log('Checking if execute_sql function is available...');
+    console.log('Checking if SQL execution function is available...');
     
-    // Try to execute a simple SQL statement
+    // First try the new security_execute_sql function
+    try {
+      const { data, error } = await supabase.rpc('security_execute_sql', {
+        sql: 'SELECT 1 as test'
+      });
+      
+      if (!error) {
+        console.log('security_execute_sql function is available');
+        return true;
+      }
+    } catch (e) {
+      console.warn('security_execute_sql not available, trying execute_sql...');
+    }
+    
+    // Fall back to the original execute_sql function
     const { data, error } = await supabase.rpc('execute_sql', {
       sql: 'SELECT 1 as test'
     });
     
     if (error) {
+      // Try with the sql_query parameter name
+      try {
+        const { data: data2, error: error2 } = await supabase.rpc('execute_sql', {
+          sql_query: 'SELECT 1 as test'
+        });
+        
+        if (!error2) {
+          console.log('execute_sql function with sql_query parameter is available');
+          return true;
+        }
+      } catch (e) {
+        // Continue to error handling
+      }
+      
       // Check error code to determine if function doesn't exist
       if (error.code === 'PGRST202' || 
           error.message?.includes('Could not find the function') || 
           error.message?.includes('not found in the schema cache')) {
-        console.warn('execute_sql function not found on Supabase');
+        console.warn('SQL execution function not found on Supabase');
         return false;
       }
       
       // If error is related to permissions rather than function existence
-      if (error.code === '42501' || error.code === '28000') {
-        console.warn('Permission denied for execute_sql function');
+      if (error.code === '42501' || error.code === '28000' || error.status === 401) {
+        console.warn('Permission denied for SQL execution function');
         return false;
       }
       
-      console.warn('Error checking execute_sql function:', error);
+      console.warn('Error checking SQL execution function:', error);
       return false;
     }
     
@@ -413,7 +441,7 @@ export const checkSqlExecutionFunction = async (): Promise<boolean> => {
     console.log('execute_sql function is available');
     return true;
   } catch (error) {
-    console.error('Exception checking execute_sql function:', error);
+    console.error('Exception checking SQL execution function:', error);
     return false;
   }
 };
@@ -559,16 +587,41 @@ export const createSecurityAuditLogTable = async (hasSqlFunction: boolean): Prom
     
     try {
       // Execute the SQL to create the table
-      const { data, error } = await supabase.rpc('execute_sql', {
+      const { data, error } = await supabase.rpc('security_execute_sql', {
         sql: createTableSQL
       });
       
       if (error) {
         console.error('Error creating security audit log table:', error);
-        // Still display setup instructions as a fallback
-        displaySetupInstructions();
+        
+        // Try with the original execute_sql function as fallback
+        try {
+          const { data: data2, error: error2 } = await supabase.rpc('execute_sql', {
+            sql: createTableSQL
+          });
+          
+          if (error2) {
+            // Try with sql_query parameter as a last resort
+            const { data: data3, error: error3 } = await supabase.rpc('execute_sql', {
+              sql_query: createTableSQL
+            });
+            
+            if (error3) {
+              console.error('All SQL execution attempts failed:', error3);
+              // Still display setup instructions as a fallback
+              displaySetupInstructions();
+            } else {
+              console.log('Security audit log table setup completed successfully using sql_query parameter');
+            }
+          } else {
+            console.log('Security audit log table setup completed successfully using execute_sql');
+          }
+        } catch (e) {
+          console.error('Exception in fallback SQL execution:', e);
+          displaySetupInstructions();
+        }
       } else {
-        console.log('Security audit log table setup completed successfully');
+        console.log('Security audit log table setup completed successfully using security_execute_sql');
       }
     } catch (error) {
       console.error('Exception executing SQL for security audit table:', error);
@@ -586,9 +639,36 @@ export const createSecurityAuditLogTable = async (hasSqlFunction: boolean): Prom
  */
 export const getSetupInstructions = (): string => {
   return `
--- Run this SQL in the Supabase SQL Editor to create the execute_sql function
+-- Run this SQL in the Supabase SQL Editor to create the necessary functions
 
--- Create the execute_sql function that accepts a SQL parameter
+-- Create the security_execute_sql function that accepts a SQL parameter named 'sql'
+CREATE OR REPLACE FUNCTION public.security_execute_sql("sql" text)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result json;
+BEGIN
+  EXECUTE sql INTO result;
+  RETURN result;
+EXCEPTION
+  WHEN OTHERS THEN
+    RETURN json_build_object(
+      'error', SQLERRM,
+      'detail', SQLSTATE
+    );
+END;
+$$;
+
+-- Grant execute permission to both authenticated and anonymous users
+GRANT EXECUTE ON FUNCTION public.security_execute_sql("sql" text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.security_execute_sql("sql" text) TO anon;
+
+-- Add a comment explaining the function
+COMMENT ON FUNCTION public.security_execute_sql("sql" text) IS 'Executes the provided SQL statement with security definer privileges. Parameter named sql to match client code.';
+
+-- Also create the original execute_sql function for backward compatibility
 CREATE OR REPLACE FUNCTION public.execute_sql(sql text)
 RETURNS json
 LANGUAGE plpgsql
@@ -608,8 +688,9 @@ EXCEPTION
 END;
 $$;
 
--- Grant execute permission on the function to authenticated users
+-- Grant execute permission on the function to authenticated and anonymous users
 GRANT EXECUTE ON FUNCTION public.execute_sql(text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.execute_sql(text) TO anon;
 
 -- Add a comment explaining the function
 COMMENT ON FUNCTION public.execute_sql(text) IS 'Executes the provided SQL statement with security definer privileges. Use with caution.';
@@ -651,16 +732,6 @@ CREATE POLICY user_read_own_security_logs ON public.security_audit_log
 -- Create a policy that allows insertion of logs
 CREATE POLICY insert_security_logs ON public.security_audit_log
     FOR INSERT WITH CHECK (true);
-
--- Expose the table and function through the API
-BEGIN;
-  -- Check if public is in the exposed schemas
-  INSERT INTO "storage"."buckets" ("id", "name") 
-  VALUES ('security-audit-logs', 'security-audit-logs')
-  ON CONFLICT DO NOTHING;
-  
-  COMMIT;
-END;
   `;
 };
 
@@ -726,7 +797,31 @@ export const createSecurityAuditFunctions = async (): Promise<boolean> => {
     // Try to create the functions using a simple SQL statement
     // This is a one-time operation you can run manually via Supabase SQL editor
     const sql = `
-      -- Create a function to securely execute SQL (should be run by an admin)
+      -- Create a function to securely execute SQL with named parameter 'sql'
+      CREATE OR REPLACE FUNCTION public.security_execute_sql("sql" text)
+      RETURNS json
+      LANGUAGE plpgsql
+      SECURITY DEFINER
+      AS $$
+      DECLARE
+        result json;
+      BEGIN
+        EXECUTE sql INTO result;
+        RETURN result;
+      EXCEPTION
+        WHEN OTHERS THEN
+          RETURN json_build_object(
+            'error', SQLERRM,
+            'detail', SQLSTATE
+          );
+      END;
+      $$;
+      
+      -- Grant execute permission to both authenticated and anonymous users
+      GRANT EXECUTE ON FUNCTION public.security_execute_sql("sql" text) TO authenticated;
+      GRANT EXECUTE ON FUNCTION public.security_execute_sql("sql" text) TO anon;
+      
+      -- Also create the original execute_sql function for backward compatibility
       CREATE OR REPLACE FUNCTION public.execute_sql(sql text)
       RETURNS json
       LANGUAGE plpgsql
@@ -744,6 +839,10 @@ export const createSecurityAuditFunctions = async (): Promise<boolean> => {
           );
       END;
       $$;
+      
+      -- Grant execute permission to both authenticated and anonymous users
+      GRANT EXECUTE ON FUNCTION public.execute_sql(text) TO authenticated;
+      GRANT EXECUTE ON FUNCTION public.execute_sql(text) TO anon;
 
       -- Create a function specifically for creating the security audit log table
       CREATE OR REPLACE FUNCTION public.create_security_audit_log_table()

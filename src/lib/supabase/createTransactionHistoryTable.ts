@@ -27,74 +27,18 @@ export async function createTransactionHistoryTable(): Promise<{ success: boolea
       throw new DatabaseError(checkError.message, 'check_table_exists', 'DB_QUERY_ERROR');
     }
     
-    console.log('Payment transactions table does not exist. Creating it now...');
+    console.log('Payment transactions table does not exist');
     
-    // Execute SQL to create the table (using RPC to execute SQL directly)
-    const { error: createError } = await supabase.rpc('execute_sql', {
-      sql_query: `
-        CREATE TABLE IF NOT EXISTS public.payment_transactions (
-          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-          debt_id UUID NOT NULL REFERENCES public.debts(id) ON DELETE CASCADE,
-          amount DECIMAL(15,2) NOT NULL,
-          payment_date TIMESTAMP WITH TIME ZONE NOT NULL,
-          status TEXT NOT NULL,
-          payment_method TEXT,
-          confirmation_code TEXT,
-          notes TEXT,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL,
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT now() NOT NULL
-        );
-        
-        -- Add indexes for better query performance
-        CREATE INDEX IF NOT EXISTS payment_transactions_user_id_idx ON public.payment_transactions (user_id);
-        CREATE INDEX IF NOT EXISTS payment_transactions_debt_id_idx ON public.payment_transactions (debt_id);
-        CREATE INDEX IF NOT EXISTS payment_transactions_payment_date_idx ON public.payment_transactions (payment_date);
-        CREATE INDEX IF NOT EXISTS payment_transactions_status_idx ON public.payment_transactions (status);
-        
-        -- Create RLS (Row Level Security) policies
-        ALTER TABLE public.payment_transactions ENABLE ROW LEVEL SECURITY;
-        
-        -- Create policy to allow users to see only their transactions
-        CREATE POLICY select_own_transactions ON public.payment_transactions
-          FOR SELECT USING (auth.uid() = user_id);
-        
-        -- Create policy to allow users to insert their own transactions
-        CREATE POLICY insert_own_transactions ON public.payment_transactions
-          FOR INSERT WITH CHECK (auth.uid() = user_id);
-        
-        -- Create policy to allow users to update their own transactions
-        CREATE POLICY update_own_transactions ON public.payment_transactions
-          FOR UPDATE USING (auth.uid() = user_id);
-        
-        -- Create policy to allow users to delete their own transactions
-        CREATE POLICY delete_own_transactions ON public.payment_transactions
-          FOR DELETE USING (auth.uid() = user_id);
-          
-        -- Create function to update the 'updated_at' timestamp
-        CREATE OR REPLACE FUNCTION update_payment_transaction_timestamp()
-        RETURNS TRIGGER AS $$
-        BEGIN
-          NEW.updated_at = now();
-          RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-        
-        -- Create trigger to automatically update the timestamp
-        CREATE TRIGGER update_payment_transaction_timestamp
-        BEFORE UPDATE ON public.payment_transactions
-        FOR EACH ROW
-        EXECUTE FUNCTION update_payment_transaction_timestamp();
-      `
-    });
+    // Instead of trying to create the table, provide a message about manual setup
+    console.info(
+      'Transaction history table creation requires SQL execution privileges. ' + 
+      'Please create tables using the Supabase dashboard SQL editor.'
+    );
     
-    if (createError) {
-      console.error('Error creating payment_transactions table:', createError);
-      throw new DatabaseError(createError.message, 'create_table', 'DB_QUERY_ERROR');
-    }
-    
-    console.log('Successfully created payment_transactions table');
-    return { success: true, error: null };
+    return { 
+      success: false, 
+      error: 'Table creation requires SQL execution privileges. Please use the Supabase dashboard SQL editor to create necessary tables.' 
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error in createTransactionHistoryTable:', errorMessage);

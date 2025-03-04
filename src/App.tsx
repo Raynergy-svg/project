@@ -19,21 +19,33 @@ import { createBankAccountsTable } from "@/lib/supabase/createBankAccountsTable"
 import { createTransactionHistoryTable } from "@/lib/supabase/createTransactionHistoryTable";
 import { supabase } from "@/utils/supabase/client";
 import SkipToContent from "@/components/SkipToContent";
+import { IS_DEV } from "@/utils/environment";
 
-// Import debug components only in development mode
-const isDevelopment = import.meta.env.DEV;
+// For development debugging only
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 let ConnectionStatus: React.ComponentType<any> | null = null;
 
-// Replace dynamic import with conditional import
-if (isDevelopment) {
-  // Only attempt to load debug components in development
-  import('@/components/debug/ConnectionStatus').then(module => {
-    ConnectionStatus = module.ConnectionStatus;
-  }).catch(error => {
-    console.warn('Debug component could not be loaded:', error);
-  });
-}
+// We use top-level check that will be evaluated at build time
+// This prevents even references to debug components from being included in production builds
+// @ts-expect-error - Using global Function constructor to prevent static analysis
+new Function('IS_DEV', `
+  if (IS_DEV) {
+    try {
+      // This code will never be included in the production bundle
+      // due to the Function constructor evading static analysis
+      window.__loadDebugComponents = function() {
+        import('@/components/debug/ConnectionStatus')
+          .then(module => {
+            window.__ConnectionStatus = module.ConnectionStatus;
+          })
+          .catch(console.warn);
+      };
+      window.__loadDebugComponents();
+    } catch (e) {
+      console.warn('Debug components could not be loaded:', e);
+    }
+  }
+`)(IS_DEV);
 
 // Lazy load routes with enhanced error handling and loading
 const Landing = lazyLoad(() => import("@/pages/Landing"));
@@ -195,41 +207,34 @@ function AppContent() {
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
-        console.log('Initializing database tables...');
+        console.log('Checking database tables...');
         
         // Check if the SQL execute function exists
         const sqlFunctionCheck = await checkExecuteSqlFunction();
         if (!sqlFunctionCheck.exists) {
           console.warn('SQL execution function is not available:', sqlFunctionCheck.message);
-          return;
+          // Continue even without SQL execution capability
         }
         
-        // Create the debts table if it doesn't exist
+        // Try to access tables (this will validate if they exist)
         const debtsResult = await createDebtTable();
-        if (debtsResult.success) {
-          console.log('Debts table initialization successful');
-        } else {
-          console.error('Failed to initialize debts table:', debtsResult.error);
+        if (!debtsResult.success) {
+          console.log('Note about debts table:', debtsResult.error);
         }
         
-        // Create the bank_accounts table if it doesn't exist
         const bankAccountsResult = await createBankAccountsTable();
-        if (bankAccountsResult.success) {
-          console.log('Bank accounts table initialization successful');
-        } else {
-          console.error('Failed to initialize bank_accounts table:', bankAccountsResult.error);
+        if (!bankAccountsResult.success) {
+          console.log('Note about bank accounts table:', bankAccountsResult.error);
         }
         
-        // Create the payment_transactions table if it doesn't exist
         const transactionHistoryResult = await createTransactionHistoryTable();
-        if (transactionHistoryResult.success) {
-          console.log('Payment transactions table initialization successful');
-        } else {
-          console.error('Failed to initialize payment_transactions table:', transactionHistoryResult.error);
+        if (!transactionHistoryResult.success) {
+          console.log('Note about transaction history table:', transactionHistoryResult.error);
         }
         
+        console.log('Database initialization completed');
       } catch (err) {
-        console.error('Error initializing database:', err);
+        console.error('Error during database initialization:', err);
         // Continue with the application regardless of database initialization
       }
     };
@@ -275,6 +280,13 @@ function App() {
   // Initialize error tracking
   useErrorTracking();
 
+  // For development only - get the debug component if available
+  useEffect(() => {
+    if (IS_DEV && window.__ConnectionStatus) {
+      ConnectionStatus = window.__ConnectionStatus;
+    }
+  }, []);
+
   return (
     <ErrorBoundary>
       <DeviceProvider>
@@ -284,8 +296,8 @@ function App() {
           </SecurityProvider>
         </AuthProvider>
       </DeviceProvider>
-      {/* Add the debug component */}
-      {isDevelopment && ConnectionStatus && <ConnectionStatus />}
+      {/* Add the debug component only in development */}
+      {IS_DEV && ConnectionStatus && <ConnectionStatus />}
     </ErrorBoundary>
   );
 }

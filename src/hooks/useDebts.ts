@@ -3,6 +3,79 @@ import { useAuth } from '@/contexts/AuthContext';
 import * as debtService from '@/lib/supabase/debtService';
 import type { Debt, ServiceResponse } from '@/lib/supabase/debtService';
 
+// Mock debts data
+const MOCK_DEBTS: Debt[] = [
+  {
+    id: '1',
+    user_id: 'user123',
+    name: 'Chase Sapphire Card',
+    type: 'credit_card',
+    amount: 4500,
+    interest_rate: 18.99,
+    minimum_payment: 150,
+    due_date: new Date(new Date().setDate(new Date().getDate() + 15)).toISOString(),
+    notes: 'Need to pay this off quickly',
+    priority: 1,
+    created_at: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    user_id: 'user123',
+    name: 'Student Loan',
+    type: 'student_loan',
+    amount: 28000,
+    interest_rate: 4.5,
+    minimum_payment: 350,
+    due_date: new Date(new Date().setDate(new Date().getDate() + 20)).toISOString(),
+    notes: 'Federal student loan',
+    priority: 2,
+    created_at: new Date(new Date().setDate(new Date().getDate() - 60)).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    user_id: 'user123',
+    name: 'Car Loan',
+    type: 'loan',
+    amount: 15000,
+    interest_rate: 5.25,
+    minimum_payment: 320,
+    due_date: new Date(new Date().setDate(new Date().getDate() + 5)).toISOString(),
+    notes: 'Toyota finance',
+    priority: 3,
+    created_at: new Date(new Date().setDate(new Date().getDate() - 90)).toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: '4',
+    user_id: 'user123',
+    name: 'Medical Bill',
+    type: 'medical',
+    amount: 1200,
+    interest_rate: 0,
+    minimum_payment: 100,
+    due_date: new Date(new Date().setDate(new Date().getDate() + 25)).toISOString(),
+    notes: 'Hospital visit payment plan',
+    priority: 4,
+    created_at: new Date(new Date().setDate(new Date().getDate() - 20)).toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+];
+
+// Generate a mock debt summary based on the mock debts
+const generateMockDebtSummary = (debts: Debt[]) => {
+  return {
+    total_amount: debts.reduce((sum, debt) => sum + debt.amount, 0),
+    highest_interest_rate: Math.max(...debts.map(debt => debt.interest_rate)),
+    total_minimum_payment: debts.reduce((sum, debt) => sum + debt.minimum_payment, 0),
+    debt_count: debts.length
+  };
+};
+
+// Mock debt summary
+const MOCK_DEBT_SUMMARY = generateMockDebtSummary(MOCK_DEBTS);
+
 interface UseDebtsState {
   debts: Debt[];
   isLoading: boolean;
@@ -29,15 +102,15 @@ interface UseDebtsActions {
 export function useDebts(): UseDebtsState & UseDebtsActions {
   const { user } = useAuth();
   const [state, setState] = useState<UseDebtsState>({
-    debts: [],
-    isLoading: true,
+    debts: MOCK_DEBTS, // Initialize with mock data
+    isLoading: false,  // No initial loading needed with mock data
     error: null,
     connectionError: false,
     tableExists: true,
-    debtSummary: null,
+    debtSummary: MOCK_DEBT_SUMMARY,
   });
 
-  // Helper to check if an error is a connection-related error
+  // Helper functions for error checking (unchanged)
   const isConnectionError = (error: Error | null): boolean => {
     if (!error) return false;
     return error.message.includes('connection') || 
@@ -45,7 +118,6 @@ export function useDebts(): UseDebtsState & UseDebtsActions {
            error.message.includes('network');
   };
   
-  // Helper to check if an error is due to missing table
   const isTableNotFoundError = (error: any): boolean => {
     return error && (
       (error.code === '42P01') || // PostgreSQL code for undefined table
@@ -64,123 +136,39 @@ export function useDebts(): UseDebtsState & UseDebtsActions {
     }));
   }, []);
 
-  // Fetch all debts for the user
+  // Fetch all debts for the user (now returns mock data)
   const refreshDebts = useCallback(async () => {
     if (!user?.id) {
-      console.warn('useDebts: refreshDebts called but no user ID is available', { 
-        userExists: !!user,
-        userId: user?.id
-      });
+      console.warn('useDebts: refreshDebts called but no user ID is available');
       setState(prev => ({ ...prev, debts: [], isLoading: false }));
       return;
     }
 
     setState(prev => ({ ...prev, isLoading: true, error: null, connectionError: false }));
-    console.log('useDebts: refreshDebts - Starting to fetch debts for user', user.id);
+    console.log('useDebts: refreshDebts - Loading mock debt data');
 
     try {
-      // First check Supabase connection
-      const isConnected = await debtService.checkSupabaseConnection();
-      if (!isConnected) {
-        console.error('useDebts: Supabase connection check failed');
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          connectionError: true,
-          error: new Error('Cannot connect to the database. Please check your internet connection and try again.')
-        }));
-        return;
-      }
+      // Simulate network request delay
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Fetch debts
-      const debtsResponse = await debtService.fetchUserDebts(user.id);
-      
-      // Check if table doesn't exist (404 error with specific code)
-      if (debtsResponse.error && isTableNotFoundError(debtsResponse.error)) {
-        console.log('useDebts: Debts table does not exist yet');
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          tableExists: false,
-          debts: [],
-          error: new Error('Debts table has not been set up yet. Please follow the setup instructions.')
-        }));
-        return;
-      }
-      
-      // For other errors, handle normally
-      if (debtsResponse.error) {
-        console.error('useDebts: Error in debtsResponse', debtsResponse.error);
-        
-        // Check if this is a connection error
-        const connError = isConnectionError(debtsResponse.error);
-        
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          connectionError: connError,
-          error: debtsResponse.error
-        }));
-        return;
-      }
-
-      // Table exists and we got data, try to get the summary
-      try {
-        const summaryResponse = await debtService.getUserDebtSummary(user.id);
-
-        if (summaryResponse.error) {
-          console.warn('useDebts: Warning - summary fetch failed but debts succeeded', summaryResponse.error);
-          // Continue anyway, just log the warning
-        }
-        
-        console.log(`useDebts: Successfully fetched ${debtsResponse.data?.length || 0} debts and summary`);
-        
-        setState(prev => ({
-          ...prev,
-          debts: debtsResponse.data || [],
-          isLoading: false,
-          error: null,
-          connectionError: false,
-          tableExists: true, // Table definitely exists at this point
-          debtSummary: summaryResponse.data,
-        }));
-      } catch (summaryError) {
-        // If only the summary fails, still update with debt data
-        console.warn('useDebts: Error fetching summary:', summaryError);
-        setState(prev => ({
-          ...prev,
-          debts: debtsResponse.data || [],
-          isLoading: false,
-          error: null,
-          connectionError: false,
-          tableExists: true,
-          debtSummary: null,
-        }));
-      }
+      // Return mock data
+      setState(prev => ({
+        ...prev,
+        debts: MOCK_DEBTS,
+        isLoading: false,
+        error: null,
+        connectionError: false,
+        tableExists: true,
+        debtSummary: MOCK_DEBT_SUMMARY,
+      }));
     } catch (error) {
-      console.error('useDebts: Error fetching debts:', error);
-      
-      // Check if this is due to missing table
-      if (error instanceof Error && isTableNotFoundError(error)) {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          tableExists: false,
-          error: new Error('The debts table has not been set up in the database.')
-        }));
-        return;
-      }
-      
-      // Check if this is a connection error
-      const isConnError = error instanceof Error && isConnectionError(error);
-      
+      console.error('useDebts: Error in mock data:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
-        connectionError: isConnError,
         error: error instanceof Error 
           ? error 
-          : new Error('Failed to fetch debts. Please try again later.'),
+          : new Error('Failed to fetch mock debts.'),
       }));
     }
   }, [user?.id]);
@@ -195,231 +183,171 @@ export function useDebts(): UseDebtsState & UseDebtsActions {
     }
 
     try {
-      console.log('useDebts: Adding new debt', { debtName: debt.name });
+      console.log('useDebts: Adding new mock debt', { debtName: debt.name });
       
       // Reset any previous errors
       setState(prev => ({ ...prev, error: null, connectionError: false }));
       
-      const newDebtData = {
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Create new mock debt
+      const newDebt: Debt = {
         ...debt,
+        id: `mock_${Math.random().toString(36).substring(2, 11)}`,
         user_id: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
-
-      const response = await debtService.createDebt(newDebtData);
-
-      if (response.error) {
-        console.error('useDebts: Error in createDebt response', response.error);
-        
-        // Check if this is a connection error
-        const connError = isConnectionError(response.error);
-        
-        setState(prev => ({
+      
+      // Update state with new mock debt
+      setState(prev => {
+        const updatedDebts = [newDebt, ...prev.debts];
+        return {
           ...prev,
-          connectionError: connError,
-          error: response.error
-        }));
-        
-        throw response.error;
-      }
+          debts: updatedDebts,
+          debtSummary: generateMockDebtSummary(updatedDebts)
+        };
+      });
 
-      if (response.data) {
-        console.log('useDebts: Successfully added new debt', { debtId: response.data.id });
-        
-        // Update the local state with the new debt
-        setState(prev => ({
-          ...prev,
-          debts: [response.data!, ...prev.debts],
-        }));
-
-        // Refresh debt summary
-        await refreshDebts();
-      } else {
-        console.warn('useDebts: createDebt returned no data but no error');
-      }
-
-      return response.data;
+      return newDebt;
     } catch (error) {
-      console.error('useDebts: Error adding debt:', error);
-      
-      // Check if this is a connection error
-      const isConnError = error instanceof Error && isConnectionError(error);
-      
+      console.error('useDebts: Error adding mock debt:', error);
       setState(prev => ({
         ...prev,
-        connectionError: isConnError,
-        error: error instanceof Error ? error : new Error('Failed to add debt'),
+        error: error instanceof Error ? error : new Error('Failed to add mock debt'),
       }));
+      
       return null;
     }
-  }, [user?.id, refreshDebts]);
+  }, [user?.id]);
 
   // Update an existing debt
   const updateDebt = useCallback(async (
-    debtId: string,
+    debtId: string, 
     updates: Partial<Omit<Debt, 'id' | 'user_id' | 'created_at'>>
   ): Promise<Debt | null> => {
+    if (!user?.id) {
+      console.warn('useDebts: updateDebt called but no user ID is available');
+      return null;
+    }
+
     try {
-      console.log('useDebts: Updating debt', { debtId, updates });
+      console.log('useDebts: Updating mock debt', { debtId });
       
       // Reset any previous errors
       setState(prev => ({ ...prev, error: null, connectionError: false }));
       
-      const response = await debtService.updateDebt(debtId, updates);
-
-      if (response.error) {
-        console.error('useDebts: Error in updateDebt response', response.error);
-        
-        // Check if this is a connection error
-        const connError = isConnectionError(response.error);
-        
-        setState(prev => ({
-          ...prev,
-          connectionError: connError,
-          error: response.error
-        }));
-        
-        throw response.error;
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check if debt exists
+      const debtIndex = state.debts.findIndex(d => d.id === debtId);
+      if (debtIndex === -1) {
+        throw new Error(`Debt with ID ${debtId} not found`);
       }
-
-      if (response.data) {
-        console.log('useDebts: Successfully updated debt', { debtId });
+      
+      // Create updated debt
+      const updatedDebt: Debt = {
+        ...state.debts[debtIndex],
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Update state with modified debt
+      setState(prev => {
+        const updatedDebts = [...prev.debts];
+        updatedDebts[debtIndex] = updatedDebt;
         
-        // Update the local state with the updated debt
-        setState(prev => ({
+        return {
           ...prev,
-          debts: prev.debts.map(debt => 
-            debt.id === debtId ? response.data! : debt
-          ),
-        }));
+          debts: updatedDebts,
+          debtSummary: generateMockDebtSummary(updatedDebts)
+        };
+      });
 
-        // Refresh debt summary
-        await refreshDebts();
-      } else {
-        console.warn('useDebts: updateDebt returned no data but no error');
-      }
-
-      return response.data;
+      return updatedDebt;
     } catch (error) {
-      console.error('useDebts: Error updating debt:', error);
-      
-      // Check if this is a connection error
-      const isConnError = error instanceof Error && isConnectionError(error);
-      
+      console.error('useDebts: Error updating mock debt:', error);
       setState(prev => ({
         ...prev,
-        connectionError: isConnError,
-        error: error instanceof Error ? error : new Error('Failed to update debt'),
+        error: error instanceof Error ? error : new Error('Failed to update mock debt'),
       }));
+      
       return null;
     }
-  }, [refreshDebts]);
+  }, [user?.id, state.debts]);
 
   // Delete a debt
   const deleteDebt = useCallback(async (debtId: string): Promise<boolean> => {
-    try {
-      console.log('useDebts: Deleting debt', { debtId });
-      
-      // Reset any previous errors
-      setState(prev => ({ ...prev, error: null, connectionError: false }));
-      
-      const response = await debtService.deleteDebt(debtId);
-
-      if (response.error) {
-        console.error('useDebts: Error in deleteDebt response', response.error);
-        
-        // Check if this is a connection error
-        const connError = isConnectionError(response.error);
-        
-        setState(prev => ({
-          ...prev,
-          connectionError: connError,
-          error: response.error
-        }));
-        
-        throw response.error;
-      }
-
-      console.log('useDebts: Successfully deleted debt', { debtId });
-      
-      // Remove the debt from local state
-      setState(prev => ({
-        ...prev,
-        debts: prev.debts.filter(debt => debt.id !== debtId),
-      }));
-
-      // Refresh debt summary
-      await refreshDebts();
-      
-      return true;
-    } catch (error) {
-      console.error('useDebts: Error deleting debt:', error);
-      
-      // Check if this is a connection error
-      const isConnError = error instanceof Error && isConnectionError(error);
-      
-      setState(prev => ({
-        ...prev,
-        connectionError: isConnError,
-        error: error instanceof Error ? error : new Error('Failed to delete debt'),
-      }));
+    if (!user?.id) {
+      console.warn('useDebts: deleteDebt called but no user ID is available');
       return false;
     }
-  }, [refreshDebts]);
 
-  // Get a single debt by ID
-  const getDebtById = useCallback(async (debtId: string): Promise<Debt | null> => {
     try {
-      console.log('useDebts: Fetching debt by ID', { debtId });
+      console.log('useDebts: Deleting mock debt', { debtId });
       
       // Reset any previous errors
       setState(prev => ({ ...prev, error: null, connectionError: false }));
       
-      const response = await debtService.fetchDebtById(debtId);
-
-      if (response.error) {
-        console.error('useDebts: Error in fetchDebtById response', response.error);
-        
-        // Check if this is a connection error
-        const connError = isConnectionError(response.error);
-        
-        setState(prev => ({
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Update state by removing the debt
+      setState(prev => {
+        const updatedDebts = prev.debts.filter(d => d.id !== debtId);
+        return {
           ...prev,
-          connectionError: connError,
-          error: response.error
-        }));
-        
-        throw response.error;
-      }
-
-      console.log('useDebts: Successfully fetched debt by ID', { 
-        debtId, 
-        found: !!response.data 
+          debts: updatedDebts,
+          debtSummary: generateMockDebtSummary(updatedDebts)
+        };
       });
-      
-      return response.data;
+
+      return true;
     } catch (error) {
-      console.error('useDebts: Error fetching debt by ID:', error);
-      
-      // Check if this is a connection error
-      const isConnError = error instanceof Error && isConnectionError(error);
-      
+      console.error('useDebts: Error deleting mock debt:', error);
       setState(prev => ({
         ...prev,
-        connectionError: isConnError,
-        error: error instanceof Error ? error : new Error('Failed to fetch debt'),
+        error: error instanceof Error ? error : new Error('Failed to delete mock debt'),
       }));
+      
+      return false;
+    }
+  }, [user?.id]);
+
+  // Get a debt by ID
+  const getDebtById = useCallback(async (debtId: string): Promise<Debt | null> => {
+    try {
+      console.log('useDebts: Getting mock debt by ID', { debtId });
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Find debt in state
+      const debt = state.debts.find(d => d.id === debtId);
+      if (!debt) {
+        throw new Error(`Debt with ID ${debtId} not found`);
+      }
+      
+      return debt;
+    } catch (error) {
+      console.error('useDebts: Error getting mock debt by ID:', error);
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error : new Error('Failed to get mock debt'),
+      }));
+      
       return null;
     }
-  }, []);
+  }, [state.debts]);
 
-  // Load debts on mount or when user changes
+  // Load mock debts on initial render
   useEffect(() => {
-    console.log('useDebts: User ID changed or component mounted, refreshing debts', { 
-      userExists: !!user,
-      userId: user?.id
-    });
-    refreshDebts();
-  }, [refreshDebts]);
+    if (user?.id && state.debts.length === 0) {
+      refreshDebts();
+    }
+  }, [user?.id, refreshDebts, state.debts.length]);
 
   return {
     ...state,
@@ -428,6 +356,6 @@ export function useDebts(): UseDebtsState & UseDebtsActions {
     updateDebt,
     deleteDebt,
     getDebtById,
-    resetErrors
+    resetErrors,
   };
 } 

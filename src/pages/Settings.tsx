@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Lock, CreditCard, Headphones, MessageCircle, Mail, Code, Shield } from 'lucide-react';
+import { User, Lock, CreditCard, Headphones, MessageCircle, Mail, Code, Shield, ArrowLeft, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MockDataToggle from '@/components/settings/MockDataToggle';
 import { ProfileForm } from '@/components/settings/ProfileForm';
@@ -14,19 +15,41 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Settings() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('account');
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || 'account');
+  
   // Show developer tab only in development mode
-  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isDevelopment = import.meta.env.DEV;
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', activeTab);
+    window.history.replaceState({}, '', url);
+  }, [activeTab]);
 
   return (
     <DashboardLayout>
       <ScrollArea className="h-[calc(100vh-6rem)]">
         <div className="space-y-6 p-6">
-          <div className="pb-4">
-            <h1 className="text-2xl font-bold tracking-tight mb-1">Settings</h1>
-            <p className="text-gray-500 dark:text-gray-400">
-              Manage your account settings and preferences
-            </p>
+          <div className="flex justify-between items-center pb-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight mb-1">Settings</h1>
+              <p className="text-gray-500 dark:text-gray-400">
+                Manage your account settings and preferences
+              </p>
+            </div>
+            
+            <Button 
+              variant="outline" 
+              className="flex items-center gap-2 border-[#88B04B]/20 text-[#88B04B]"
+              onClick={() => navigate('/dashboard')}
+            >
+              <Home size={16} />
+              Back to Dashboard
+            </Button>
           </div>
           
           <Tabs 

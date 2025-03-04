@@ -28,65 +28,18 @@ export async function createBankAccountsTable(): Promise<{ success: boolean; err
       return { success: false, error: checkError.message };
     }
     
-    console.log('Bank accounts table does not exist. Creating it now...');
+    console.log('Bank accounts table does not exist');
     
-    // Execute SQL to create the table (using RPC to execute SQL directly)
-    const { error: createError } = await supabase.rpc('execute_sql', {
-      sql_query: `
-        CREATE TABLE IF NOT EXISTS public.bank_accounts (
-          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-          user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-          name TEXT NOT NULL,
-          type TEXT NOT NULL,
-          balance DECIMAL(15,2) NOT NULL,
-          institution TEXT NOT NULL,
-          account_number TEXT,
-          plaid_item_id TEXT,
-          plaid_account_id TEXT,
-          institution_id TEXT,
-          last_updated TIMESTAMP WITH TIME ZONE DEFAULT now(),
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-          metadata JSONB
-        );
-        
-        -- Add indexes
-        CREATE INDEX IF NOT EXISTS bank_accounts_user_id_idx ON public.bank_accounts (user_id);
-        
-        -- Enable RLS
-        ALTER TABLE public.bank_accounts ENABLE ROW LEVEL SECURITY;
-        
-        -- Create policies
-        CREATE POLICY select_own_accounts ON public.bank_accounts
-          FOR SELECT USING (auth.uid() = user_id);
-          
-        CREATE POLICY insert_own_accounts ON public.bank_accounts
-          FOR INSERT WITH CHECK (auth.uid() = user_id);
-          
-        CREATE POLICY update_own_accounts ON public.bank_accounts
-          FOR UPDATE USING (auth.uid() = user_id);
-          
-        CREATE POLICY delete_own_accounts ON public.bank_accounts
-          FOR DELETE USING (auth.uid() = user_id);
-      `
-    });
+    // Instead of trying to create the table, provide a message about manual setup
+    console.info(
+      'Bank accounts table creation requires SQL execution privileges. ' + 
+      'Please create tables using the Supabase dashboard SQL editor.'
+    );
     
-    if (createError) {
-      // If execute_sql function doesn't exist, try a simpler approach
-      if (createError.message.includes('function') && createError.message.includes('does not exist')) {
-        console.log('The execute_sql function does not exist. Using alternative approach...');
-        
-        // Since we confirmed from our test that the table exists but has RLS,
-        // we'll return success but log a warning about manual setup
-        console.warn('NOTE: Table exists but needs proper setup. Please run SQL setup commands manually.');
-        return { success: true, error: 'Table exists but may need manual setup' };
-      }
-      
-      console.error('Error creating bank_accounts table:', createError);
-      return { success: false, error: createError.message };
-    }
-    
-    console.log('Successfully created bank_accounts table');
-    return { success: true, error: null };
+    return { 
+      success: false, 
+      error: 'Table creation requires SQL execution privileges. Please use the Supabase dashboard SQL editor to create necessary tables.' 
+    };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('Error in createBankAccountsTable:', errorMessage);

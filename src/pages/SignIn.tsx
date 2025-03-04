@@ -6,6 +6,7 @@ import { useSecurity } from "@/contexts/SecurityContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDevSignIn } from "@/utils/useDevSignIn";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { IS_DEV } from '@/utils/environment';
 
 interface FormData {
   email: string;
@@ -91,14 +92,6 @@ export default function SignIn() {
       setShowConfirmationAlert(true);
     }
   }, [location]);
-
-  // Move navigation to useEffect instead of during render
-  useEffect(() => {
-    // If user is already authenticated, redirect to dashboard
-    if (isAuthenticated) {
-      navigate("/dashboard");
-    }
-  }, [isAuthenticated, navigate]);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
@@ -230,7 +223,7 @@ export default function SignIn() {
           <p className="text-gray-400 mt-2">Sign in to continue your debt-free journey</p>
           
           {/* Development mode helper - only shows in development */}
-          {process.env.NODE_ENV === 'development' && (
+          {IS_DEV && devAccountInfo && (
             <div className="mt-4 p-2 bg-blue-900/30 border border-blue-700/50 rounded-md text-blue-300 text-sm">
               <p>🧪 Development Mode</p>
               <p className="font-mono mt-1">{devAccountInfo}</p>

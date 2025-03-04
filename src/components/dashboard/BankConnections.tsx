@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { PlusCircle, Building2, ChevronRight } from 'lucide-react';
+import { PlusCircle, Building2, ChevronRight, Lock, Shield, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -92,13 +92,61 @@ export const BankConnections = memo(function BankConnections({
           ))}
         </div>
       ) : (
-        <div className="text-center p-10 bg-black/30 rounded-xl">
-          <Building2 className="w-10 h-10 text-white/30 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No banks connected</h3>
-          <p className="text-white/60 mb-6">Connect your banks to automatically track your finances</p>
-          <Button onClick={onAddConnection} className="bg-white/10 hover:bg-white/20 text-white">
-            <PlusCircle className="w-4 h-4 mr-2" /> Connect Bank
+        <div className="text-center py-10 px-6 bg-gradient-to-b from-black/40 to-black/20 rounded-xl border border-white/5">
+          <div className="mx-auto mb-6 w-16 h-16 rounded-full bg-[#88B04B]/10 flex items-center justify-center">
+            <Building2 className="w-8 h-8 text-[#88B04B]" />
+          </div>
+          
+          <h3 className="text-xl font-medium text-white mb-3">No bank accounts connected</h3>
+          <p className="text-white/70 mb-8 max-w-md mx-auto">
+            Connect your bank accounts to automatically sync your financial data and get personalized insights
+          </p>
+          
+          <div className="grid gap-4 mb-8 max-w-lg mx-auto">
+            <div className="flex items-start gap-3 text-left p-3 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex-shrink-0 mt-1">
+                <Shield className="w-5 h-5 text-[#88B04B]" />
+              </div>
+              <div>
+                <h4 className="font-medium text-white text-sm">Bank-level security</h4>
+                <p className="text-xs text-white/70 mt-0.5">
+                  Your data is protected with 256-bit encryption, the same level of security that banks use
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 text-left p-3 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex-shrink-0 mt-1">
+                <Lock className="w-5 h-5 text-[#88B04B]" />
+              </div>
+              <div>
+                <h4 className="font-medium text-white text-sm">Read-only access</h4>
+                <p className="text-xs text-white/70 mt-0.5">
+                  We can only view your account information, never make transactions or changes
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-start gap-3 text-left p-3 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex-shrink-0 mt-1">
+                <AlertCircle className="w-5 h-5 text-[#88B04B]" />
+              </div>
+              <div>
+                <h4 className="font-medium text-white text-sm">You're in control</h4>
+                <p className="text-xs text-white/70 mt-0.5">
+                  Easily disconnect your accounts at any time with a single click
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <Button onClick={onAddConnection} className="bg-[#88B04B] hover:bg-[#7a9d43] text-white px-6 py-6 h-auto font-medium">
+            <PlusCircle className="w-5 h-5 mr-2" /> Connect Your Bank Accounts
           </Button>
+          
+          <p className="text-white/50 text-xs mt-6">
+            We use Plaid to securely connect to over 10,000 financial institutions
+          </p>
         </div>
       )}
     </div>

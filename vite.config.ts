@@ -77,29 +77,8 @@ export default defineConfig(({ mode }) => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'logo.svg'],
-        manifest: {
-          name: 'Smart Debt Flow',
-          short_name: 'SDF',
-          theme_color: '#88B04B',
-          icons: [
-            {
-              src: '/pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: '/pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            },
-            {
-              src: '/maskable-icon-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'maskable'
-            }
-          ]
-        },
+        manifest: false,
+        useCredentials: true,
         workbox: {
           sourcemap: true,
           globPatterns: ['**/*.{js,css,html,ico,png,svg}']

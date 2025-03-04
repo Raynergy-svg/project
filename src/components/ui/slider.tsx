@@ -14,13 +14,13 @@ const Slider = React.forwardRef<
     )}
     {...props}
   >
-    <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-white/10">
+    <SliderPrimitive.Track className="relative h-1.5 w-full grow overflow-hidden rounded-full bg-black/40">
       <SliderPrimitive.Range className="absolute h-full bg-[#88B04B]" />
     </SliderPrimitive.Track>
     {props.value?.map((_, i) => (
       <SliderPrimitive.Thumb
         key={i}
-        className="block h-4 w-4 rounded-full border border-white/20 bg-[#88B04B] ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-[#7a9d43]"
+        className="block h-4 w-4 rounded-full border border-[#88B04B]/50 bg-[#88B04B] ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
       />
     ))}
   </SliderPrimitive.Root>

@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, useRef } from "react";
+// Used for redirecting users after login/logout operations
 import { useNavigate } from "react-router-dom";
 import type { User, SignUpData } from "@/types";
 import { supabase, createBrowserClient } from "@/utils/supabase/client";
@@ -71,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const loadUser = async () => {
       try {
         // Check for mock authentication in development mode
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           try {
             const mockTokenData = JSON.parse(localStorage.getItem('supabase.auth.token') || '{}');
             if (mockTokenData.access_token === 'fake-dev-token') {
@@ -79,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               
               // Mock user data for development
               const mockUser = {
-                id: 'dev-user-123',
+                id: '00000000-0000-0000-0000-000000000001',
                 email: 'dev@example.com',
                 isPremium: true,
                 trialEndsAt: null,
@@ -167,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     loadUser();
 
     // Skip Supabase auth state subscription in development mode with mock auth
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       try {
         const mockTokenData = JSON.parse(localStorage.getItem('supabase.auth.token') || '{}');
         if (mockTokenData.access_token === 'fake-dev-token') {
@@ -208,7 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsLoading(true);
     try {
       // Check if we're in development mode
-      const isDevelopment = process.env.NODE_ENV === 'development' || import.meta.env.DEV;
+      const isDevelopment = import.meta.env.DEV;
       
       // Special handling for development accounts in development mode
       if (isDevelopment && isDevAccount(email)) {
@@ -236,6 +237,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           // Update auth state
           setUser(mockUser);
           setIsAuthenticated(true);
+          
+          // Always navigate to dashboard after successful login
+          navigate(redirectPath || '/dashboard');
           
           // Return mock data
           return { user: mockUser };
@@ -296,6 +300,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             
             setUser(mockUser);
             setIsAuthenticated(true);
+            
+            // Always navigate to dashboard after successful login
+            navigate(redirectPath || '/dashboard');
+            
             return { user: mockUser };
           }
           
@@ -322,6 +330,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setSubscriptionStatus(data.user.subscription?.status || 'free');
           setSubscriptionPlan(data.user.subscription?.planName);
           setSubscriptionEndDate(data.user.subscription?.currentPeriodEnd);
+          
+          // Always navigate to dashboard after successful login
+          navigate(redirectPath || '/dashboard');
           
           return data;
         }
@@ -372,6 +383,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setSubscriptionStatus(data.user.subscription?.status || 'free');
           setSubscriptionPlan(data.user.subscription?.planName);
           setSubscriptionEndDate(data.user.subscription?.currentPeriodEnd);
+          
+          // Always navigate to dashboard after successful login
+          navigate(redirectPath || '/dashboard');
           
           return data;
         }

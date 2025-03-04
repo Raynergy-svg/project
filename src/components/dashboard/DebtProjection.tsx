@@ -4,34 +4,24 @@ import { TrendingDown, ArrowRight, Calendar, DollarSign } from 'lucide-react';
 import { useDashboardAnalytics } from '@/hooks/useDashboardAnalytics';
 import { formatCurrency } from '@/lib/utils';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useChartData, useChartColorScheme } from '@/hooks/useChartOptimization';
-import { Skeleton, SkeletonCardGrid } from '@/components/ui/Skeleton';
-import { Debt, PayoffStrategy } from '@/lib/dashboardConstants';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface DebtProjectionProps {
-  debts: Debt[];
-  strategies: PayoffStrategy[];
+  totalDebt: number;
+  projectedPayoffDate?: string;
+  projectionData: Array<{ month: number; balance: number }>;
 }
 
 // Memoized chart component to prevent unnecessary re-renders
-const ProjectionChart = memo(({ strategies, activeStrategy }) => {
-  const chartRef = useRef(null);
+const ProjectionChart = memo(({ projectionData }: { projectionData: Array<{ month: number; balance: number }> }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
-  const colors = useChartColorScheme(strategies.length, '#88B04B');
   
-  // Get the active strategy data
-  const activeStrategyData = strategies.find(s => s.id === activeStrategy) || strategies[0];
-  const standardStrategyData = strategies.find(s => s.id === 'avalanche') || strategies[0];
-  
-  // Create chart data from both strategies for comparison
-  const chartData = useChartData(
-    activeStrategyData?.projectionData.map((point, index) => ({
-      name: `Month ${point.month}`,
-      activeStrategy: point.balance,
-      standard: standardStrategyData?.projectionData[index]?.balance || 0
-    })) || [],
-    [activeStrategy, strategies]
-  );
+  // Format data for the chart
+  const chartData = projectionData.map((point) => ({
+    name: `Month ${point.month}`,
+    balance: point.balance
+  }));
   
   // Measure container width for responsive chart
   useEffect(() => {
@@ -53,7 +43,7 @@ const ProjectionChart = memo(({ strategies, activeStrategy }) => {
     }
   }, []);
   
-  if (!chartData.length) {
+  if (!chartData?.length) {
     return <Skeleton variant="chart" height="16rem" />;
   }
   
@@ -87,26 +77,15 @@ const ProjectionChart = memo(({ strategies, activeStrategy }) => {
               borderRadius: '8px',
               color: 'white'
             }}
-            formatter={(value) => [`$${Number(value).toLocaleString()}`, '']}
-          />
-          <Legend 
-            wrapperStyle={{ color: 'rgba(255,255,255,0.7)' }}
+            formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Balance']}
           />
           <Line 
             type="monotone" 
-            dataKey="standard" 
-            stroke="#3b82f6" // blue
-            strokeWidth={2}
-            activeDot={{ r: 8 }}
-            name="Standard Plan"
-          />
-          <Line 
-            type="monotone" 
-            dataKey="activeStrategy" 
-            stroke="#88B04B" // green
-            strokeWidth={2}
-            activeDot={{ r: 8 }}
-            name={`${activeStrategyData?.name || 'Optimized'} Plan`}
+            dataKey="balance" 
+            stroke="#88B04B" 
+            strokeWidth={3}
+            dot={{ fill: '#88B04B', r: 4 }}
+            activeDot={{ r: 6, fill: '#ffffff', stroke: '#88B04B' }}
           />
         </LineChart>
       </ResponsiveContainer>
@@ -114,171 +93,65 @@ const ProjectionChart = memo(({ strategies, activeStrategy }) => {
   );
 });
 
-// Memoized strategy selection component
-const StrategySelector = memo(({ strategies, activeStrategy, onChange }) => {
+// Exported component
+function DebtProjection({ totalDebt, projectedPayoffDate, projectionData }: DebtProjectionProps) {
+  // Analytics hook
+  const { trackCardInteraction } = useDashboardAnalytics();
+
+  const handleInteraction = () => {
+    trackCardInteraction('debt-projection');
+  };
+
   return (
-    <div className="flex space-x-2 bg-black/30 rounded-lg p-1">
-      {strategies.map((strategy) => (
-        <button
-          key={strategy.id}
-          onClick={() => onChange(strategy.id)}
-          className={`px-3 py-1 text-sm rounded-md transition-colors ${
-            activeStrategy === strategy.id 
-              ? 'bg-[#88B04B] text-black font-medium' 
-              : 'text-white/70 hover:text-white'
-          }`}
-        >
-          {strategy.name}
-        </button>
-      ))}
-    </div>
-  );
-});
-
-// Main component
-const DebtProjectionComponent = memo(function DebtProjection({ debts, strategies }: DebtProjectionProps) {
-  const [activeStrategy, setActiveStrategy] = useState(strategies?.[0]?.id || 'avalanche');
-  
-  // If no data is available, show loading state
-  if (!debts.length || !strategies.length) {
-    return (
-      <div className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      onClick={handleInteraction}
+      className="bg-[#2A2A2A] rounded-xl border border-white/10 overflow-hidden"
+    >
+      <div className="p-6">
         <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium text-white">Debt Projection</h3>
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <TrendingDown className="text-[#88B04B]" /> 
+            Debt Projection
+          </h3>
+          {projectedPayoffDate && (
+            <div className="px-3 py-1 rounded-full bg-[#88B04B]/20 text-[#88B04B] text-sm font-medium flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              <span>Debt-free by {projectedPayoffDate}</span>
+            </div>
+          )}
         </div>
-        <div className="flex flex-col items-center justify-center p-8">
-          <Skeleton variant="chart" height="16rem" width="100%" />
-          <p className="text-white/60 mt-4">Loading projection data...</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="bg-white/5 rounded-lg p-4">
+            <p className="text-white/70 mb-1 text-sm">Current Total Debt</p>
+            <p className="text-2xl font-bold text-white">
+              {formatCurrency(totalDebt)}
+            </p>
+          </div>
+          <div className="bg-white/5 rounded-lg p-4">
+            <p className="text-white/70 mb-1 text-sm">Projected Months to Freedom</p>
+            <p className="text-2xl font-bold text-white">
+              {projectionData.length > 0 ? projectionData.length : '—'}
+            </p>
+          </div>
         </div>
+
+        {projectionData.length > 0 ? (
+          <ProjectionChart projectionData={projectionData} />
+        ) : (
+          <div className="bg-white/5 rounded-lg p-6 text-center">
+            <p className="text-white/80 mb-2">Not enough data for projection</p>
+            <p className="text-sm text-white/60">
+              Add your debts to see how quickly you can become debt-free.
+            </p>
+          </div>
+        )}
       </div>
-    );
-  }
-  
-  // Get current active strategy
-  const currentStrategy = strategies.find(s => s.id === activeStrategy) || strategies[0];
-  
-  // Get standard strategy for comparison
-  const standardStrategy = strategies.find(s => s.id === 'avalanche') || strategies[0];
-  
-  // Calculate months saved
-  const monthsSaved = Math.max(0, Math.round(
-    (standardStrategy.projectedPayoffDate.getTime() - currentStrategy.projectedPayoffDate.getTime()) / 
-    (30 * 24 * 60 * 60 * 1000)
-  ));
-  
-  // Calculate interest saved
-  const interestSaved = Math.max(0, standardStrategy.totalInterestPaid - currentStrategy.totalInterestPaid);
-  
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Debt Payoff Date Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-white">Projected Payoff</h3>
-            <Calendar className="h-5 w-5 text-[#88B04B]" />
-          </div>
-          <div className="mt-2">
-            <div className="text-3xl font-bold text-white">
-              {currentStrategy.projectedPayoffDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </div>
-            <div className="text-sm text-white/60 mt-1">
-              {monthsSaved > 0 && activeStrategy !== 'avalanche' && (
-                <span className="text-[#88B04B] flex items-center">
-                  <TrendingDown className="h-4 w-4 mr-1" />
-                  {monthsSaved} months earlier than standard plan
-                </span>
-              )}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Monthly Payment Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-white">Monthly Payment</h3>
-            <DollarSign className="h-5 w-5 text-[#88B04B]" />
-          </div>
-          <div className="mt-2">
-            <div className="text-3xl font-bold text-white">
-              ${currentStrategy.monthlyPayment.toLocaleString()}
-            </div>
-            <div className="text-sm text-white/60 mt-1">
-              Optimized for fastest payoff
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Interest Saved Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-white">Interest Saved</h3>
-            <DollarSign className="h-5 w-5 text-[#88B04B]" />
-          </div>
-          <div className="mt-2">
-            <div className="text-3xl font-bold text-white">${interestSaved.toLocaleString()}</div>
-            <div className="text-sm text-white/60 mt-1">
-              With optimized payment strategy
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Projection Chart */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="p-6 rounded-xl bg-gradient-to-br from-gray-900/80 to-gray-900/40 border border-white/10 backdrop-blur-sm"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-medium text-white">Debt Projection Chart</h3>
-          
-          {/* Strategy Selector */}
-          <StrategySelector 
-            strategies={strategies}
-            activeStrategy={activeStrategy}
-            onChange={setActiveStrategy}
-          />
-        </div>
-        
-        {/* Enhanced Chart Implementation */}
-        <ProjectionChart 
-          strategies={strategies} 
-          activeStrategy={activeStrategy} 
-        />
-        
-        {/* Legend */}
-        <div className="flex justify-center mt-4 space-x-6">
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-[#88B04B] mr-2"></div>
-            <span className="text-sm text-white/70">{currentStrategy.name}</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded-full bg-blue-400 mr-2"></div>
-            <span className="text-sm text-white/70">Standard Plan</span>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+    </motion.div>
   );
-});
+}
 
-// Export both named and default exports to maintain backward compatibility
-export const DebtProjection = DebtProjectionComponent;
-export default DebtProjectionComponent; 
+export default memo(DebtProjection);

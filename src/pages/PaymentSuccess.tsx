@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/utils/supabase/client';
 
 const PaymentSuccess: React.FC = () => {
   const navigate = useNavigate();
@@ -31,8 +31,26 @@ const PaymentSuccess: React.FC = () => {
     // Verify the payment session
     const verifyPayment = async () => {
       try {
-        // Call your API to verify the payment session
-        const response = await axios.get(`/api/subscription/verify-session?session_id=${sessionId}`);
+        // Determine if we're in development mode
+        const isDevelopment = import.meta.env.MODE === 'development' || window.location.hostname === 'localhost';
+        
+        // In development, we can bypass the actual payment verification
+        // and simulate a successful payment response
+        let response;
+        
+        if (isDevelopment) {
+          console.log('Development mode - simulating successful payment verification');
+          response = {
+            data: {
+              success: true,
+              plan: 'Premium',
+              subscriptionId: 'dev_' + Math.random().toString(36).substring(2, 15)
+            }
+          };
+        } else {
+          // Call your API to verify the payment session in production
+          response = await axios.get(`/api/subscription/verify-session?session_id=${sessionId}`);
+        }
         
         // Handle successful payment verification
         if (response.data.success) {
@@ -48,36 +66,33 @@ const PaymentSuccess: React.FC = () => {
           // Update subscription in Supabase if user is logged in
           if (user) {
             try {
-              // Check if subscription already exists
-              const { data: existingSubscription } = await supabase
-                .from('user_subscriptions')
-                .select('*')
-                .eq('user_id', user.id)
-                .single();
+              const subscriptionData = {
+                status: 'active',
+                subscription_id: response.data.subscriptionId || sessionId,
+                plan_name: response.data.plan,
+                updated_at: new Date().toISOString()
+              };
               
-              if (existingSubscription) {
-                // Update existing subscription
-                await supabase
-                  .from('user_subscriptions')
-                  .update({
-                    status: 'active',
-                    subscription_id: response.data.subscriptionId || sessionId,
-                    plan_name: response.data.plan,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq('user_id', user.id);
-              } else {
-                // Create new subscription
-                await supabase
+              // Try to update first (assuming record might exist)
+              const { data: updateResult, error: updateError } = await supabase
+                .from('user_subscriptions')
+                .update(subscriptionData)
+                .eq('user_id', user.id);
+              
+              // If update returns error or no rows affected, try insert
+              if (updateError || !updateResult || updateResult.length === 0) {
+                // For insert, we need to add user_id and created_at
+                const { error: insertError } = await supabase
                   .from('user_subscriptions')
                   .insert({
+                    ...subscriptionData,
                     user_id: user.id,
-                    status: 'active',
-                    subscription_id: response.data.subscriptionId || sessionId,
-                    plan_name: response.data.plan,
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
+                    created_at: new Date().toISOString()
                   });
+                
+                if (insertError && !isDevelopment) {
+                  console.error('Error inserting subscription:', insertError);
+                }
               }
             } catch (supabaseError) {
               console.error('Error updating subscription in Supabase:', supabaseError);
@@ -103,6 +118,18 @@ const PaymentSuccess: React.FC = () => {
         }
       } catch (err) {
         console.error('Error verifying payment:', err);
+        
+        // In development mode, continue anyway
+        if (import.meta.env.MODE === 'development' || window.location.hostname === 'localhost') {
+          console.warn('Development mode - proceeding despite error');
+          setSubscriptionPlan('Premium (Dev Mode)');
+          setTimeout(() => {
+            setShowOnboarding(true);
+            setLoading(false);
+          }, 2000);
+          return;
+        }
+        
         setError('An error occurred while verifying your payment. Please contact support.');
         setLoading(false);
       }

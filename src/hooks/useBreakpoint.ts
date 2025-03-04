@@ -77,7 +77,7 @@ export function useBreakpoint(): BreakpointState {
 
       // Log breakpoint changes in development
       if (
-        process.env.NODE_ENV === 'development' && 
+        import.meta.env.DEV && 
         prev.breakpoint !== breakpoint
       ) {
         console.log(`Breakpoint changed: ${prev.breakpoint} -> ${breakpoint}`);

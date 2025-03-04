@@ -96,7 +96,7 @@ export async function middleware(request: NextRequest) {
   // Set Content-Security-Policy header
   response.headers.set(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.stripe.com; connect-src 'self' https://*.supabase.co https://api.stripe.com; frame-src 'self' https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com; object-src 'none';"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.stripe.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.projectdcertan84workersdev.workers.dev; frame-src 'self' https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com; object-src 'none';"
   );
   
   // Set Strict-Transport-Security header for HTTPS enforcement

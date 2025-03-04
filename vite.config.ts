@@ -42,7 +42,8 @@ const generateCSP = (mode: string) => {
       'ws://localhost:*',
       'wss://localhost:*',
       'https://api.stripe.com',
-      'https://*.plaid.com'
+      'https://*.plaid.com',
+      'https://*.projectdcertan84workersdev.workers.dev'
     ],
     'frame-src': ["'self'", "https://js.stripe.com", "https://hooks.stripe.com", "https://cdn.plaid.com"],
     'media-src': ["'self'"],
@@ -142,6 +143,35 @@ export default defineConfig(({ mode }) => {
         'Content-Security-Policy': generateCSP(mode),
       },
       proxy: {
+        '/api/ai': {
+          target: 'https://curly-tooth-d4a2.projectdcertan84workersdev.workers.dev',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/api\/ai/, '/api/ai'),
+          configure: (proxy, options) => {
+            // Add error logging
+            proxy.on('error', (err, req, res) => {
+              console.error('Proxy error:', err);
+              
+              // Send a more helpful error response to the client
+              if (!res.headersSent) {
+                res.writeHead(500, {
+                  'Content-Type': 'application/json',
+                });
+                
+                const json = {
+                  success: false,
+                  error: 'AI service proxy error',
+                  message: isDev ? err.message : 'Failed to connect to AI service',
+                  // For development, include the stack for debugging
+                  ...(isDev ? { stack: err.stack } : {})
+                };
+                
+                res.end(JSON.stringify(json));
+              }
+            });
+          }
+        },
         '/api': {
           target: 'http://localhost:3001',
           changeOrigin: true,

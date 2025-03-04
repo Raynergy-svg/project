@@ -1,6 +1,16 @@
 // AI Worker Implementation
 export default {
   async fetch(request, env, ctx) {
+    // Track request processing time for diagnostics
+    const startTime = Date.now();
+    let requestInfo = {
+      method: request.method,
+      url: request.url,
+      origin: request.headers.get("Origin") || "unknown",
+      contentType: request.headers.get("Content-Type") || "unknown",
+      userAgent: request.headers.get("User-Agent") || "unknown",
+    };
+
     try {
       const url = new URL(request.url);
       const pathname = url.pathname;
@@ -8,23 +18,37 @@ export default {
       // For logging - log environment info without exposing sensitive data
       console.log(`AI Worker running in ${env.ENVIRONMENT} mode`, {
         supabaseConfigured: !!env.SUPABASE_URL,
+        request: requestInfo,
       });
 
       // For OPTIONS requests (CORS preflight)
       if (request.method === "OPTIONS") {
         return new Response(null, {
           status: 204,
-          headers: {
-            "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type",
-          },
+          headers: getCorsHeaders(),
         });
       }
 
       // Handle AI query endpoint
       if (pathname === "/api/ai/query" && request.method === "POST") {
-        const requestBody = await request.json();
+        let requestBody;
+        try {
+          requestBody = await request.json();
+        } catch (parseError) {
+          console.error("Failed to parse request JSON:", parseError);
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: "Invalid JSON in request body",
+              error: "The request body could not be parsed as JSON",
+            }),
+            {
+              status: 400,
+              headers: getCorsHeaders(),
+            }
+          );
+        }
+
         const { query, context, user_id } = requestBody;
 
         if (!query) {
@@ -52,22 +76,45 @@ export default {
           }`
         );
 
-        switch (requestType) {
-          case "debt_recommendations":
-            result = await processDebtRecommendations(query, context);
-            break;
-          case "transaction_analysis":
-            result = await processTransactionAnalysis(query, context);
-            break;
-          default:
-            result = await processGeneralQuery(query, context);
+        try {
+          switch (requestType) {
+            case "debt_recommendations":
+              result = await processDebtRecommendations(query, context);
+              break;
+            case "transaction_analysis":
+              result = await processTransactionAnalysis(query, context);
+              break;
+            default:
+              result = await processGeneralQuery(query, context);
+          }
+        } catch (processingError) {
+          console.error(
+            `Error processing ${requestType} request:`,
+            processingError
+          );
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: "Error processing AI request",
+              query,
+              error: processingError.message || "Unknown processing error",
+            }),
+            {
+              status: 500,
+              headers: getCorsHeaders(),
+            }
+          );
         }
+
+        const processingTime = Date.now() - startTime;
+        console.log(`Request processed in ${processingTime}ms`);
 
         return new Response(
           JSON.stringify({
             success: true,
             message: "AI request processed successfully",
             query,
+            processingTimeMs: processingTime,
             ...result,
           }),
           {
@@ -84,6 +131,7 @@ export default {
             success: true,
             message: "AI worker is running correctly",
             timestamp: new Date().toISOString(),
+            environment: env.ENVIRONMENT || "unknown",
           }),
           {
             status: 200,
@@ -97,6 +145,8 @@ export default {
         JSON.stringify({
           error: "Not found",
           message: "The requested endpoint does not exist",
+          path: pathname,
+          validEndpoints: ["/api/ai/query", "/api/ai/test"],
         }),
         {
           status: 404,
@@ -104,14 +154,21 @@ export default {
         }
       );
     } catch (error) {
-      console.error("AI Worker Error:", error);
+      const processingTime = Date.now() - startTime;
+      console.error("AI Worker Error:", error, {
+        requestInfo,
+        processingTime,
+        stack: error.stack,
+      });
 
       return new Response(
         JSON.stringify({
           success: false,
           error: "Internal Server Error",
-          message: error.message,
+          message: error.message || "An unexpected error occurred",
           environment: env.ENVIRONMENT || "unknown",
+          requestPath: new URL(request.url).pathname,
+          processingTimeMs: processingTime,
         }),
         {
           status: 500,

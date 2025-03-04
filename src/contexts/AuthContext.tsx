@@ -251,90 +251,95 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (isDevelopment) {
         console.log('Development mode: Using development auth flow');
         
-        // For development, we need to explicitly handle captcha
-        const tempClient = createBrowserClient();
-        
-        // Special dev auth options with captcha hack for development
-        const devOptions = {
-          captchaToken: 'ignored-in-dev-mode',
-          gotrue: {
-            detectSessionInUrl: false,
-            autoRefreshToken: true,
-            persistSession: true,
-            multiTab: true,
-          }
-        };
-        
-        // Use the temp client for auth in dev mode
-        const { data, error } = await tempClient.auth.signInWithPassword({
-          email,
-          password,
-          options: devOptions
-        });
-
-        if (error) {
-          console.error('Development login error:', error);
-          // Check for specific error messages from Supabase
-          if (error.message.includes('Email not confirmed')) {
-            throw new Error('Please check your email to confirm your account before signing in.');
-          }
+        try {
+          // For development, we need a different approach to bypass CAPTCHA
+          const tempClient = createBrowserClient();
           
-          // Special handling for captcha errors in dev
-          if (error.message.includes('captcha')) {
-            console.warn('Captcha verification failed in development mode. Using fallback session...');
-            
-            // For development only - create mock session
-            // This is just a development convenience - NEVER do this in production
-            const mockUser: User = {
-              id: 'dev-user-id',
-              email: email,
-              isPremium: true,
-              trialEndsAt: null,
-              createdAt: new Date().toISOString(),
-              subscription: {
-                status: 'active',
-                planName: 'Developer Plan',
-                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          // Configure client with options that make CAPTCHA verification less strict in development
+          // Using local development mode to bypass production security features
+          const { data, error } = await tempClient.auth.signInWithPassword({
+            email,
+            password,
+            options: {
+              // Development-specific options
+              gotrue: {
+                detectSessionInUrl: false,
+                autoRefreshToken: true,
+                persistSession: true,
+                multiTab: true,
               }
-            };
+            }
+          });
+
+          if (error) {
+            console.error('Development login error:', error);
             
-            setUser(mockUser);
+            // Special handling for CAPTCHA errors in development
+            if (error.message.includes('captcha protection')) {
+              console.warn('CAPTCHA validation failed in development. You may need to disable CAPTCHA in your Supabase project settings for development.');
+              
+              // For development only: Create a mock session to bypass authentication
+              // Only do this if using a recognized development email pattern
+              if (email.includes('dev@') || email.includes('test@') || email.endsWith('.test') || email.includes('@example.com')) {
+                console.log('Using mock authentication for development email');
+                const mockUser: User = {
+                  id: 'dev-user-id',
+                  email: email,
+                  name: 'Development User',
+                  isPremium: true,
+                  trialEndsAt: null,
+                  createdAt: new Date().toISOString(),
+                  subscription: {
+                    status: 'active',
+                    planName: 'Development Plan',
+                    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+                  }
+                };
+                
+                setUser(mockUser);
+                setIsAuthenticated(true);
+                navigate(redirectPath || '/dashboard');
+                return { user: mockUser };
+              }
+            }
+            
+            // Check for specific error messages from Supabase
+            if (error.message.includes('Email not confirmed')) {
+              throw new Error('Please check your email to confirm your account before signing in.');
+            }
+            
+            throw error;
+          }
+
+          if (data.user) {
+            // Log successful login
+            try {
+              logSecurityEvent(
+                SecurityEventType.LOGIN_SUCCESS,
+                'User logged in successfully',
+                'low',
+                data.user.id
+              );
+            } catch (logError) {
+              console.warn('Failed to log security event:', logError);
+            }
+            
+            // Update auth state
+            setUser(data.user);
             setIsAuthenticated(true);
+            setIsSubscribed(!!data.user.subscription?.status && data.user.subscription.status === 'active');
+            setSubscriptionStatus(data.user.subscription?.status || 'free');
+            setSubscriptionPlan(data.user.subscription?.planName);
+            setSubscriptionEndDate(data.user.subscription?.currentPeriodEnd);
             
             // Always navigate to dashboard after successful login
             navigate(redirectPath || '/dashboard');
             
-            return { user: mockUser };
+            return data;
           }
-          
+        } catch (error) {
+          console.error('Error during login:', error);
           throw error;
-        }
-
-        if (data.user) {
-          // Log successful login
-          try {
-            logSecurityEvent(
-              SecurityEventType.LOGIN_SUCCESS,
-              'User logged in successfully',
-              'low',
-              data.user.id
-            );
-          } catch (logError) {
-            console.warn('Failed to log security event:', logError);
-          }
-          
-          // Update auth state
-          setUser(data.user);
-          setIsAuthenticated(true);
-          setIsSubscribed(!!data.user.subscription?.status && data.user.subscription.status === 'active');
-          setSubscriptionStatus(data.user.subscription?.status || 'free');
-          setSubscriptionPlan(data.user.subscription?.planName);
-          setSubscriptionEndDate(data.user.subscription?.currentPeriodEnd);
-          
-          // Always navigate to dashboard after successful login
-          navigate(redirectPath || '/dashboard');
-          
-          return data;
         }
       } else {
         // Normal authentication flow with captcha for production

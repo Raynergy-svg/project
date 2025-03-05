@@ -210,6 +210,14 @@ const AppRoutes = () => {
         
         {/* Public information pages */}
         <Route path="/compliance" element={<Compliance />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/press" element={<Press />} />
+        <Route path="/docs" element={<Docs />} />
+        <Route path="/status" element={<Status />} />
         
         {/* Admin routes - require admin role */}
         <Route 

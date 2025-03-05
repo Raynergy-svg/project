@@ -335,6 +335,9 @@ const Landing = () => {
         if (section) {
           section.scrollIntoView({ behavior: 'smooth' });
         }
+      }, 500);
+    }
+
     const preloadAssets = async () => {
       const imageWidth = deviceType === 'mobile' ? 400 : 800;
       

@@ -172,7 +172,10 @@ export default function JobApplication() {
   }, [position, department, navigate]);
 
   if (!position || !department) {
-    return null;
+    // Return a loading state instead of null while redirect happens
+    return <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#88B04B]"></div>
+    </div>;
   }
 
   return (

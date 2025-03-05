@@ -6,12 +6,6 @@ export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
-    product: [
-      { label: 'Features', href: '/#features' },
-      { label: 'Methods', href: '/#visualization-heading' },
-      { label: 'Pricing', href: '/#pricing' },
-      { label: 'Debt Planner', href: '/debt-planner' },
-    ],
     company: [
       { label: 'About Us', href: '/about' },
       { label: 'Careers', href: '/careers' },
@@ -20,7 +14,7 @@ export default function Footer() {
     ],
     resources: [
       { label: 'Help Center', href: '/help' },
-      { label: 'Documentation', href: '/docs' },
+      { label: 'Financial Resources', href: '/docs' },
       { label: 'Status', href: '/status' },
     ],
     legal: [

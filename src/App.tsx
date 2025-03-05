@@ -1,5 +1,5 @@
 import React, { useEffect, Suspense, lazy, useState } from 'react';
-import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import LoadingScreen from '@/components/ui/loading-screen';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -67,7 +67,7 @@ const SupportTickets = lazy(() => import('@/pages/SupportTickets'));
 const Blog = lazy(() => import("@/pages/Blog"));
 const Press = lazy(() => import("@/pages/Press"));
 const Help = lazy(() => import('@/pages/Help'));
-const Docs = lazy(() => import("@/pages/Docs"));
+const FinancialResources = lazy(() => import("@/pages/Docs"));
 const Api = lazy(() => import("@/pages/Api"));
 const Status = lazy(() => import("@/pages/Status"));
 const Careers = lazy(() => import("@/pages/Careers"));
@@ -124,6 +124,27 @@ const getPageClass = (pathname: string): string => {
   return '';
 };
 
+// Custom redirect component for /apply to /job-application
+const ApplyRedirect = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const position = searchParams.get('position');
+    const department = searchParams.get('department');
+    
+    // If we have parameters, redirect with them
+    if (position && department) {
+      navigate(`/job-application?position=${encodeURIComponent(position)}&department=${encodeURIComponent(department)}`, { replace: true });
+    } else {
+      // If parameters are missing, redirect to careers
+      navigate('/careers', { replace: true });
+    }
+  }, [navigate, searchParams]);
+  
+  return <LoadingScreen />;
+};
+
 // Main routes configuration
 const AppRoutes = () => {
   return (
@@ -139,6 +160,7 @@ const AppRoutes = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="/job-application" element={<JobApplication />} />
+        <Route path="/apply" element={<ApplyRedirect />} />
         <Route path="/support" element={<Support />} />
         
         {/* Protected routes - require authentication */}
@@ -206,6 +228,7 @@ const AppRoutes = () => {
         
         {/* Help & Article routes */}
         <Route path="/help" element={<Help />} />
+        <Route path="/docs" element={<FinancialResources />} />
         <Route path="/articles/:slug" element={<ArticleDetail />} />
         
         {/* Public information pages */}
@@ -216,7 +239,6 @@ const AppRoutes = () => {
         <Route path="/blog" element={<Blog />} />
         <Route path="/careers" element={<Careers />} />
         <Route path="/press" element={<Press />} />
-        <Route path="/docs" element={<Docs />} />
         <Route path="/status" element={<Status />} />
         
         {/* Admin routes - require admin role */}

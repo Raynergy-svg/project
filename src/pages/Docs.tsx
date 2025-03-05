@@ -1,99 +1,65 @@
 import { motion } from 'framer-motion';
-import { Search, Book, Code, Terminal, FileText, GitBranch, Database, Shield, Zap } from 'lucide-react';
+import { Search, BookOpen, PieChart, DollarSign, Calculator, Lightbulb, BookMarked, Wallet, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
-export default function Docs() {
+export default function FinancialResources() {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const sections = [
+  const categories = [
     {
-      title: "Getting Started",
-      icon: Book,
+      title: "Debt Reduction Strategies",
+      icon: BookOpen,
       items: [
-        "Quick Start Guide",
-        "Installation",
-        "Authentication",
-        "Basic Concepts"
+        "Snowball Method",
+        "Avalanche Method",
+        "Debt Consolidation",
+        "Debt Settlement"
       ]
     },
     {
-      title: "API Reference",
-      icon: Code,
+      title: "Budgeting Tools",
+      icon: Calculator,
       items: [
-        "REST API Overview",
-        "Authentication",
-        "Endpoints",
-        "Rate Limits"
+        "Creating a Monthly Budget",
+        "50/30/20 Rule",
+        "Zero-Based Budgeting",
+        "Envelope System"
       ]
     },
     {
-      title: "SDKs & Libraries",
-      icon: Terminal,
+      title: "Saving Techniques",
+      icon: Wallet,
       items: [
-        "JavaScript SDK",
-        "Python SDK",
-        "Java SDK",
-        "Ruby SDK"
+        "Emergency Fund Basics",
+        "Automated Savings",
+        "Saving for Big Purchases",
+        "Retirement Planning"
       ]
     }
   ];
 
-  const codeExample = `
-// Initialize the Smart Debt Flow client
-const client = new SmartDebtFlow({
-  apiKey: 'your-api-key',
-  environment: 'production'
-});
-
-// Create a new debt management plan
-const plan = await client.plans.create({
-  userId: 'user-123',
-  debts: [
+  const featuredResources = [
     {
-      type: 'credit_card',
-      balance: 5000,
-      interestRate: 19.99,
-      minimumPayment: 150
+      title: "Understanding Credit Scores",
+      icon: TrendingUp,
+      description: "Learn how credit scores work and strategies to improve your score"
     },
     {
-      type: 'personal_loan',
-      balance: 10000,
-      interestRate: 12.5,
-      minimumPayment: 300
-    }
-  ],
-  strategy: 'snowball',
-  monthlyBudget: 1000
-});
-
-// Get AI-powered recommendations
-const recommendations = await client.ai.getRecommendations({
-  planId: plan.id,
-  timeframe: '12_months'
-});
-`;
-
-  const features = [
-    {
-      title: "RESTful API",
-      icon: GitBranch,
-      description: "Modern REST API with comprehensive endpoints for debt management"
+      title: "Financial Planning Basics",
+      icon: PieChart,
+      description: "Essential financial planning concepts for long-term stability"
     },
     {
-      title: "Real-time Updates",
-      icon: Zap,
-      description: "WebSocket support for live updates and notifications"
+      title: "Debt-Free Living",
+      icon: DollarSign,
+      description: "Tips and strategies for maintaining a debt-free lifestyle"
     },
     {
-      title: "Secure",
-      icon: Shield,
-      description: "Bank-level security with OAuth 2.0 and API key authentication"
-    },
-    {
-      title: "Data Access",
-      icon: Database,
-      description: "Flexible data models and comprehensive CRUD operations"
+      title: "Smart Money Habits",
+      icon: Lightbulb,
+      description: "Daily habits that can transform your financial future"
     }
   ];
 
@@ -108,11 +74,11 @@ const recommendations = await client.ai.getRecommendations({
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
             <span className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-              Documentation
+              Financial Resources
             </span>
           </h1>
           <p className="text-xl text-gray-300">
-            Comprehensive guides and API documentation for Smart Debt Flow
+            Guides, tools, and educational content to help you achieve financial freedom
           </p>
         </motion.div>
 
@@ -126,7 +92,7 @@ const recommendations = await client.ai.getRecommendations({
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
-              placeholder="Search documentation..."
+              placeholder="Search resources..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-400 focus:outline-none focus:border-[#88B04B]/50"
@@ -134,36 +100,37 @@ const recommendations = await client.ai.getRecommendations({
           </div>
         </motion.div>
 
-        {/* Features Grid */}
+        {/* Featured Resources Grid */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-16"
         >
+          <h2 className="text-2xl font-bold mb-8">Featured Resources</h2>
           <div className="grid md:grid-cols-4 gap-8">
-            {features.map((feature, index) => (
+            {featuredResources.map((resource, index) => (
               <motion.div
-                key={feature.title}
+                key={resource.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white/5 rounded-xl border border-white/10 p-6"
+                className="bg-white/5 rounded-xl border border-white/10 p-6 hover:border-[#88B04B]/30 transition-colors"
               >
                 <div className="w-12 h-12 rounded-lg bg-[#88B04B]/20 flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-[#88B04B]" />
+                  <resource.icon className="w-6 h-6 text-[#88B04B]" />
                 </div>
-                <h3 className="text-lg font-bold mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-300">{feature.description}</p>
+                <h3 className="text-lg font-bold mb-2">{resource.title}</h3>
+                <p className="text-sm text-gray-300">{resource.description}</p>
               </motion.div>
             ))}
           </div>
         </motion.section>
 
-        {/* Documentation Sections */}
+        {/* Resource Categories */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          {sections.map((section, index) => (
+          {categories.map((category, index) => (
             <motion.div
-              key={section.title}
+              key={category.title}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -171,14 +138,14 @@ const recommendations = await client.ai.getRecommendations({
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-[#88B04B]/20 flex items-center justify-center">
-                  <section.icon className="w-5 h-5 text-[#88B04B]" />
+                  <category.icon className="w-5 h-5 text-[#88B04B]" />
                 </div>
-                <h2 className="text-xl font-bold">{section.title}</h2>
+                <h2 className="text-xl font-bold">{category.title}</h2>
               </div>
               <ul className="space-y-3">
-                {section.items.map((item) => (
+                {category.items.map((item) => (
                   <li key={item} className="flex items-center gap-2 text-gray-300 hover:text-[#88B04B] cursor-pointer transition-colors">
-                    <FileText className="w-4 h-4" />
+                    <BookMarked className="w-4 h-4" />
                     {item}
                   </li>
                 ))}
@@ -187,17 +154,32 @@ const recommendations = await client.ai.getRecommendations({
           ))}
         </div>
 
-        {/* Code Example */}
+        {/* Financial Calculators Section */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-16"
         >
-          <h2 className="text-2xl font-bold mb-6">Quick Example</h2>
-          <div className="bg-[#1A1A1A] rounded-xl p-6 overflow-x-auto">
-            <pre className="text-sm font-mono text-gray-300">
-              <code>{codeExample}</code>
-            </pre>
+          <h2 className="text-2xl font-bold mb-6">Financial Calculators</h2>
+          <div className="bg-white/5 rounded-xl border border-white/10 p-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-lg hover:bg-[#88B04B]/10 transition-colors cursor-pointer">
+                <Calculator className="w-8 h-8 text-[#88B04B] mb-2" />
+                <p className="font-medium">Debt Payoff Calculator</p>
+              </div>
+              <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-lg hover:bg-[#88B04B]/10 transition-colors cursor-pointer">
+                <Calculator className="w-8 h-8 text-[#88B04B] mb-2" />
+                <p className="font-medium">Interest Rate Calculator</p>
+              </div>
+              <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-lg hover:bg-[#88B04B]/10 transition-colors cursor-pointer">
+                <Calculator className="w-8 h-8 text-[#88B04B] mb-2" />
+                <p className="font-medium">Budget Calculator</p>
+              </div>
+              <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-lg hover:bg-[#88B04B]/10 transition-colors cursor-pointer">
+                <Calculator className="w-8 h-8 text-[#88B04B] mb-2" />
+                <p className="font-medium">Savings Goal Calculator</p>
+              </div>
+            </div>
           </div>
         </motion.section>
 
@@ -207,21 +189,23 @@ const recommendations = await client.ai.getRecommendations({
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="bg-gradient-to-r from-[#88B04B]/20 to-[#6A9A2D]/20 rounded-xl border border-[#88B04B]/30 p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
+            <h2 className="text-2xl font-bold mb-4">Ready to Take Control of Your Finances?</h2>
             <p className="text-gray-300 mb-6">
-              Sign up for an API key and start integrating Smart Debt Flow into your application
+              Start your journey to financial freedom with our personalized debt management tools
             </p>
             <div className="flex gap-4 justify-center">
               <Button
                 className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white"
+                asChild
               >
-                Get API Key
+                <Link to="/debt-planner">Try Debt Planner</Link>
               </Button>
               <Button
                 variant="outline"
                 className="border-white/10 hover:border-[#88B04B]/50 text-white hover:bg-[#88B04B]/10"
+                asChild
               >
-                View API Reference
+                <Link to="/help">Visit Help Center</Link>
               </Button>
             </div>
           </div>

@@ -7,7 +7,10 @@ export default function Careers() {
   const navigate = useNavigate();
 
   const handleApply = (position: string, department: string) => {
-    navigate(`/apply?position=${encodeURIComponent(position)}&department=${encodeURIComponent(department)}`);
+    console.log('Applying for:', position, 'in', department);
+    const url = `/apply?position=${encodeURIComponent(position)}&department=${encodeURIComponent(department)}`;
+    console.log('Navigating to:', url);
+    navigate(url);
   };
 
   const positions = [

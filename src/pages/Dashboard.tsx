@@ -49,6 +49,7 @@ const DebtBreakdown = lazy(() => import('@/components/dashboard/DebtBreakdown'))
 const NextPayment = lazy(() => import('@/components/dashboard/NextPayment'));
 const BankConnections = lazy(() => import('@/components/dashboard/BankConnections'));
 const DebtProjection = lazy(() => import('@/components/dashboard/DebtProjection'));
+const FinancialTools = lazy(() => import('@/components/dashboard/FinancialTools'));
 const LoadingSpinner = lazy(() => import('@/components/ui/LoadingSpinner').then(module => ({ default: module.LoadingSpinner })));
 
 const DashboardSkeleton = () => (
@@ -1281,6 +1282,11 @@ export function Dashboard() {
                 />
               </Suspense>
             </div>
+            
+            {/* Financial Tools Section */}
+            <Suspense fallback={<Skeleton variant="card" className="h-96" />}>
+              <FinancialTools />
+            </Suspense>
           </div>
         )}
       </div>

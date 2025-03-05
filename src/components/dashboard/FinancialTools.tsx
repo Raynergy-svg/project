@@ -28,7 +28,7 @@ export default function FinancialTools({ className }: FinancialToolsProps) {
         { name: 'Snowball Method', description: 'Pay off debts from smallest to largest balance, gaining momentum as each debt is paid' },
         { name: 'Avalanche Method', description: 'Pay off debts with highest interest rates first to minimize interest payments over time' },
         { name: 'Debt Consolidation', description: 'Combine multiple debts into a single loan with a lower interest rate' },
-        { name: 'Debt Settlement', description: 'Negotiate with creditors to pay a lump sum that's less than what you owe' }
+        { name: 'Debt Settlement', description: "Negotiate with creditors to pay a lump sum that's less than what you owe" }
       ]
     },
     {

@@ -38,406 +38,441 @@ interface AuthContextType {
   updateUser: (data: Partial<User>) => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState('free');
-  const [subscriptionPlan, setSubscriptionPlan] = useState<string | undefined>(undefined);
-  const [subscriptionEndDate, setSubscriptionEndDate] = useState<Date | undefined>(undefined);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [lastActivity, setLastActivity] = useState<number>(Date.now());
+  const [sessionTimeout, setSessionTimeout] = useState<number>(3 * 60 * 60 * 1000); // 3 hours default
   const navigate = useNavigate();
   
   // Use dev account system in development mode
   const { isDevAccount, verifyDevCredentials } = useDevAccount();
 
-  // Safety timeout - don't block the app for more than 5 seconds
+  // Handle user activity tracking for session management
   useEffect(() => {
-    const safetyTimeout = setTimeout(() => {
-      if (isLoading) {
-        console.warn('Auth loading safety timeout reached, continuing without auth');
-        setIsLoading(false);
-      }
-    }, 5000);
+    const updateActivity = () => {
+      setLastActivity(Date.now());
+    };
     
-    return () => clearTimeout(safetyTimeout);
-  }, [isLoading]);
-
-  // Load user from Supabase session on mount
+    // Track user activity to prevent timeouts during active usage
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    window.addEventListener('click', updateActivity);
+    window.addEventListener('scroll', updateActivity);
+    
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('click', updateActivity);
+      window.removeEventListener('scroll', updateActivity);
+    };
+  }, []);
+  
+  // Session inactivity check
   useEffect(() => {
-    const loadUser = async () => {
+    if (!isAuthenticated) return;
+    
+    const checkInactivity = setInterval(() => {
+      const now = Date.now();
+      const inactiveTime = now - lastActivity;
+      
+      if (inactiveTime > sessionTimeout) {
+        console.log('Session timeout due to inactivity');
+        logout();
+        navigate('/signin?session=expired');
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(checkInactivity);
+  }, [isAuthenticated, lastActivity, sessionTimeout]);
+
+  // Initialize authentication state
+  useEffect(() => {
+    const initAuth = async () => {
       try {
-        // Check for mock authentication in development mode
-        if (import.meta.env.DEV) {
-          try {
-            const mockTokenData = JSON.parse(localStorage.getItem('supabase.auth.token') || '{}');
-            if (mockTokenData.access_token === 'fake-dev-token') {
-              console.log('Development mode: Loading mock user data');
-              
-              // Mock user data for development
-              const mockUser = {
-                id: '00000000-0000-0000-0000-000000000001',
-                email: 'dev@example.com',
-                isPremium: true,
-                trialEndsAt: null,
-                createdAt: new Date().toISOString(),
-                subscription: {
-                  status: 'active',
-                  planName: 'Premium Dev',
-                  currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
-                }
-              };
-              
-              setUser(mockUser);
-              setIsAuthenticated(true);
-              setIsLoading(false);
-              setIsSubscribed(true);
-              setSubscriptionStatus('active');
-              setSubscriptionPlan('Premium Dev');
-              setSubscriptionEndDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000));
-              
-              return;
-            }
-          } catch (e) {
-            // If parsing fails, continue with normal user loading
-            console.error('Error parsing mock token', e);
-          }
+        setIsLoading(true);
+        
+        // Get current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          setAuthError(sessionError.message);
+          setIsAuthenticated(false);
+          setUser(null);
+          return;
         }
         
-        // Normal user loading flow for production
-        const { data: sessionData } = await supabase.auth.getSession();
-        const session = sessionData?.session;
-
         if (session) {
-          // Get user data from Supabase auth
-          const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+          const { data: userData, error: userError } = await supabase.auth.getUser();
           
-          if (userError || !authUser) {
-            console.error('Error getting user:', userError?.message);
-            setIsLoading(false);
+          if (userError) {
+            console.error('Error getting user:', userError);
+            setAuthError(userError.message);
+            setIsAuthenticated(false);
+            setUser(null);
             return;
           }
-
-          // Get additional user data from profiles table
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', authUser.id)
-            .single();
-
-          if (profileError && profileError.code !== 'PGRST116') { // PGRST116 is "not found"
-            console.error('Error getting profile:', profileError.message);
+          
+          if (userData?.user) {
+            // Get user settings from database
+            const { data: userSettings, error: settingsError } = await supabase
+              .from('user_settings')
+              .select('session_timeout')
+              .eq('user_id', userData.user.id)
+              .single();
+              
+            if (!settingsError && userSettings?.session_timeout) {
+              // Convert minutes to milliseconds
+              setSessionTimeout(userSettings.session_timeout * 60 * 1000);
+            }
+            
+            setUser(userData.user);
+            setIsAuthenticated(true);
+            
+            // Record login security event
+            await recordSecurityEvent({
+              user_id: userData.user.id,
+              event_type: 'session_continued',
+              ip_address: await getClientIP(),
+              user_agent: navigator.userAgent,
+              details: 'Session restored during application initialization'
+            });
           }
-
-          // Create a combined user object with auth and profile data
-          const userData: User = {
-            id: authUser.id,
-            name: authUser.user_metadata?.name || profileData?.name,
-            email: authUser.email || '',
-            isPremium: profileData?.is_premium || false,
-            trialEndsAt: profileData?.trial_ends_at || null,
-            createdAt: authUser.created_at || new Date().toISOString(),
-            subscription: profileData?.subscription ? {
-              status: profileData.subscription.status || 'free',
-              planName: profileData.subscription.plan_name,
-              currentPeriodEnd: profileData.subscription.current_period_end 
-                ? new Date(profileData.subscription.current_period_end) 
-                : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            } : undefined
-          };
-
-          setUser(userData);
-          setIsAuthenticated(true);
-          setIsSubscribed(!!userData.subscription?.status && userData.subscription.status === 'active');
-          setSubscriptionStatus(userData.subscription?.status || 'free');
-          setSubscriptionPlan(userData.subscription?.planName);
-          setSubscriptionEndDate(userData.subscription?.currentPeriodEnd);
+        } else {
+          setIsAuthenticated(false);
+          setUser(null);
         }
+        
+        // Listen for auth state changes
+        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log('Auth state changed:', event);
+          
+          if (event === 'SIGNED_IN' && session) {
+            const { user } = session;
+            
+            if (user) {
+              setUser(user);
+              setIsAuthenticated(true);
+              setLastActivity(Date.now());
+              
+              // Record login security event
+              await recordSecurityEvent({
+                user_id: user.id,
+                event_type: 'sign_in',
+                ip_address: await getClientIP(),
+                user_agent: navigator.userAgent,
+                details: 'User signed in successfully'
+              });
+            }
+          }
+          
+          if (event === 'SIGNED_OUT') {
+            setUser(null);
+            setIsAuthenticated(false);
+            navigate('/signin');
+          }
+          
+          if (event === 'USER_UPDATED' && session) {
+            setUser(session.user);
+          }
+          
+          if (event === 'PASSWORD_RECOVERY') {
+            navigate('/reset-password');
+          }
+        });
+        
+        return () => {
+          authListener.subscription?.unsubscribe();
+        };
       } catch (error) {
-        console.error('Failed to load user from Supabase:', error);
+        console.error('Auth initialization error:', error);
+        setAuthError(error instanceof Error ? error.message : 'Authentication initialization failed');
       } finally {
         setIsLoading(false);
       }
     };
-
-    // Load user initially
-    loadUser();
-
-    // Skip Supabase auth state subscription in development mode with mock auth
-    if (import.meta.env.DEV) {
-      try {
-        const mockTokenData = JSON.parse(localStorage.getItem('supabase.auth.token') || '{}');
-        if (mockTokenData.access_token === 'fake-dev-token') {
-          console.log('Development mode: Using mock authentication');
-          return () => {}; // No cleanup needed for mock auth
-        }
-      } catch (e) {
-        // If parsing fails, continue with normal auth flow
-        console.error('Error parsing mock token', e);
-      }
-    }
-
-    // Normal Supabase auth state subscription for production
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          // Reload user data when signed in or token refreshed
-          loadUser();
-        } else if (event === 'SIGNED_OUT') {
-          // Clear user data when signed out
-          setUser(null);
-          setIsAuthenticated(false);
-          setIsSubscribed(false);
-          setSubscriptionStatus('free');
-          setSubscriptionPlan(undefined);
-          setSubscriptionEndDate(undefined);
-        }
-      }
-    );
-
-    // Cleanup subscription on unmount
-    return () => {
-      subscription?.unsubscribe();
-    };
+    
+    initAuth();
   }, []);
 
-  const login = async (email: string, password: string, redirectPath?: string) => {
+  // Improved login function with comprehensive error handling
+  const login = async (
+    email: string,
+    password: string,
+    captchaToken?: string,
+    redirectTo?: string
+  ): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
+    setAuthError(null);
+    
     try {
-      // Check if we're in development mode
-      const isDevelopment = import.meta.env.DEV;
+      // Get client IP for security logging
+      const clientIP = await getClientIP();
       
-      // Special handling for development accounts in development mode
-      if (isDevelopment && isDevAccount(email)) {
-        console.log('Development mode: Using development account');
-        
-        // Verify dev credentials (any password works for dev accounts)
-        const { valid, account } = verifyDevCredentials(email, password);
-        
-        if (valid && account) {
-          // Create a mock user with the dev account details
-          const mockUser: User = {
-            id: account.id,
-            email: account.email,
-            name: account.name,
-            isPremium: account.isPremium,
-            trialEndsAt: null,
-            createdAt: new Date().toISOString(),
-            subscription: {
-              status: account.isPremium ? 'active' : 'free',
-              planName: account.isPremium ? 'Premium Plan' : 'Free Plan',
-              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-            }
-          };
-          
-          // Update auth state
-          setUser(mockUser);
-          setIsAuthenticated(true);
-          
-          // Always navigate to dashboard after successful login
-          navigate(redirectPath || '/dashboard');
-          
-          // Return mock data
-          return { user: mockUser };
-        } else {
-          throw new Error('Invalid credentials');
-        }
+      // Implement rate limiting for login attempts
+      const rateLimited = await checkRateLimiting(email, clientIP);
+      if (rateLimited) {
+        setAuthError('Too many login attempts. Please try again later.');
+        return { success: false, error: 'Too many login attempts. Please try again later.' };
       }
       
-      if (isDevelopment) {
-        console.log('Development mode: Using development auth flow');
+      // Handling development environment for easier testing
+      if (import.meta.env.MODE === 'development' && 
+          (email.endsWith('@example.com') || email.endsWith('@test.com'))) {
+        console.log('Development mode detected - bypassing captcha');
         
-        try {
-          // For development, we need a different approach to bypass CAPTCHA
-          const tempClient = createBrowserClient();
-          
-          // Configure client with options that make CAPTCHA verification less strict in development
-          // Using local development mode to bypass production security features
-          const { data, error } = await tempClient.auth.signInWithPassword({
-            email,
-            password,
-            options: {
-              // Development-specific options
-              gotrue: {
-                detectSessionInUrl: false,
-                autoRefreshToken: true,
-                persistSession: true,
-                multiTab: true,
-              }
-            }
-          });
-
-          if (error) {
-            console.error('Development login error:', error);
-            
-            // Special handling for CAPTCHA errors in development
-            if (error.message.includes('captcha protection')) {
-              console.warn('CAPTCHA validation failed in development. You may need to disable CAPTCHA in your Supabase project settings for development.');
-              
-              // For development only: Create a mock session to bypass authentication
-              // Only do this if using a recognized development email pattern
-              if (email.includes('dev@') || email.includes('test@') || email.endsWith('.test') || email.includes('@example.com')) {
-                console.log('Using mock authentication for development email');
-                const mockUser: User = {
-                  id: 'dev-user-id',
-                  email: email,
-                  name: 'Development User',
-                  isPremium: true,
-                  trialEndsAt: null,
-                  createdAt: new Date().toISOString(),
-                  subscription: {
-                    status: 'active',
-                    planName: 'Development Plan',
-                    currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-                  }
-                };
-                
-                setUser(mockUser);
-                setIsAuthenticated(true);
-                navigate(redirectPath || '/dashboard');
-                return { user: mockUser };
-              }
-            }
-            
-            // Check for specific error messages from Supabase
-            if (error.message.includes('Email not confirmed')) {
-              throw new Error('Please check your email to confirm your account before signing in.');
-            }
-            
-            throw error;
-          }
-
-          if (data.user) {
-            // Log successful login
-            try {
-              logSecurityEvent(
-                SecurityEventType.LOGIN_SUCCESS,
-                'User logged in successfully',
-                'low',
-                data.user.id
-              );
-            } catch (logError) {
-              console.warn('Failed to log security event:', logError);
-            }
-            
-            // Update auth state
-            setUser(data.user);
-            setIsAuthenticated(true);
-            setIsSubscribed(!!data.user.subscription?.status && data.user.subscription.status === 'active');
-            setSubscriptionStatus(data.user.subscription?.status || 'free');
-            setSubscriptionPlan(data.user.subscription?.planName);
-            setSubscriptionEndDate(data.user.subscription?.currentPeriodEnd);
-            
-            // Always navigate to dashboard after successful login
-            navigate(redirectPath || '/dashboard');
-            
-            return data;
-          }
-        } catch (error) {
-          console.error('Error during login:', error);
-          throw error;
-        }
-      } else {
-        // Normal authentication flow with captcha for production
+        // Simple login without captcha for development
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-
+        
         if (error) {
-          // Log failed login attempt
-          try {
-            logSecurityEvent(
-              SecurityEventType.LOGIN_FAILED,
-              `Login failed: ${error.message}`,
-              'medium',
-              email // Using email as identifier since we don't have user ID
-            );
-          } catch (logError) {
-            console.warn('Failed to log security event:', logError);
-          }
+          console.error('Login error:', error);
+          setAuthError(error.message);
           
-          // Check for specific error messages from Supabase
-          if (error.message.includes('Email not confirmed')) {
-            throw new Error('Please check your email to confirm your account before signing in.');
-          }
-          throw error;
+          // Record failed login attempt
+          await recordSecurityEvent({
+            event_type: 'failed_login',
+            email: email, // We don't have user_id yet for failed logins
+            ip_address: clientIP,
+            user_agent: navigator.userAgent,
+            details: `Failed login attempt: ${error.message}`
+          });
+          
+          return { success: false, error: error.message };
         }
-
-        if (data.user) {
-          // Log successful login
-          try {
-            logSecurityEvent(
-              SecurityEventType.LOGIN_SUCCESS,
-              'User logged in successfully',
-              'low',
-              data.user.id
-            );
-          } catch (logError) {
-            console.warn('Failed to log security event:', logError);
-          }
-          
-          // Update auth state
+        
+        if (data?.user) {
           setUser(data.user);
           setIsAuthenticated(true);
-          setIsSubscribed(!!data.user.subscription?.status && data.user.subscription.status === 'active');
-          setSubscriptionStatus(data.user.subscription?.status || 'free');
-          setSubscriptionPlan(data.user.subscription?.planName);
-          setSubscriptionEndDate(data.user.subscription?.currentPeriodEnd);
+          setLastActivity(Date.now());
           
-          // Always navigate to dashboard after successful login
-          navigate(redirectPath || '/dashboard');
+          // Navigate to dashboard or specified redirect
+          navigate(redirectTo || '/dashboard');
           
-          return data;
+          // Record successful login security event
+          await recordSecurityEvent({
+            user_id: data.user.id,
+            event_type: 'sign_in',
+            ip_address: clientIP,
+            user_agent: navigator.userAgent,
+            details: 'User signed in successfully (dev mode)'
+          });
+          
+          return { success: true };
+        }
+      } else {
+        // Production login with captcha
+        if (!captchaToken) {
+          setAuthError('CAPTCHA verification required');
+          return { success: false, error: 'CAPTCHA verification required' };
+        }
+        
+        // Verify captcha token on server side
+        const verifyCaptchaResponse = await fetch('/api/verify-captcha', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: captchaToken }),
+        });
+        
+        if (!verifyCaptchaResponse.ok) {
+          const captchaError = await verifyCaptchaResponse.text();
+          setAuthError(`CAPTCHA verification failed: ${captchaError}`);
+          return { success: false, error: `CAPTCHA verification failed: ${captchaError}` };
+        }
+        
+        // Proceed with login after captcha validation
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        if (error) {
+          console.error('Login error:', error);
+          setAuthError(error.message);
+          
+          // Check for specific error conditions
+          if (error.message.includes('Email not confirmed')) {
+            navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+            return { success: false, error: 'Please verify your email before signing in' };
+          }
+          
+          // Record failed login attempt
+          await recordSecurityEvent({
+            event_type: 'failed_login',
+            email: email,
+            ip_address: clientIP,
+            user_agent: navigator.userAgent,
+            details: `Failed login attempt: ${error.message}`
+          });
+          
+          return { success: false, error: error.message };
+        }
+        
+        if (data?.user) {
+          setUser(data.user);
+          setIsAuthenticated(true);
+          setLastActivity(Date.now());
+          
+          // Get user's preferred session timeout setting
+          const { data: userSettings } = await supabase
+            .from('user_settings')
+            .select('session_timeout')
+            .eq('user_id', data.user.id)
+            .single();
+            
+          if (userSettings?.session_timeout) {
+            // Convert minutes to milliseconds
+            setSessionTimeout(userSettings.session_timeout * 60 * 1000);
+          }
+          
+          // Navigate to dashboard or specified redirect
+          navigate(redirectTo || '/dashboard');
+          
+          // Record successful login security event
+          await recordSecurityEvent({
+            user_id: data.user.id,
+            event_type: 'sign_in',
+            ip_address: clientIP,
+            user_agent: navigator.userAgent,
+            details: 'User signed in successfully'
+          });
+          
+          return { success: true };
         }
       }
+      
+      // Fallback error if we reach this point
+      setAuthError('An unexpected error occurred during login');
+      return { success: false, error: 'An unexpected error occurred during login' };
     } catch (error) {
-      console.error('Error during login:', error);
-      throw error;
+      console.error('Login exception:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setAuthError(errorMessage);
+      return { success: false, error: errorMessage };
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Enhanced logout function
   const logout = async () => {
     setIsLoading(true);
+    
     try {
-      // Log logout event if user is logged in
-      if (user?.id) {
-        try {
-          logSecurityEvent(
-            SecurityEventType.LOGOUT,
-            'User logged out',
-            'low',
-            user.id
-          );
-        } catch (logError) {
-          console.warn('Failed to log security event:', logError);
-        }
+      if (user) {
+        // Record logout security event
+        await recordSecurityEvent({
+          user_id: user.id,
+          event_type: 'sign_out',
+          ip_address: await getClientIP(),
+          user_agent: navigator.userAgent,
+          details: 'User signed out successfully'
+        });
       }
       
-      // Sign out with Supabase auth
       const { error } = await supabase.auth.signOut();
       
-      if (error) throw error;
-      
-      // Clear user state (will also be cleared by auth state change listener)
-      setUser(null);
-      setIsAuthenticated(false);
-      setIsSubscribed(false);
-      setSubscriptionStatus('free');
-      setSubscriptionPlan(undefined);
-      setSubscriptionEndDate(undefined);
-      navigate("/");
+      if (error) {
+        console.error('Logout error:', error);
+        setAuthError(error.message);
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+        navigate('/signin');
+      }
     } catch (error) {
-      console.error('Error during logout:', error);
-      throw error;
+      console.error('Logout exception:', error);
+      setAuthError(error instanceof Error ? error.message : 'An unexpected error occurred during logout');
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Helper function to get client IP for security logging
+  const getClientIP = async (): Promise<string> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Could not get client IP:', error);
+      return 'unknown';
+    }
+  };
+  
+  // Helper function to implement rate limiting
+  const checkRateLimiting = async (email: string, ipAddress: string): Promise<boolean> => {
+    if (import.meta.env.MODE === 'development') {
+      return false; // Skip rate limiting in development
+    }
+    
+    try {
+      // Check recent login attempts for this email and IP
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+      
+      const { count, error } = await supabase
+        .from('security_events')
+        .select('*', { count: 'exact' })
+        .eq('event_type', 'failed_login')
+        .or(`email.eq.${email},ip_address.eq.${ipAddress}`)
+        .gte('created_at', fiveMinutesAgo.toISOString());
+        
+      if (error) {
+        console.error('Rate limiting check error:', error);
+        return false; // Default to allowing login if check fails
+      }
+      
+      // Limit to 5 attempts in 5 minutes
+      return count !== null && count >= 5;
+    } catch (error) {
+      console.error('Rate limiting check exception:', error);
+      return false;
+    }
+  };
+  
+  // Helper function to record security events
+  const recordSecurityEvent = async (eventData: {
+    user_id?: string;
+    event_type: string;
+    ip_address: string;
+    user_agent: string;
+    details: string;
+    email?: string;
+  }) => {
+    try {
+      // Format details as JSON if it's a string
+      const parsedDetails = typeof eventData.details === 'string' 
+        ? JSON.parse(eventData.details) 
+        : eventData.details;
+      
+      // Call our database function to record the security event
+      const { data, error } = await supabase.rpc('insert_security_event', {
+        p_user_id: eventData.user_id || null,
+        p_event_type: eventData.event_type,
+        p_ip_address: eventData.ip_address,
+        p_user_agent: eventData.user_agent,
+        p_email: eventData.email || null,
+        p_details: parsedDetails
+      });
+
+      if (error) {
+        console.error('Error recording security event:', error);
+      }
+
+      return { success: !error, error };
+    } catch (error) {
+      console.error('Failed to record security event:', error);
+      return { success: false, error };
     }
   };
 
@@ -545,10 +580,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Update local state
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
-      setIsSubscribed(!!updatedUser.subscription?.status && updatedUser.subscription.status === 'active');
-      setSubscriptionStatus(updatedUser.subscription?.status || 'free');
-      setSubscriptionPlan(updatedUser.subscription?.planName);
-      setSubscriptionEndDate(updatedUser.subscription?.currentPeriodEnd);
+      setIsAuthenticated(true);
+      setLastActivity(Date.now());
     } catch (error) {
       console.error('Error updating user:', error);
     }
@@ -564,10 +597,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         resendConfirmationEmail, 
         isLoading,
         isAuthenticated,
-        isSubscribed,
-        subscriptionStatus,
-        subscriptionPlan,
-        subscriptionEndDate,
+        isSubscribed: !!user?.subscription?.status && user.subscription.status === 'active',
+        subscriptionStatus: user?.subscription?.status || 'free',
+        subscriptionPlan: user?.subscription?.planName,
+        subscriptionEndDate: user?.subscription?.currentPeriodEnd,
         updateUser
       }}
     >

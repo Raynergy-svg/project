@@ -91,6 +91,13 @@ preloadComponents([
   () => import("@/pages/SignUp")
 ]);
 
+// Admin pages
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
+const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
+const SecurityEvents = lazy(() => import('./pages/admin/SecurityEvents'));
+
 // Helper function to get page class based on path
 const getPageClass = (pathname: string): string => {
   if (pathname === '/') return 'landing-page';
@@ -99,63 +106,105 @@ const getPageClass = (pathname: string): string => {
   return '';
 };
 
-function AppRoutes() {
-  const location = useLocation();
-  const pageClass = getPageClass(location.pathname);
-  
-  // Apply page-specific class to main content
-  useEffect(() => {
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-      mainContent.className = pageClass;
-    }
-  }, [location.pathname, pageClass]);
-  
+// Main routes configuration
+const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/signin" element={<SignIn />} />
-      <Route path="/about" element={<About />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/terms" element={<Terms />} />
-      <Route path="/support" element={<Support />} />
-      <Route path="/security" element={<Navigate to="/support" replace />} />
-      <Route path="/blog" element={<Blog />} />
-      <Route path="/press" element={<Press />} />
-      <Route path="/help" element={<Help />} />
-      <Route path="/help/articles/snowball-method" element={<SnowballMethodArticle />} />
-      <Route path="/help/articles/avalanche-method" element={<AvalancheMethodArticle />} />
-      <Route path="/help/articles/account-setup" element={<AccountSetupArticle />} />
-      <Route path="/help/articles/dashboard-overview" element={<UnderstandingDashboardArticle />} />
-      <Route path="/help/articles/adding-debts" element={<AddingFirstDebtArticle />} />
-      <Route path="/docs" element={<Docs />} />
-      <Route path="/api" element={<Api />} />
-      <Route path="/status" element={<Status />} />
-      <Route path="/careers" element={<Careers />} />
-      <Route path="/apply" element={<JobApplication />} />
-      <Route path="/compliance" element={<Compliance />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/payment-success" element={<PaymentSuccess />} />
-      <Route path="/auth-demo" element={<AuthDemo />} />
-      <Route path="/admin" element={
-        <ProtectedRoute>
-          <AdminTools />
-        </ProtectedRoute>
-      } />
-      <Route
-        path="/dashboard/*"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/debt-planner" element={<DebtPlanner />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={<LoadingScreen />}>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        
+        {/* Public routes */}
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/job-application" element={<JobApplication />} />
+        <Route path="/support" element={<Support />} />
+        
+        {/* Protected routes - require authentication */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute requireSubscription={false}>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/debt-planner" 
+          element={
+            <ProtectedRoute requireSubscription={false}>
+              <DebtPlanner />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/savings-planner" 
+          element={
+            <ProtectedRoute requireSubscription={false}>
+              <SavingsPlanner />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/insights" 
+          element={
+            <ProtectedRoute requireSubscription={true}>
+              <AIInsights />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Settings routes */}
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute requireSubscription={false}>
+              <Settings />
+            </ProtectedRoute>
+          } 
+        >
+          <Route index element={<Navigate to="/settings/account" replace />} />
+          <Route path="account" element={<AccountSettings />} />
+          <Route path="preferences" element={<PreferencesSettings />} />
+          <Route path="security" element={<SecuritySettings />} />
+          <Route path="billing" element={<BillingSettings />} />
+          <Route path="notifications" element={<NotificationSettings />} />
+        </Route>
+        
+        {/* Help & Article routes */}
+        <Route path="/help" element={<Help />} />
+        <Route path="/articles/:slug" element={<ArticleDetail />} />
+        
+        {/* Admin routes - require admin role */}
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute requireSubscription={false}>
+              <AdminAuthCheck>
+                <AdminLayout />
+              </AdminAuthCheck>
+            </ProtectedRoute>
+          } 
+        >
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="content" element={<AdminContent />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="security" element={<SecurityEvents />} />
+        </Route>
+        
+        {/* Fallback 404 route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
-}
+};
 
 // New AppNavbar component
 function AppNavbar() {

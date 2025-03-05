@@ -7,6 +7,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useDevSignIn } from "@/utils/useDevSignIn";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IS_DEV } from '@/utils/environment';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import ReCAPTCHA from 'react-google-recaptcha';
 
 interface FormData {
   email: string;
@@ -34,10 +37,19 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showConfirmationAlert, setShowConfirmationAlert] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
-
+  const captchaRef = useRef<ReCAPTCHA>(null);
+  
+  // Parse the redirect URL from search params
+  const searchParams = new URLSearchParams(location.search);
+  const redirectTo = searchParams.get('from') || '/dashboard';
+  const sessionExpired = searchParams.get('session') === 'expired';
+  
   useEffect(() => {
     // Try to get saved email from localStorage if exists
     const getSavedEmail = async () => {
@@ -92,6 +104,36 @@ export default function SignIn() {
       setShowConfirmationAlert(true);
     }
   }, [location]);
+
+  // Reset captcha when component is mounted or errors occur
+  useEffect(() => {
+    if (captchaRef.current) {
+      captchaRef.current.reset();
+    }
+    
+    // Show security message if session expired
+    if (sessionExpired) {
+      setSecurityMessage('Your session has expired due to inactivity. Please sign in again.');
+    }
+  }, [sessionExpired]);
+  
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      navigate(redirectTo);
+    }
+  }, [isAuthenticated, authLoading, navigate, redirectTo]);
+  
+  // Show CAPTCHA after first failed attempt
+  useEffect(() => {
+    if (failedAttempts > 0) {
+      setShowCaptcha(true);
+    }
+  }, [failedAttempts]);
+  
+  const handleCaptchaChange = (token: string | null) => {
+    setCaptchaToken(token);
+  };
 
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
@@ -204,6 +246,11 @@ export default function SignIn() {
   // Update the button UI to show when auth is loading too
   const isButtonDisabled = isSubmitting || authLoading || devSignInLoading || failedAttempts >= 3;
 
+  // If already authenticated, don't render the form
+  if (isAuthenticated && !authLoading) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1E1E1E] to-[#121212] text-white py-4 px-4">
       <div className="absolute top-4 left-4 z-10">
@@ -270,7 +317,7 @@ export default function SignIn() {
               <label htmlFor="email" className="block text-sm font-medium mb-2">
                 Email Address
               </label>
-              <input
+              <Input
                 type="email"
                 id="email"
                 name="email"
@@ -303,7 +350,7 @@ export default function SignIn() {
                 Password
               </label>
               <div className="relative">
-                <input
+                <Input
                   type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
@@ -362,8 +409,20 @@ export default function SignIn() {
               </Link>
             </div>
 
+            {/* CAPTCHA component */}
+            {showCaptcha && !import.meta.env.MODE === 'development' && (
+              <div className="flex justify-center mt-4">
+                <ReCAPTCHA
+                  ref={captchaRef}
+                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'} // fallback to test key
+                  onChange={handleCaptchaChange}
+                  theme="dark"
+                />
+              </div>
+            )}
+
             <div className="pt-4">
-              <button
+              <Button
                 type="submit"
                 id="sign-in-button"
                 name="sign-in-button"
@@ -381,7 +440,7 @@ export default function SignIn() {
                     <ArrowRight size={20} />
                   </>
                 )}
-              </button>
+              </Button>
             </div>
 
             <p className="text-center text-gray-300 mt-6">

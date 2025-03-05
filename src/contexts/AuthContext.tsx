@@ -65,12 +65,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     window.addEventListener('keydown', updateActivity);
     window.addEventListener('click', updateActivity);
     window.addEventListener('scroll', updateActivity);
+    window.addEventListener('touchstart', updateActivity);
+    window.addEventListener('focus', updateActivity);
+    window.addEventListener('activity', updateActivity); // Custom event from support pages
+    
+    // Special handling for support pages - extend session automatically
+    const extendSessionOnSupportPages = () => {
+      const path = window.location.pathname;
+      if (path.includes('/support') || path.includes('/compliance') || path.includes('/help')) {
+        // Automatically refresh activity timer every 5 minutes on support pages
+        const supportPageInterval = setInterval(updateActivity, 5 * 60 * 1000);
+        return () => clearInterval(supportPageInterval);
+      }
+    };
+    
+    const cleanupSupportInterval = extendSessionOnSupportPages();
     
     return () => {
       window.removeEventListener('mousemove', updateActivity);
       window.removeEventListener('keydown', updateActivity);
       window.removeEventListener('click', updateActivity);
       window.removeEventListener('scroll', updateActivity);
+      window.removeEventListener('touchstart', updateActivity);
+      window.removeEventListener('focus', updateActivity);
+      if (cleanupSupportInterval) cleanupSupportInterval();
     };
   }, []);
   
@@ -82,7 +100,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const now = Date.now();
       const inactiveTime = now - lastActivity;
       
-      if (inactiveTime > sessionTimeout) {
+      // Check if user is on a support page by looking for the lastSupportActivity in sessionStorage
+      const lastSupportActivity = sessionStorage.getItem('lastSupportActivity');
+      const isOnSupportPage = lastSupportActivity && (now - parseInt(lastSupportActivity)) < sessionTimeout;
+      
+      // Only log out if user is inactive AND not on a support page
+      if (inactiveTime > sessionTimeout && !isOnSupportPage) {
         console.log('Session timeout due to inactivity');
         logout();
         navigate('/signin?session=expired');

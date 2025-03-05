@@ -2,8 +2,28 @@ import { motion } from 'framer-motion';
 import { HeadphonesIcon, HelpCircle, MessageCircle, Clock, FileQuestion, PhoneCall, Mail, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AIChat } from '@/components/chat/AIChat';
+import { useEffect } from 'react';
 
 export default function Support() {
+  // Keep session active while on support page
+  useEffect(() => {
+    // Create a function to refresh the session activity
+    const keepSessionActive = () => {
+      // Dispatch a custom event that will be caught by the activity tracker
+      window.dispatchEvent(new Event('activity'));
+      
+      // Also store a timestamp in sessionStorage as a backup mechanism
+      sessionStorage.setItem('lastSupportActivity', Date.now().toString());
+    };
+    
+    // Run immediately and then every 2 minutes
+    keepSessionActive();
+    const interval = setInterval(keepSessionActive, 2 * 60 * 1000);
+    
+    // Clean up on unmount
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white py-20 relative">
       <div className="container mx-auto px-4 relative">

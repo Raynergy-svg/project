@@ -8,7 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { useAuth } from '@/contexts/AuthContext';
-import LoadingSpinner from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface FormData {
   email: string;

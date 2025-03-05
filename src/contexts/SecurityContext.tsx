@@ -22,9 +22,9 @@ export interface SecurityContextType {
 // Create Security Context
 const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
 
-// Default session timeout (30 minutes in milliseconds)
-const DEFAULT_SESSION_TIMEOUT = 30 * 60 * 1000;
-const WARNING_BEFORE_TIMEOUT = 5 * 60 * 1000; // 5 minutes before timeout
+// Default session timeout (2 hours in milliseconds)
+const DEFAULT_SESSION_TIMEOUT = 120 * 60 * 1000;
+const WARNING_BEFORE_TIMEOUT = 10 * 60 * 1000; // 10 minutes before timeout
 
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [csrfToken, setCsrfToken] = useState<string>(() => {

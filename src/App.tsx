@@ -1,5 +1,5 @@
-import React, { useEffect, Suspense, lazy } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useEffect, Suspense, lazy, useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import LoadingScreen from '@/components/ui/loading-screen';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -31,15 +31,28 @@ function logDevInfo(message: string) {
   }
 }
 
-// We use top-level check that will be evaluated at build time
-// eslint-disable-next-line no-new-func
-const ConnectionStatus = new Function(`
-  if (process.env.NODE_ENV === 'development') {
-    return require('@/components/dev/ConnectionStatus').ConnectionStatus;
-  } else {
-    return null;
+// Let's define a type for our app's global window object
+declare global {
+  interface Window {
+    __dev_tools_loaded?: boolean;
   }
-`)(IS_DEV);
+}
+
+// Let's use a simpler approach to conditionally load development components
+// This will be properly handled by Vite tree-shaking
+let DevConnectionStatus: React.ComponentType | null = null;
+
+// In a real app, we'd use dynamic imports to load dev components
+// but for now we'll just log that development mode is active
+if (IS_DEV) {
+  console.log('[DEV] Development mode detected');
+  // We would load dev tools here if needed
+  // Example (not actually used now):
+  // import('@/components/debug/ConnectionStatus').then(module => {
+  //   DevConnectionStatus = module.ConnectionStatus;
+  //   window.__dev_tools_loaded = true;
+  // });
+}
 
 // Lazy load routes with enhanced error handling and loading
 const Landing = lazy(() => import("@/pages/Landing"));
@@ -185,6 +198,9 @@ const AppRoutes = () => {
         <Route path="/help" element={<Help />} />
         <Route path="/articles/:slug" element={<ArticleDetail />} />
         
+        {/* Public information pages */}
+        <Route path="/compliance" element={<Compliance />} />
+        
         {/* Admin routes - require admin role */}
         <Route 
           path="/admin" 
@@ -251,53 +267,58 @@ function AppNavbar() {
 
 // This component will be used inside the AuthProvider
 function AppContent() {
-  const navigate = useNavigate();
   const location = useLocation();
-  const { isInitialized, isAuthenticated, user } = useAuth();
-  const { isMobile } = useDeviceContext();
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const { pathname } = location;
+  const pageClass = getPageClass(pathname);
+  const { user, isLoading, error } = useAuth();
+  const [userLoadedBefore, setUserLoadedBefore] = useState(false);
 
-  // Initialize database tables when the app starts
+  // Initialize database tables in development mode
   useEffect(() => {
-    const initializeDatabase = async () => {
-      try {
-        console.log('Checking database tables...');
-        
-        // Check if the SQL execute function exists
-        const sqlFunctionCheck = await checkExecuteSqlFunction();
-        if (!sqlFunctionCheck.exists) {
-          console.warn('SQL execution function is not available:', sqlFunctionCheck.message);
-          // Continue even without SQL execution capability
-        }
-        
-        // Try to access tables (this will validate if they exist)
-        const debtsResult = await createDebtTable();
-        if (!debtsResult.success) {
-          console.log('Note about debts table:', debtsResult.error);
-        }
-        
-        const bankAccountsResult = await createBankAccountsTable();
-        if (!bankAccountsResult.success) {
-          console.log('Note about bank accounts table:', bankAccountsResult.error);
-        }
-        
-        const transactionHistoryResult = await createTransactionHistoryTable();
-        if (!transactionHistoryResult.success) {
-          console.log('Note about transaction history table:', transactionHistoryResult.error);
-        }
-        
-        console.log('Database initialization completed');
-      } catch (err) {
-        console.error('Error during database initialization:', err);
-        // Continue with the application regardless of database initialization
-      }
-    };
-    
-    // Only run this if the user is authenticated
-    if (isAuthenticated) {
+    if (IS_DEV && user && !userLoadedBefore) {
+      setUserLoadedBefore(true);
       initializeDatabase();
     }
-  }, [isAuthenticated]);
+  }, [user, userLoadedBefore]);
+
+  // Initialize database for development/testing
+  const initializeDatabase = async () => {
+    if (IS_DEV) {
+      console.log("[DEV] Checking and initializing database tables for development...");
+      try {
+        const { data: fnCheck, error: fnError } = await checkExecuteSqlFunction();
+        
+        if (fnError) {
+          console.error("[DEV] Error checking SQL function:", fnError);
+        } else {
+          console.log("[DEV] SQL function check result:", fnCheck);
+        }
+        
+        const { error: debtError } = await createDebtTable();
+        if (debtError) {
+          console.error("[DEV] Error creating debt table:", debtError);
+        } else {
+          console.log("[DEV] Debt table created or already exists");
+        }
+        
+        const { error: accountsError } = await createBankAccountsTable();
+        if (accountsError) {
+          console.error("[DEV] Error creating bank accounts table:", accountsError);
+        } else {
+          console.log("[DEV] Bank accounts table created or already exists");
+        }
+        
+        const { error: transactionError } = await createTransactionHistoryTable();
+        if (transactionError) {
+          console.error("[DEV] Error creating transaction history table:", transactionError);
+        } else {
+          console.log("[DEV] Transaction history table created or already exists");
+        }
+      } catch (err) {
+        console.error("[DEV] Error initializing development database:", err);
+      }
+    }
+  };
 
   // Show onboarding tour for new users
   const shouldShowTour = !localStorage.getItem("onboardingCompleted");
@@ -334,13 +355,6 @@ function App() {
   // Initialize error tracking
   useErrorTracking();
 
-  // For development only - get the debug component if available
-  useEffect(() => {
-    if (IS_DEV && window.__ConnectionStatus) {
-      ConnectionStatus = window.__ConnectionStatus;
-    }
-  }, []);
-
   return (
     <ErrorBoundary>
       <DeviceProvider>
@@ -350,8 +364,8 @@ function App() {
           </SecurityProvider>
         </AuthProvider>
       </DeviceProvider>
-      {/* Add the debug component only in development */}
-      {IS_DEV && ConnectionStatus && <ConnectionStatus />}
+      {/* Add the dev mode indicator only in development */}
+      {IS_DEV && <div className="fixed bottom-1 left-1 text-xs bg-yellow-100 px-2 py-1 rounded-md">DEV MODE</div>}
     </ErrorBoundary>
   );
 }

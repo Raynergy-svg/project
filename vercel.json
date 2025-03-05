@@ -39,26 +39,17 @@
       ]
     }
   ],
-  "routes": [
+  "rewrites": [
+    { "source": "/manifest.json", "destination": "/manifest.json" },
     {
-      "src": "/manifest.json",
-      "dest": "/manifest.json"
+      "source": "/manifest.webmanifest",
+      "destination": "/manifest.webmanifest"
     },
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
     {
-      "src": "/manifest.webmanifest",
-      "dest": "/manifest.webmanifest"
+      "source": "/(.*).(js|css|png|jpg|svg|ico|json|webmanifest)",
+      "destination": "/$1.$2"
     },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/(.*).(js|css|png|jpg|svg|ico|json|webmanifest)",
-      "dest": "/$1.$2"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

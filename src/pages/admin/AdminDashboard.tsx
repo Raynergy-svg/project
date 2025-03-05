@@ -19,7 +19,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import LoadingSpinner from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import AdminPageHeader from '@/components/admin/AdminPageHeader';
 
 interface StatCard {

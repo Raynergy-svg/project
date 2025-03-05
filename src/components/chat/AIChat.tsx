@@ -1,138 +1,126 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, Send, X, ArrowDown, User, Bot, ChevronUp, PaperclipIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+import { MessageSquare, Send, X, AlertCircle, Bot } from 'lucide-react';
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '@/hooks/useAuth';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface Message {
-  id: string;
+  id?: string;
+  sender: 'user' | 'assistant';
   content: string;
-  role: 'user' | 'assistant';
-  timestamp: Date;
+  timestamp?: string;
+  suggestedActions?: SuggestedAction[];
 }
 
 interface SuggestedAction {
+  id: string;
   label: string;
-  onClick: () => void;
+  value: string;
 }
 
 interface AIChatProps {
   initialOpen?: boolean;
-  onClose?: () => void;
 }
 
-export function AIChat({ initialOpen = false, onClose }: AIChatProps) {
+export default function AIChat({ initialOpen = false }: AIChatProps) {
+  const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [suggestedActions, setSuggestedActions] = useState<string[]>([]);
-  const [sessionId, setSessionId] = useState<string>('');
+  const [suggestedActions, setSuggestedActions] = useState<SuggestedAction[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [ticketInfo, setTicketInfo] = useState({
+    subject: '',
+    description: '',
+    category: 'general',
+    priority: 'medium'
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
+  // Scroll to bottom when messages change
   useEffect(() => {
-    scrollToBottom();
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   // Initialize chat session when component mounts
   useEffect(() => {
-    if (isOpen && user && !sessionId) {
+    if (isOpen && !sessionId && user) {
       initChatSession();
     }
   }, [isOpen, user]);
 
   const initChatSession = async () => {
     try {
+      setIsTyping(true);
       const response = await axios.post('/api/chat/session', {
-        userId: user?.id,
+        userId: user?.id
       });
-
-      if (response.data.success) {
-        setSessionId(response.data.sessionId);
-        setMessages([
-          {
-            id: uuidv4(),
-            content: response.data.greeting,
-            role: 'assistant',
-            timestamp: new Date(),
-          },
-        ]);
-        
-        if (response.data.suggestedActions) {
-          setSuggestedActions(response.data.suggestedActions);
-        }
-      }
+      
+      setSessionId(response.data.sessionId);
+      
+      const initialMessage: Message = {
+        sender: 'assistant',
+        content: response.data.initialMessage.content,
+        suggestedActions: response.data.initialMessage.suggestedActions
+      };
+      
+      setMessages([initialMessage]);
+      setSuggestedActions(response.data.initialMessage.suggestedActions || []);
+      setIsTyping(false);
     } catch (err) {
       console.error('Error initializing chat session:', err);
-      setError('Unable to start chat. Please try again later.');
+      setError('Failed to initialize chat. Please try again later.');
+      setIsTyping(false);
     }
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !user) return;
-
+    if (!input.trim() || !sessionId || !user) return;
+    
     const userMessage: Message = {
-      id: uuidv4(),
-      content: input,
-      role: 'user',
-      timestamp: new Date(),
+      sender: 'user',
+      content: input
     };
-
-    // Add user message to chat
-    setMessages((prev) => [...prev, userMessage]);
+    
+    setMessages(prev => [...prev, userMessage]);
+    setSuggestedActions([]);
     setInput('');
     setIsTyping(true);
-    setSuggestedActions([]);
-
+    
     try {
       const response = await axios.post('/api/chat/message', {
         userId: user.id,
         sessionId,
-        message: userMessage.content,
+        message: input
       });
-
-      if (response.data.success) {
-        // Add AI response to chat
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: uuidv4(),
-            content: response.data.response,
-            role: 'assistant',
-            timestamp: new Date(),
-          },
-        ]);
-
-        // Set suggested actions if available
-        if (response.data.suggestedActions && response.data.suggestedActions.length > 0) {
-          setSuggestedActions(response.data.suggestedActions);
-        }
-      } else {
-        setError('Something went wrong. Please try again.');
+      
+      const aiMessage: Message = {
+        sender: 'assistant',
+        content: response.data.response.content,
+        suggestedActions: response.data.response.suggestedActions
+      };
+      
+      setMessages(prev => [...prev, aiMessage]);
+      setSuggestedActions(response.data.response.suggestedActions || []);
+      
+      // Check if response indicates we should show the ticket form
+      if (aiMessage.content.includes('support ticket') && 
+          aiMessage.content.toLowerCase().includes('create') &&
+          !showTicketForm) {
+        handleShowTicketForm();
       }
+      
+      setIsTyping(false);
     } catch (err) {
       console.error('Error sending message:', err);
       setError('Failed to send message. Please try again.');
-      
-      // Add error message from AI
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uuidv4(),
-          content: "I'm sorry, I couldn't process your message. Please try again later.",
-          role: 'assistant',
-          timestamp: new Date(),
-        },
-      ]);
-    } finally {
       setIsTyping(false);
     }
   };
@@ -144,42 +132,83 @@ export function AIChat({ initialOpen = false, onClose }: AIChatProps) {
     }
   };
 
-  const handleSuggestedAction = (action: string) => {
-    setInput(action);
+  const handleSuggestedAction = (action: SuggestedAction) => {
+    setInput(action.value);
     handleSend();
   };
 
   const toggleChat = () => {
-    setIsOpen((prev) => !prev);
-    if (!isOpen && !sessionId && user) {
-      initChatSession();
+    setIsOpen(prev => !prev);
+  };
+
+  const handleDismissError = () => {
+    setError(null);
+  };
+
+  const handleShowTicketForm = () => {
+    setShowTicketForm(true);
+    
+    // Pre-fill ticket description with recent conversation
+    const lastMessages = messages.slice(-4);
+    const conversationSummary = lastMessages
+      .map(msg => `${msg.sender === 'user' ? 'Me' : 'Assistant'}: ${msg.content}`)
+      .join('\n');
+    
+    setTicketInfo(prev => ({
+      ...prev,
+      description: conversationSummary
+    }));
+  };
+
+  const handleSubmitTicket = async () => {
+    if (!user || !sessionId) return;
+    
+    try {
+      setIsTyping(true);
+      
+      const response = await axios.post('/api/chat/ticket', {
+        userId: user.id,
+        sessionId,
+        subject: ticketInfo.subject,
+        description: ticketInfo.description,
+        category: ticketInfo.category,
+        priority: ticketInfo.priority
+      });
+      
+      // Add confirmation message
+      const confirmationMessage: Message = {
+        sender: 'assistant',
+        content: `Your support ticket has been created successfully! Ticket #${response.data.ticketId} has been assigned to our team and we'll get back to you soon.`,
+        suggestedActions: [
+          { id: 'view_ticket', label: 'View Ticket', value: 'I want to view my ticket status' },
+          { id: 'continue', label: 'Continue Chat', value: 'Let me ask something else' }
+        ]
+      };
+      
+      setMessages(prev => [...prev, confirmationMessage]);
+      setSuggestedActions(confirmationMessage.suggestedActions || []);
+      setShowTicketForm(false);
+      setIsTyping(false);
+    } catch (err) {
+      console.error('Error creating ticket:', err);
+      setError('Failed to create support ticket. Please try again.');
+      setIsTyping(false);
     }
   };
 
-  const closeChat = () => {
-    setIsOpen(false);
-    if (onClose) onClose();
-  };
-
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <>
       {/* Chat button */}
       <motion.button
         onClick={toggleChat}
-        className={`flex items-center rounded-full p-3 shadow-lg ${
-          isOpen ? 'bg-gray-700' : 'bg-[#88B04B]'
-        }`}
+        className="fixed bottom-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-lg z-20 flex items-center justify-center"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
-        {isOpen ? (
-          <ChevronUp className="h-6 w-6 text-white" />
-        ) : (
-          <MessageCircle className="h-6 w-6 text-white" />
-        )}
+        {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
       </motion.button>
 
-      {/* Chat window */}
+      {/* Chat container */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -187,127 +216,183 @@ export function AIChat({ initialOpen = false, onClose }: AIChatProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute bottom-16 right-0 w-80 sm:w-96 rounded-lg shadow-xl overflow-hidden"
+            className="fixed bottom-20 right-4 w-96 h-[32rem] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden z-10 border border-gray-200"
+            ref={chatContainerRef}
           >
-            <div className="flex flex-col h-[500px] max-h-[80vh] bg-gray-900 border border-gray-800">
-              {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 bg-gray-800 border-b border-gray-700">
-                <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-[#88B04B]/20 flex items-center justify-center">
-                    <Bot className="h-4 w-4 text-[#88B04B]" />
-                  </div>
-                  <h3 className="font-medium text-white">DebtFlow Assistant</h3>
-                </div>
-                <button
-                  onClick={closeChat}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <X className="h-5 w-5" />
-                </button>
+            {/* Header */}
+            <div className="p-4 bg-indigo-600 text-white flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Bot size={20} />
+                <h3 className="font-medium">DebtFlow Assistant</h3>
               </div>
+              <button onClick={toggleChat} className="text-white hover:text-gray-200">
+                <X size={20} />
+              </button>
+            </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg) => (
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
                   <div
-                    key={msg.id}
-                    className={`flex ${
-                      msg.role === 'user' ? 'justify-end' : 'justify-start'
+                    className={`max-w-[80%] p-3 rounded-lg ${
+                      message.sender === 'user'
+                        ? 'bg-indigo-600 text-white rounded-br-none'
+                        : 'bg-white border border-gray-200 rounded-bl-none'
                     }`}
                   >
-                    <div
-                      className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                        msg.role === 'user'
-                          ? 'bg-[#88B04B] text-white'
-                          : 'bg-gray-800 text-gray-200'
-                      }`}
-                    >
-                      <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
-                      <div
-                        className={`text-xs mt-1 ${
-                          msg.role === 'user' ? 'text-[#D9EAC0]' : 'text-gray-400'
-                        }`}
-                      >
-                        {msg.timestamp.toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </div>
-                    </div>
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                   </div>
-                ))}
+                </div>
+              ))}
 
-                {/* Typing indicator */}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-gray-800 text-white rounded-lg px-4 py-2 max-w-[80%]">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce" />
-                        <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce delay-100" />
-                        <div className="w-2 h-2 rounded-full bg-gray-500 animate-bounce delay-200" />
-                      </div>
-                    </div>
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-gray-200 p-3 rounded-lg rounded-bl-none">
+                    <LoadingSpinner size="sm" />
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Error message */}
-                {error && (
-                  <div className="bg-red-500/10 border border-red-500/30 text-red-500 p-2 rounded-md text-sm">
-                    {error}
+              {/* Error message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 p-3 rounded-lg flex items-start">
+                  <AlertCircle size={16} className="text-red-500 mt-0.5 mr-2 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                  <button onClick={handleDismissError} className="text-gray-500 hover:text-gray-700">
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+
+              {/* Suggested actions */}
+              {suggestedActions.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {suggestedActions.map(action => (
                     <button
-                      onClick={() => setError(null)}
-                      className="ml-2 text-red-400 hover:text-red-300"
+                      key={action.id}
+                      onClick={() => handleSuggestedAction(action)}
+                      className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-sm hover:bg-indigo-100 transition-colors"
                     >
-                      Dismiss
+                      {action.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Support ticket form */}
+              {showTicketForm && (
+                <div className="bg-white border border-gray-200 p-4 rounded-lg space-y-3">
+                  <h4 className="font-medium text-gray-900">Create Support Ticket</h4>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                    <input
+                      type="text"
+                      value={ticketInfo.subject}
+                      onChange={(e) => setTicketInfo(prev => ({ ...prev, subject: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      placeholder="Brief description of your issue"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea
+                      value={ticketInfo.description}
+                      onChange={(e) => setTicketInfo(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm h-20"
+                      placeholder="Provide details about your issue"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                      <select
+                        value={ticketInfo.category}
+                        onChange={(e) => setTicketInfo(prev => ({ ...prev, category: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      >
+                        <option value="general">General</option>
+                        <option value="account">Account</option>
+                        <option value="payment">Payment</option>
+                        <option value="technical">Technical</option>
+                        <option value="debt_strategy">Debt Strategy</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                      <select
+                        value={ticketInfo.priority}
+                        onChange={(e) => setTicketInfo(prev => ({ ...prev, priority: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                      >
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex justify-end space-x-2 pt-2">
+                    <button
+                      onClick={() => setShowTicketForm(false)}
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSubmitTicket}
+                      className="px-3 py-1.5 bg-indigo-600 rounded-md text-sm text-white hover:bg-indigo-700"
+                      disabled={!ticketInfo.subject || !ticketInfo.description}
+                    >
+                      Submit Ticket
                     </button>
                   </div>
-                )}
-
-                {/* Suggested actions */}
-                {suggestedActions.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {suggestedActions.map((action, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestedAction(action)}
-                        className="bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm px-3 py-1.5 rounded-full transition-colors"
-                      >
-                        {action}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input area */}
-              <div className="p-3 border-t border-gray-800 bg-gray-900">
-                <div className="flex">
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your message..."
-                    className="flex-1 bg-gray-800 border border-gray-700 rounded-l-md px-3 py-2 focus:outline-none focus:border-[#88B04B] text-white placeholder-gray-400 resize-none"
-                    rows={1}
-                  />
-                  <Button
-                    onClick={handleSend}
-                    disabled={!input.trim() || isTyping}
-                    className="rounded-l-none bg-[#88B04B] hover:bg-[#76983F]"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
                 </div>
-                <div className="text-xs text-gray-500 mt-2">
-                  Your chat with our AI assistant is not reviewed by humans unless you request help.
-                </div>
+              )}
+              
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input area */}
+            <div className="p-4 border-t border-gray-200 bg-white">
+              <div className="flex items-end space-x-2">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type a message..."
+                  className="flex-1 p-2 border border-gray-300 rounded-md resize-none max-h-32 min-h-[2.5rem] text-sm"
+                  rows={1}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isTyping}
+                  className={`p-2 rounded-md ${
+                    !input.trim() || isTyping
+                      ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                  }`}
+                >
+                  <Send size={18} />
+                </button>
               </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Your chat with our AI assistant is not reviewed by humans unless you request help.
+              </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 } 

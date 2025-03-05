@@ -319,7 +319,7 @@ const Landing = () => {
     // Check if we need to scroll to pricing section
     const searchParams = new URLSearchParams(location.search);
     if (searchParams.get('pricing') === 'true') {
-      const pricingSection = document.getElementById('pricing-heading');
+      const pricingSection = document.getElementById('pricing');
       if (pricingSection) {
         setTimeout(() => {
           pricingSection.scrollIntoView({ behavior: 'smooth' });
@@ -327,6 +327,14 @@ const Landing = () => {
       }
     }
 
+    // Handle scroll state from navigation
+    if (location.state && location.state.scrollToId) {
+      const sectionId = location.state.scrollToId;
+      setTimeout(() => {
+        const section = document.getElementById(sectionId);
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth' });
+        }
     const preloadAssets = async () => {
       const imageWidth = deviceType === 'mobile' ? 400 : 800;
       

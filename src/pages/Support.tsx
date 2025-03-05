@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
-import { HeadphonesIcon, HelpCircle, MessageCircle, Clock, FileQuestion, PhoneCall, Mail, Shield } from 'lucide-react';
+import { HeadphonesIcon, HelpCircle, MessageCircle, Clock, FileQuestion, PhoneCall, Mail, Shield, MessageSquare, ChevronRight, Phone, BookOpen, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AIChat } from '@/components/chat/AIChat';
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Support() {
   // Keep session active while on support page
@@ -25,310 +26,234 @@ export default function Support() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white py-20 relative">
-      <div className="container mx-auto px-4 relative">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-4xl mx-auto mb-16"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-              Customer Support
-            </span>
-          </h1>
-          <p className="text-xl text-gray-300">
-            We're here to help you on your journey to financial freedom
-          </p>
-        </motion.div>
-
-        {/* Support Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-          {[
-            {
-              icon: MessageCircle,
-              title: "Live Chat",
-              description: "Chat with our support team in real-time"
-            },
-            {
-              icon: Mail,
-              title: "Email Support",
-              description: "Get answers within 24 hours via email"
-            },
-            {
-              icon: PhoneCall,
-              title: "Phone Support",
-              description: "Talk to our experts Mon-Fri, 9am-5pm ET"
-            },
-            {
-              icon: HelpCircle,
-              title: "Help Center",
-              description: "Browse our extensive knowledge base"
-            }
-          ].map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white/5 p-6 rounded-xl border border-white/10"
-            >
-              <div className="w-12 h-12 rounded-lg bg-[#88B04B]/20 flex items-center justify-center mb-4">
-                <feature.icon className="w-6 h-6 text-[#88B04B]" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">{feature.title}</h3>
-              <p className="text-gray-300">{feature.description}</p>
-            </motion.div>
-          ))}
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <h1 className="text-3xl font-bold text-gray-900">Support Center</h1>
         </div>
-
-        {/* AI Chat Assistant Banner */}
+      </header>
+      
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* DebtFlow Assistant Banner */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-[#88B04B]/20 to-[#6A9A2D]/10 rounded-xl border border-[#88B04B]/30 p-6 mb-12"
+          transition={{ duration: 0.5 }}
+          className="bg-gradient-to-r from-indigo-600 to-blue-500 rounded-lg shadow-xl mb-8 overflow-hidden"
         >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-[#88B04B]/30 flex items-center justify-center flex-shrink-0">
-                <MessageCircle className="w-6 h-6 text-[#88B04B]" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white mb-2">AI Assistant Now Available</h3>
-                <p className="text-gray-300">
-                  Get instant answers to your questions with our new AI chat assistant. Our bot can help with account questions, 
-                  debt strategies, and technical support 24/7.
-                </p>
-              </div>
+          <div className="md:flex items-center">
+            <div className="md:w-3/5 p-8">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                Meet Your DebtFlow Assistant
+              </h2>
+              <p className="text-indigo-100 mb-6 text-lg">
+                Our AI-powered DebtFlow Assistant can help with debt strategies, payment questions, 
+                account management, and technical support. Get instant answers 24/7, create support tickets, 
+                and access personalized debt management guidance.
+              </p>
+              <button 
+                onClick={() => document.getElementById('aiChatToggle')?.click()}
+                className="bg-white text-indigo-600 hover:bg-indigo-50 font-medium px-6 py-3 rounded-lg shadow transition duration-150 flex items-center"
+              >
+                <MessageSquare className="mr-2 h-5 w-5" />
+                Chat with DebtFlow Assistant
+              </button>
             </div>
-            <Button 
-              onClick={() => document.getElementById("chat-trigger")?.click()} 
-              className="bg-[#88B04B] hover:bg-[#76983F] text-white px-6 py-2 rounded-md"
-            >
-              Chat Now
-            </Button>
+            <div className="hidden md:block md:w-2/5">
+              <img 
+                src="/images/ai-assistant.svg" 
+                alt="AI Assistant" 
+                className="h-80 w-full object-contain p-8" 
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
           </div>
         </motion.div>
-
-        {/* Detailed Support Sections */}
-        <div className="space-y-12 max-w-4xl mx-auto">
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+        
+        {/* Support Options */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          <motion.div 
+            whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+            className="bg-white rounded-lg shadow p-6"
           >
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <HeadphonesIcon className="w-6 h-6 text-[#88B04B]" />
-              Contact Options
-            </h2>
-            <div className="bg-white/5 p-6 rounded-xl border border-white/10">
-              <ul className="space-y-4 text-gray-300">
-                <li className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1" />
-                  <div>
-                    <p className="font-medium text-white">Email Support</p>
-                    <p className="text-sm text-gray-400 mt-1">For general inquiries and non-urgent issues</p>
-                    <a href="mailto:support@smartdebtflow.com" className="text-[#88B04B] hover:text-[#7a9d43] text-sm mt-1 inline-block">
-                      support@smartdebtflow.com
-                    </a>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <PhoneCall className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1" />
-                  <div>
-                    <p className="font-medium text-white">Phone Support</p>
-                    <p className="text-sm text-gray-400 mt-1">Available Monday to Friday, 9am to 5pm ET</p>
-                    <a href="tel:+18005551234" className="text-[#88B04B] hover:text-[#7a9d43] text-sm mt-1 inline-block">
-                      +1 (800) 555-1234
-                    </a>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <MessageCircle className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1" />
-                  <div>
-                    <p className="font-medium text-white">Live Chat</p>
-                    <p className="text-sm text-gray-400 mt-1">Get real-time assistance from our support team</p>
-                    <Button 
-                      className="mt-2 bg-[#88B04B] hover:bg-[#7a9d43] text-white text-sm py-1 px-3"
-                      onClick={() => window.open('https://support.smartdebtflow.com/chat', '_blank')}
-                    >
-                      Start Chat
-                    </Button>
-                  </div>
-                </li>
-              </ul>
+            <div className="flex items-center mb-4">
+              <MessageSquare className="h-8 w-8 text-indigo-600 mr-3" />
+              <h3 className="text-xl font-semibold text-gray-900">Live Chat</h3>
             </div>
-          </motion.section>
-
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            <p className="text-gray-600 mb-4">
+              Chat with our support team in real-time. We're available Monday to Friday, 9am to 5pm ET.
+            </p>
+            <Link 
+              to="/support/chat" 
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
+            >
+              Start a chat <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </motion.div>
+          
+          <motion.div 
+            whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+            className="bg-white rounded-lg shadow p-6"
           >
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <Clock className="w-6 h-6 text-[#88B04B]" />
-              Support Hours
-            </h2>
-            <div className="bg-white/5 p-6 rounded-xl border border-white/10">
-              <ul className="space-y-4 text-gray-300">
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1 flex items-center justify-center font-bold">
-                    M
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span>Monday</span>
-                    <span>9:00 AM - 5:00 PM ET</span>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1 flex items-center justify-center font-bold">
-                    T
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span>Tuesday</span>
-                    <span>9:00 AM - 5:00 PM ET</span>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1 flex items-center justify-center font-bold">
-                    W
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span>Wednesday</span>
-                    <span>9:00 AM - 5:00 PM ET</span>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1 flex items-center justify-center font-bold">
-                    T
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span>Thursday</span>
-                    <span>9:00 AM - 5:00 PM ET</span>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1 flex items-center justify-center font-bold">
-                    F
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span>Friday</span>
-                    <span>9:00 AM - 5:00 PM ET</span>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1 flex items-center justify-center font-bold">
-                    S
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span>Saturday</span>
-                    <span>Email Support Only</span>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1 flex items-center justify-center font-bold">
-                    S
-                  </div>
-                  <div className="flex justify-between w-full">
-                    <span>Sunday</span>
-                    <span>Email Support Only</span>
-                  </div>
-                </li>
-              </ul>
+            <div className="flex items-center mb-4">
+              <Mail className="h-8 w-8 text-indigo-600 mr-3" />
+              <h3 className="text-xl font-semibold text-gray-900">Email Support</h3>
             </div>
-          </motion.section>
-
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            <p className="text-gray-600 mb-4">
+              Send us an email and we'll get back to you within 24 hours.
+            </p>
+            <a 
+              href="mailto:support@debtflow.com" 
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
+            >
+              support@debtflow.com <ChevronRight className="ml-1 h-4 w-4" />
+            </a>
+          </motion.div>
+          
+          <motion.div 
+            whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+            className="bg-white rounded-lg shadow p-6"
           >
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-              <FileQuestion className="w-6 h-6 text-[#88B04B]" />
-              Frequently Asked Questions
-            </h2>
-            <div className="bg-white/5 p-6 rounded-xl border border-white/10">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold text-[#88B04B] mb-2">How do I reset my password?</h3>
-                  <p className="text-gray-300">
-                    You can reset your password by clicking on "Forgot Password" on the sign-in page. We'll send you an email with instructions to create a new password.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[#88B04B] mb-2">How do I connect my bank account?</h3>
-                  <p className="text-gray-300">
-                    Go to the "Bank Connections" section in your dashboard. Click "Add Account" and follow the secure prompts to connect your financial institution.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[#88B04B] mb-2">Is my financial data secure?</h3>
-                  <p className="text-gray-300">
-                    Yes, we use bank-level AES-256 encryption to protect all your sensitive data. We never store your bank credentials and are SOC2 Type II certified.
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-[#88B04B] mb-2">How do I cancel my subscription?</h3>
-                  <p className="text-gray-300">
-                    You can cancel your subscription anytime by going to the "Billing" section in your account settings. Your access will continue until the end of your current billing period.
-                  </p>
-                </div>
-              </div>
+            <div className="flex items-center mb-4">
+              <Phone className="h-8 w-8 text-indigo-600 mr-3" />
+              <h3 className="text-xl font-semibold text-gray-900">Phone Support</h3>
             </div>
-          </motion.section>
-
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            <p className="text-gray-600 mb-4">
+              Call us directly at our toll-free number, available Monday to Friday, 9am to 5pm ET.
+            </p>
+            <a 
+              href="tel:+18005551234" 
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
+            >
+              +1 (800) 555-1234 <ChevronRight className="ml-1 h-4 w-4" />
+            </a>
+          </motion.div>
+          
+          <motion.div 
+            whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+            className="bg-white rounded-lg shadow p-6"
           >
-            <h2 className="text-2xl font-bold mb-4">Report an Issue</h2>
-            <div className="bg-white/5 p-6 rounded-xl border border-white/10">
-              <p className="text-gray-300 mb-4">
-                If you've encountered a technical issue or have a suggestion for improving our platform, please let us know:
-              </p>
-              <form className="space-y-4">
-                <div>
-                  <label htmlFor="issue-type" className="block text-sm font-medium mb-1">Issue Type</label>
-                  <select 
-                    id="issue-type"
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#88B04B]"
-                  >
-                    <option value="bug">Technical Bug</option>
-                    <option value="feature">Feature Request</option>
-                    <option value="billing">Billing Issue</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium mb-1">Description</label>
-                  <textarea
-                    id="description"
-                    rows={4}
-                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-[#88B04B]"
-                    placeholder="Please describe the issue in detail..."
-                  />
-                </div>
-                <Button className="bg-[#88B04B] hover:bg-[#7a9d43] text-white">
-                  Submit Report
-                </Button>
-              </form>
+            <div className="flex items-center mb-4">
+              <HelpCircle className="h-8 w-8 text-indigo-600 mr-3" />
+              <h3 className="text-xl font-semibold text-gray-900">Help Center</h3>
             </div>
-          </motion.section>
+            <p className="text-gray-600 mb-4">
+              Browse our knowledge base for tutorials, guides, and answers to common questions.
+            </p>
+            <Link 
+              to="/support/help-center" 
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
+            >
+              Visit Help Center <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </motion.div>
+          
+          <motion.div 
+            whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+            className="bg-white rounded-lg shadow p-6"
+          >
+            <div className="flex items-center mb-4">
+              <Ticket className="h-8 w-8 text-indigo-600 mr-3" />
+              <h3 className="text-xl font-semibold text-gray-900">Support Tickets</h3>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Create and track support tickets for issues that require more detailed attention.
+            </p>
+            <Link 
+              to="/support/tickets" 
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
+            >
+              My Support Tickets <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </motion.div>
+          
+          <motion.div 
+            whileHover={{ y: -5, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+            className="bg-white rounded-lg shadow p-6"
+          >
+            <div className="flex items-center mb-4">
+              <BookOpen className="h-8 w-8 text-indigo-600 mr-3" />
+              <h3 className="text-xl font-semibold text-gray-900">Debt Resources</h3>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Access guides, calculators, and resources to help manage and reduce your debt effectively.
+            </p>
+            <Link 
+              to="/resources/debt-guides" 
+              className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
+            >
+              View Resources <ChevronRight className="ml-1 h-4 w-4" />
+            </Link>
+          </motion.div>
         </div>
-
-        {/* Support Badge */}
+        
+        {/* Detailed Support Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">How to Contact Us</h2>
+          
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Email Support</h3>
+              <p className="text-gray-600 mb-2">
+                For general inquiries and non-urgent support:
+              </p>
+              <a href="mailto:support@debtflow.com" className="text-indigo-600 hover:text-indigo-800">
+                support@debtflow.com
+              </a>
+              <p className="text-gray-600 mt-2">
+                For billing and payment inquiries:
+              </p>
+              <a href="mailto:billing@debtflow.com" className="text-indigo-600 hover:text-indigo-800">
+                billing@debtflow.com
+              </a>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Phone Support</h3>
+              <p className="text-gray-600 mb-2">
+                Customer Service: Monday to Friday, 9am to 5pm ET
+              </p>
+              <a href="tel:+18005551234" className="text-indigo-600 hover:text-indigo-800">
+                +1 (800) 555-1234
+              </a>
+              <p className="text-gray-600 mt-2">
+                Billing Department: Monday to Friday, 9am to 4pm ET
+              </p>
+              <a href="tel:+18005555678" className="text-indigo-600 hover:text-indigo-800">
+                +1 (800) 555-5678
+              </a>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Live Chat Support</h3>
+              <p className="text-gray-600 mb-2">
+                Chat with a representative during business hours:
+              </p>
+              <Link 
+                to="/support/chat" 
+                className="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+              >
+                Start Chat Session
+              </Link>
+            </div>
+          </div>
+        </div>
+        
+        {/* Support Message */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="mt-16 text-center"
+          transition={{ delay: 0.5, duration: 0.5 }}
+          className="bg-green-50 border border-green-200 rounded-lg p-4 text-center text-green-800"
         >
-          <div className="inline-flex items-center gap-2 bg-[#88B04B]/10 px-4 py-2 rounded-full">
-            <Shield className="w-5 h-5 text-[#88B04B]" />
-            <span className="text-[#88B04B]">24/7 Email Support Available</span>
-          </div>
+          <p>24/7 AI Support Available</p>
         </motion.div>
-      </div>
-
-      {/* AI Chat Component */}
+      </main>
+      
       <AIChat initialOpen={false} />
+      <div id="aiChatToggle" className="hidden" />
     </div>
   );
 } 

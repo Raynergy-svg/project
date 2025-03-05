@@ -65,7 +65,7 @@ export default function Navbar({
 
   const navItems: NavItem[] = [
     { id: 'features', label: 'Features', type: 'scroll' },
-    { id: 'debt-management', label: 'Methods', type: 'scroll' },
+    { id: 'visualization-heading', label: 'Methods', type: 'scroll' },
     { id: 'pricing', label: 'Pricing', type: 'scroll' },
     { 
       label: 'Company',
@@ -106,13 +106,7 @@ export default function Navbar({
     if (!id) return;
 
     if (location.pathname !== '/') {
-      navigate('/');
-      setTimeout(() => {
-        const element = document.getElementById(id);
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
+      navigate('/', { state: { scrollToId: id } });
     } else {
       const element = document.getElementById(id);
       if (element) {

@@ -63,6 +63,7 @@ const About = lazy(() => import("@/pages/About"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const Support = lazy(() => import('@/pages/Support'));
+const SupportTickets = lazy(() => import('@/pages/SupportTickets'));
 const Blog = lazy(() => import("@/pages/Blog"));
 const Press = lazy(() => import("@/pages/Press"));
 const Help = lazy(() => import('@/pages/Help'));
@@ -141,6 +142,15 @@ const AppRoutes = () => {
         <Route path="/support" element={<Support />} />
         
         {/* Protected routes - require authentication */}
+        <Route 
+          path="/support/tickets" 
+          element={
+            <ProtectedRoute requireSubscription={false}>
+              <SupportTickets />
+            </ProtectedRoute>
+          } 
+        />
+        
         <Route 
           path="/dashboard" 
           element={

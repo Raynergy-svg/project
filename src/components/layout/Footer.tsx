@@ -7,9 +7,9 @@ export default function Footer() {
 
   const footerLinks = {
     product: [
-      { label: 'Features', href: '/#features-heading' },
+      { label: 'Features', href: '/#features' },
       { label: 'Methods', href: '/#visualization-heading' },
-      { label: 'Pricing', href: '/#pricing-heading' },
+      { label: 'Pricing', href: '/#pricing' },
       { label: 'Debt Planner', href: '/debt-planner' },
     ],
     company: [

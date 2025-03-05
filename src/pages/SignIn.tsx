@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Eye, EyeOff, AlertCircle, Loader2, Shield } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef } from "react";
+import { Eye, EyeOff, ArrowRight, Lock, Shield, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Logo } from "@/components/Logo";
+import { useSecurity } from "@/contexts/SecurityContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDevSignIn } from "@/utils/useDevSignIn";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { IS_DEV } from '@/utils/environment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import ReCAPTCHA from 'react-google-recaptcha';
-import { useAuth } from '@/contexts/AuthContext';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface FormData {
   email: string;
@@ -22,393 +23,458 @@ interface FormErrors {
 }
 
 export default function SignIn() {
-  const { login, isLoading, isAuthenticated } = useAuth();
-  const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
+  const { sensitiveDataHandler } = useSecurity();
+  const { isAuthenticated, isLoading: authLoading } = useAuth() || {};
+  const { handleDevSignIn, loading: devSignInLoading, error: devSignInError, devAccountInfo } = useDevSignIn();
+  const [formData, setFormData] = useState<FormData>({
+    email: "",
+    password: ""
+  });
+  
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [showConfirmationAlert, setShowConfirmationAlert] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [showCaptcha, setShowCaptcha] = useState(false);
-  const [securityMessage, setSecurityMessage] = useState<{
-    type: 'success' | 'warning' | 'error';
-    message: string;
-    details?: string;
-  } | null>(null);
+  const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
   const captchaRef = useRef<ReCAPTCHA>(null);
   
-  // Check if the user was redirected here after session expiry
-  const sessionExpired = new URLSearchParams(location.search).get('session_expired') === 'true';
+  // Parse the redirect URL from search params
+  const searchParams = new URLSearchParams(location.search);
+  const redirectTo = searchParams.get('from') || '/dashboard';
+  const sessionExpired = searchParams.get('session') === 'expired';
   
   useEffect(() => {
-    // Redirect if already authenticated
-    if (isAuthenticated) {
-      navigate('/dashboard');
+    // Try to get saved email from localStorage if exists
+    const getSavedEmail = async () => {
+      try {
+        const savedEmail = localStorage.getItem('lastUsedEmail');
+        const emailIv = localStorage.getItem('lastUsedEmail_iv');
+        
+        if (savedEmail && emailIv && 
+            sensitiveDataHandler && 
+            typeof sensitiveDataHandler.decryptSensitiveData === 'function') {
+          try {
+            const decryptedEmail = await sensitiveDataHandler.decryptSensitiveData(
+              savedEmail,
+              emailIv
+            );
+            setFormData(prev => ({ ...prev, email: decryptedEmail }));
+          } catch (decryptError) {
+            console.error('Error decrypting saved email:', decryptError);
+            // Clear potentially corrupted data
+            localStorage.removeItem('lastUsedEmail');
+            localStorage.removeItem('lastUsedEmail_iv');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved email:', error);
+        // Clear potentially corrupted data
+        localStorage.removeItem('lastUsedEmail');
+        localStorage.removeItem('lastUsedEmail_iv');
+      }
+    };
+    
+    getSavedEmail();
+  }, [sensitiveDataHandler]);
+
+  // Reset error when user types
+  useEffect(() => {
+    setFormErrors({});
+  }, [formData]);
+
+  // Handle rate limiting
+  useEffect(() => {
+    if (failedAttempts >= 3) {
+      const timer = setTimeout(() => setFailedAttempts(0), 30000);
+      return () => clearTimeout(timer);
+    }
+  }, [failedAttempts]);
+
+  // Check for email confirmation error in URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('needsConfirmation') === 'true') {
+      setShowConfirmationAlert(true);
+    }
+  }, [location]);
+
+  // Reset captcha when component is mounted or errors occur
+  useEffect(() => {
+    if (captchaRef.current) {
+      captchaRef.current.reset();
     }
     
     // Show security message if session expired
     if (sessionExpired) {
-      setSecurityMessage({
-        type: 'warning',
-        message: 'Your session has expired due to inactivity',
-        details: 'Please sign in again to continue.'
-      });
+      setSecurityMessage('Your session has expired due to inactivity. Please sign in again.');
     }
-  }, [isAuthenticated, navigate, sessionExpired]);
+  }, [sessionExpired]);
   
+  // Redirect if already authenticated
   useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      navigate(redirectTo);
+    }
+  }, [isAuthenticated, authLoading, navigate, redirectTo]);
+  
     // Show CAPTCHA after first failed attempt
+  useEffect(() => {
     if (failedAttempts > 0) {
       setShowCaptcha(true);
     }
   }, [failedAttempts]);
   
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear specific error when user starts typing
-    if (formErrors[name as keyof FormErrors]) {
-      setFormErrors(prev => ({ ...prev, [name]: undefined }));
-    }
-  };
-  
   const handleCaptchaChange = (token: string | null) => {
     setCaptchaToken(token);
-    if (token) {
-      // Clear CAPTCHA-related errors when completed
-      if (formErrors.general?.includes('CAPTCHA')) {
-        setFormErrors(prev => ({ ...prev, general: undefined }));
-      }
-    }
   };
-  
-  const handleRememberMeChange = (checked: boolean) => {
-    setRememberMe(checked);
-  };
-  
-  const togglePasswordVisibility = () => {
-    setShowPassword(prev => !prev);
-  };
-  
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormErrors({});
-    setIsSubmitting(true);
-    
-    // Clear previous messages
-    setSecurityMessage(null);
 
-    // Validate inputs before submitting
-    const validationErrors: FormErrors = {};
+  const validateForm = useCallback((): boolean => {
+    const newErrors: FormErrors = {};
     
     if (!formData.email) {
-      validationErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      validationErrors.email = 'Please enter a valid email address';
+      newErrors.email = "Email is required";
+    } else if (sensitiveDataHandler && typeof sensitiveDataHandler.validateSensitiveData === 'function') {
+      if (!sensitiveDataHandler.validateSensitiveData(formData.email, 'email')) {
+        newErrors.email = "Please enter a valid email address";
+      }
+    } else {
+      // Basic email validation fallback if sensitiveDataHandler is not available
+      if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(formData.email)) {
+        newErrors.email = "Please enter a valid email address";
+      }
     }
     
     if (!formData.password) {
-      validationErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      validationErrors.password = 'Password must be at least 6 characters';
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
     }
-    
-    // If CAPTCHA is required and not completed
-    if (failedAttempts > 0 && showCaptcha && !captchaToken) {
-      validationErrors.general = 'Please complete the CAPTCHA verification';
-    }
-    
-    if (Object.keys(validationErrors).length > 0) {
-      setFormErrors(validationErrors);
-      setIsSubmitting(false);
+
+    setFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [formData, sensitiveDataHandler]);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      
+      if (failedAttempts >= 3) {
+        setFormErrors({ general: "Too many failed attempts. Please try again in 30 seconds." });
       return;
     }
     
-    try {
-      // Attempt login with the provided credentials
-      const { success, error } = await login(
-        formData.email,
-        formData.password,
-        captchaToken || undefined
-      );
-      
-      if (success) {
-        // Success, will be redirected by the auth listener
-        setFailedAttempts(0);
-        setSecurityMessage({
-          type: 'success',
-          message: 'Sign in successful! Redirecting...'
-        });
-        
-        // Let the user see the success message briefly before navigation
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 1000);
-      } else {
-        // Handle login failure
-        setFailedAttempts(prev => prev + 1);
-        
-        // Reset CAPTCHA if present
-        if (captchaRef.current) {
-          captchaRef.current.reset();
-          setCaptchaToken(null);
-        }
-        
-        if (error) {
-          // Special handling for development environment errors
-          if (error.includes('Development environment setup incomplete')) {
-            setSecurityMessage({
-              type: 'warning',
-              message: error,
-              details: 'This is a development-only issue. Some database tables might be missing. Try using the development credentials: dev@example.com / development'
-            });
-          } 
-          // Handle specific errors with more helpful messages
-          else if (error.includes('404') || error.includes('technical difficulties')) {
-            setSecurityMessage({
-              type: 'error',
-              message: 'Service temporarily unavailable',
-              details: 'Our authentication service is currently experiencing issues. Please try again later.'
-            });
+      if (validateForm()) {
+        setIsSubmitting(true);
+        try {
+          // Sanitize sensitive data
+          let sanitizedEmail = formData.email;
+          let sanitizedPassword = formData.password;
+          
+          if (sensitiveDataHandler && typeof sensitiveDataHandler.sanitizeSensitiveData === 'function') {
+            sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
+            sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(formData.password);
           }
-          // Network-related errors
-          else if (error.includes('NetworkError') || error.includes('Failed to fetch')) {
-            setSecurityMessage({
-              type: 'error',
-              message: 'Network connection issue',
-              details: 'Please check your internet connection and try again.'
-            });
+          
+          // Show development mode message if in development
+          if (process.env.NODE_ENV === 'development') {
+            // Remove console.log debug message
           }
-          // General errors
-          else {
-            setFormErrors({ general: error });
+          
+          // Use our dev sign-in hook which handles authentication
+          const result = await handleDevSignIn(sanitizedEmail, sanitizedPassword);
+          
+          if (!result.success) {
+            // Handle authentication failure
+            throw new Error(result.message || 'Authentication failed');
           }
+          
+          // If we reach here, authentication was successful
+          // Save email if remember me is checked
+          if (rememberMe && sensitiveDataHandler && typeof sensitiveDataHandler.encryptSensitiveData === 'function') {
+            try {
+              const { encryptedData: encryptedEmail, iv: emailIv } = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
+              localStorage.setItem('lastUsedEmail', encryptedEmail);
+              localStorage.setItem('lastUsedEmail_iv', emailIv);
+            } catch (encryptError) {
+              console.error('Failed to encrypt email for storage:', encryptError);
+              // Still continue with login even if saving email fails
+            }
+          } else if (!rememberMe) {
+            localStorage.removeItem('lastUsedEmail');
+            localStorage.removeItem('lastUsedEmail_iv');
+          }
+          
+          // The useEffect hook will handle navigation if isAuthenticated becomes true
+        } catch (error) {
+          console.error('Login error:', error);
+          
+          // Handle specific error messages
+          let errorMessage = "Invalid email or password";
+          if (error instanceof Error) {
+            if (error.message.includes('Email not confirmed')) {
+              errorMessage = "Please check your email to confirm your account before signing in.";
+              setShowConfirmationAlert(true);
         } else {
-          setFormErrors({ general: 'Authentication failed. Please try again.' });
-        }
-        
-        // If too many failed attempts, show a password reset suggestion
-        if (failedAttempts >= 2) {
-          setSecurityMessage({
-            type: 'warning',
-            message: 'Having trouble signing in?',
-            details: 'You\'ve had multiple failed login attempts. Consider resetting your password.'
-          });
+              errorMessage = error.message;
+            }
+          }
+          
+          setFormErrors({ general: errorMessage });
+          setFailedAttempts(prev => prev + 1);
+        } finally {
+          setIsSubmitting(false);
         }
       }
-    } catch (err: any) {
-      console.error('Sign in error:', err);
-      
-      // Handle unexpected errors
-      setFormErrors({ 
-        general: process.env.NODE_ENV === 'development'
-          ? `Sign in error: ${err.message || 'Unknown error'}`
-          : 'An unexpected error occurred. Please try again later.'
-      });
-      
-      setFailedAttempts(prev => prev + 1);
-      
-      // Reset CAPTCHA if present
-      if (captchaRef.current) {
-        captchaRef.current.reset();
-        setCaptchaToken(null);
-      }
-    } finally {
-      setIsSubmitting(false);
+    },
+    [formData, validateForm, handleDevSignIn, failedAttempts, rememberMe, sensitiveDataHandler, navigate]
+  );
+
+  // Update form errors if there are errors from the useDevSignIn hook
+  useEffect(() => {
+    if (devSignInError) {
+      setFormErrors(prev => ({ ...prev, general: devSignInError }));
     }
-  };
+  }, [devSignInError]);
+
+  // Update the button UI to show when auth is loading too
+  const isButtonDisabled = isSubmitting || authLoading || devSignInLoading || failedAttempts >= 3;
+
+  // If already authenticated, don't render the form
+  if (isAuthenticated && !authLoading) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-blue-900 to-black">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white">Sign In</h1>
-          <p className="mt-2 text-gray-300">
-            Welcome back! Sign in to access your account.
-          </p>
+    <div className="min-h-screen bg-gradient-to-b from-[#1E1E1E] to-[#121212] text-white py-4 px-4">
+      <div className="absolute top-4 left-4 z-10">
+        <Link
+          to="/"
+          className="flex items-center gap-2 text-white hover:text-[#88B04B] transition-colors group"
+          aria-label="Return to home page"
+        >
+          <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
+          <Logo size="sm" showText={false} isLink={false} />
+        </Link>
+      </div>
+
+      <div className="max-w-md mx-auto pt-20">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#88B04B]">Welcome Back</h1>
+          <p className="text-gray-400 mt-2">Sign in to continue your debt-free journey</p>
+          
+          {/* Remove development mode helper message */}
         </div>
 
-        {formErrors.general && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{formErrors.general}</AlertDescription>
-          </Alert>
-        )}
-
-        {securityMessage && (
-          <Alert 
-            className={`mb-4 ${
-              securityMessage.type === 'success' ? 'bg-green-50 text-green-800 border-green-200' :
-              securityMessage.type === 'warning' ? 'bg-yellow-50 text-yellow-800 border-yellow-200' :
-              'bg-red-50 text-red-800 border-red-200'
-            }`}
-          >
-            <div className="flex items-start">
-              {securityMessage.type === 'success' && (
-                <Shield className="h-5 w-5 text-green-500 mr-2 mt-0.5" />
-              )}
-              {securityMessage.type === 'warning' && (
-                <AlertCircle className="h-5 w-5 text-yellow-500 mr-2 mt-0.5" />
-              )}
-              {securityMessage.type === 'error' && (
-                <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
-              )}
-              <div>
-                <AlertTitle className="font-semibold">
-                  {securityMessage.message}
-                </AlertTitle>
-                {securityMessage.details && (
-                  <AlertDescription className="mt-1 text-sm">
-                    {securityMessage.details}
+        {showConfirmationAlert && (
+          <Alert variant="warning" className="mb-6 bg-yellow-900/20 border-yellow-700">
+            <AlertCircle className="h-4 w-4 text-yellow-500" />
+            <AlertTitle>Email Confirmation Required</AlertTitle>
+            <AlertDescription>
+              Please check your email inbox for a confirmation link. You need to verify your email before signing in.
+              <button 
+                onClick={() => navigate('/signup')} 
+                className="text-yellow-400 hover:text-yellow-300 underline mt-1 block"
+              >
+                Need to resend the confirmation email?
+              </button>
                   </AlertDescription>
-                )}
-                
-                {/* Show password reset link for warnings */}
-                {securityMessage.type === 'warning' && failedAttempts >= 3 && (
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto mt-2 text-sm font-medium underline"
-                    onClick={() => navigate('/forgot-password')}
-                  >
-                    Reset your password
-                  </Button>
-                )}
-              </div>
-            </div>
           </Alert>
         )}
 
         <div className="bg-white/5 p-6 rounded-xl border border-white/10 shadow-lg">
+          <div className="flex justify-center mb-6">
+            <div className="w-12 h-12 bg-[#88B04B]/10 flex items-center justify-center rounded-full">
+              <Lock className="text-[#88B04B] w-6 h-6" />
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Honeypot field */}
+            <div className="hidden">
+              <input 
+                type="text" 
+                name="honeypot" 
+                id="honeypot"
+                tabIndex={-1} 
+                autoComplete="off" 
+              />
+            </div>
+            
             <div>
-              <Label htmlFor="email" className="text-gray-200">
-                Email
-              </Label>
+              <label htmlFor="email" className="block text-sm font-medium mb-2">
+                Email Address
+              </label>
               <Input
+                type="email"
                 id="email"
                 name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className={`mt-1 ${formErrors.email ? 'border-red-500' : 'border-gray-700'} bg-black/50`}
-                placeholder="you@example.com"
+                className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
+                  formErrors.email ? "border-red-500" : "border-white/10"
+                } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
                 value={formData.email}
-                onChange={handleInputChange}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                placeholder="you@example.com"
+                autoComplete="email"
+                aria-invalid={Boolean(formErrors.email)}
+                aria-describedby={formErrors.email ? "email-error" : undefined}
                 disabled={isSubmitting}
               />
               {formErrors.email && (
-                <p className="mt-1 text-sm text-red-500">{formErrors.email}</p>
+                <p 
+                  id="email-error" 
+                  className="mt-2 text-red-400 text-sm"
+                  role="alert"
+                >
+                  {formErrors.email}
+                </p>
               )}
             </div>
 
             <div>
-              <div className="flex justify-between items-center">
-                <Label htmlFor="password" className="text-gray-200">
+              <label htmlFor="password" className="block text-sm font-medium mb-2">
                   Password
-                </Label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-blue-300 hover:text-blue-200"
-                >
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative mt-1">
+              </label>
+              <div className="relative">
                 <Input
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  required
-                  className={`${formErrors.password ? 'border-red-500' : 'border-gray-700'} bg-black/50 pr-10`}
-                  placeholder="••••••••"
+                  className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
+                    formErrors.password ? "border-red-500" : "border-white/10"
+                  } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
                   value={formData.password}
-                  onChange={handleInputChange}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  autoComplete="current-password"
+                  aria-invalid={Boolean(formErrors.password)}
+                  aria-describedby={formErrors.password ? "password-error" : undefined}
                   disabled={isSubmitting}
                 />
                 <button
                   type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                  onClick={togglePasswordVisibility}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  id="toggle-password"
+                  name="toggle-password"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
                 </button>
               </div>
               {formErrors.password && (
-                <p className="mt-1 text-sm text-red-500">{formErrors.password}</p>
+                <p 
+                  id="password-error" 
+                  className="mt-2 text-red-400 text-sm"
+                  role="alert"
+                >
+                  {formErrors.password}
+                </p>
               )}
             </div>
 
-            <div className="flex items-center">
-              <div className="flex items-center">
-                <Checkbox
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
                   id="remember-me"
+                  name="remember-me"
                   checked={rememberMe}
-                  onCheckedChange={handleRememberMeChange}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
                 />
-                <Label
-                  htmlFor="remember-me"
-                  className="ml-2 text-sm text-gray-300"
-                >
-                  Remember me
-                </Label>
-              </div>
+                <span className="text-sm text-gray-300">Remember me</span>
+              </label>
+
+              <Link
+                to="/forgot-password"
+                className="text-[#88B04B] hover:text-[#7a9d43] text-sm transition-colors"
+              >
+                Forgot password?
+              </Link>
             </div>
 
-            {showCaptcha && (
-              <div className="flex justify-center py-2">
+            {/* CAPTCHA component - fix the condition syntax */}
+            {showCaptcha && !(import.meta.env.MODE === 'development') && (
+              <div className="flex justify-center mt-4">
                 <ReCAPTCHA
                   ref={captchaRef}
-                  sitekey={process.env.REACT_APP_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'} 
+                  sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'} // fallback to test key
                   onChange={handleCaptchaChange}
                   theme="dark"
                 />
               </div>
             )}
 
+            <div className="pt-4">
             <Button
               type="submit"
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={isSubmitting || isLoading}
-            >
-              {isSubmitting || isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                id="sign-in-button"
+                name="sign-in-button"
+                className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isButtonDisabled}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
                   Signing in...
                 </>
               ) : (
-                "Sign in"
+                  <>
+                    Sign In
+                    <ArrowRight size={20} />
+                  </>
               )}
             </Button>
-
-            <div className="text-center text-sm">
-              <span className="text-gray-300">Don't have an account? </span>
-              <Link
-                to="/signup"
-                className="text-blue-300 hover:text-blue-200 font-semibold"
-              >
-                Sign up
-              </Link>
             </div>
+
+            <p className="text-center text-gray-300 mt-6">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-[#88B04B] hover:text-[#7a9d43] transition-colors">
+                Sign Up
+              </Link>
+            </p>
           </form>
+
+          <div className="mt-8 pt-8 border-t border-white/10">
+            <div className="flex items-start gap-3 text-gray-300">
+              <Shield className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1" />
+              <div className="space-y-2">
+                <span className="text-sm block">Your information is secured with:</span>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-[#88B04B]" />
+                    <span>256-bit SSL encryption</span>
+                  </div>
+                </div>
+                <span className="text-xs block text-gray-400">
+                  All sensitive data is encrypted end-to-end using AES-256-GCM encryption
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-4 p-3 bg-gray-800 rounded-md text-xs text-gray-400">
-            <p>Development mode enabled</p>
-            <p className="mt-1">You can use <code className="bg-gray-700 px-1 rounded">dev@example.com / development</code> to sign in.</p>
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>
+            <Link to="/terms" className="hover:text-white">
+              Terms of Service
+            </Link>{" "}
+            •{" "}
+            <Link to="/privacy" className="hover:text-white">
+              Privacy Policy
+            </Link>
+          </p>
           </div>
-        )}
       </div>
     </div>
   );

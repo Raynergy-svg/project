@@ -201,7 +201,7 @@ export default function AIChat({ initialOpen = false }: AIChatProps) {
       {/* Chat button */}
       <motion.button
         onClick={toggleChat}
-        className="fixed bottom-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full shadow-lg z-20 flex items-center justify-center"
+        className="fixed bottom-4 right-4 bg-[#88B04B] hover:bg-[#6A8F3D] text-white p-3 rounded-full shadow-lg z-20 flex items-center justify-center"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
@@ -220,7 +220,7 @@ export default function AIChat({ initialOpen = false }: AIChatProps) {
             ref={chatContainerRef}
           >
             {/* Header */}
-            <div className="p-4 bg-indigo-600 text-white flex items-center justify-between">
+            <div className="p-4 bg-[#88B04B] text-white flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Bot size={20} />
                 <h3 className="font-medium">DebtFlow Assistant</h3>
@@ -240,7 +240,7 @@ export default function AIChat({ initialOpen = false }: AIChatProps) {
                   <div
                     className={`max-w-[80%] p-3 rounded-lg ${
                       message.sender === 'user'
-                        ? 'bg-indigo-600 text-white rounded-br-none'
+                        ? 'bg-[#88B04B] text-white rounded-br-none'
                         : 'bg-white border border-gray-200 rounded-bl-none'
                     }`}
                   >
@@ -278,7 +278,7 @@ export default function AIChat({ initialOpen = false }: AIChatProps) {
                     <button
                       key={action.id}
                       onClick={() => handleSuggestedAction(action)}
-                      className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-sm hover:bg-indigo-100 transition-colors"
+                      className="bg-[#E8F0D9] text-[#6A8F3D] px-3 py-1.5 rounded-full text-sm hover:bg-[#DAEABD] transition-colors"
                     >
                       {action.label}
                     </button>
@@ -351,7 +351,7 @@ export default function AIChat({ initialOpen = false }: AIChatProps) {
                     </button>
                     <button
                       onClick={handleSubmitTicket}
-                      className="px-3 py-1.5 bg-indigo-600 rounded-md text-sm text-white hover:bg-indigo-700"
+                      className="px-3 py-1.5 bg-[#88B04B] rounded-md text-sm text-white hover:bg-[#6A8F3D]"
                       disabled={!ticketInfo.subject || !ticketInfo.description}
                     >
                       Submit Ticket
@@ -380,7 +380,7 @@ export default function AIChat({ initialOpen = false }: AIChatProps) {
                   className={`p-2 rounded-md ${
                     !input.trim() || isTyping
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'bg-[#88B04B] text-white hover:bg-[#6A8F3D]'
                   }`}
                 >
                   <Send size={18} />

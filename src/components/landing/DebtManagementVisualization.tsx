@@ -281,31 +281,122 @@ export default function DebtManagementVisualization() {
   const [hoveredPoint, setHoveredPoint] = useState<PaymentPlan | null>(null);
 
   const chartData = useMemo(() => {
-    return amortizationSchedule.map(point => ({
-      year: (point.month / 12).toFixed(1),
-      balance: point.balance,
-      payment: point.payment,
-      interest: point.interest,
-      principal: point.principal,
-      percentagePaid: ((1 - point.balance / amortizationSchedule[0].balance) * 100).toFixed(1)
-    }));
-  }, [amortizationSchedule]);
+    // Get data for all three payment strategies for comparison
+    const strategies = ['minimum', 'recommended', 'aggressive'];
+    const allStrategiesData: any[] = [];
+    
+    // Max months across all strategies for consistent x-axis
+    let maxMonths = 0;
+    
+    strategies.forEach(strategy => {
+      const { avg, rate } = DEBT_STATISTICS[selectedDebtType as keyof typeof DEBT_STATISTICS];
+      const scenarioData = paymentScenarios[strategy as keyof typeof paymentScenarios];
+      
+      const schedule = calculateAmortization(
+        avg,
+        rate,
+        scenarioData.monthlyPayment,
+        scenarioData.yearsToPayoff * 12
+      );
+      
+      maxMonths = Math.max(maxMonths, schedule.length);
+      
+      schedule.forEach((point, index) => {
+        // Create data point for each month if it doesn't exist
+        if (!allStrategiesData[index]) {
+          // Format month/year label more clearly
+          const months = point.month;
+          const years = Math.floor(months / 12);
+          const remainingMonths = months % 12;
+          
+          let timeLabel;
+          if (years === 0) {
+            timeLabel = `${months}m`;
+          } else if (remainingMonths === 0) {
+            timeLabel = `${years}y`;
+          } else if (months % 6 === 0) {
+            timeLabel = `${years}y ${remainingMonths}m`;
+          } else {
+            // Only show certain intervals to avoid crowding
+            timeLabel = "";
+          }
+          
+          allStrategiesData[index] = {
+            month: point.month,
+            timeLabel,
+            formattedTime: years > 0 ? 
+              `${years} year${years > 1 ? 's' : ''}${remainingMonths > 0 ? `, ${remainingMonths} month${remainingMonths > 1 ? 's' : ''}` : ''}` : 
+              `${months} month${months > 1 ? 's' : ''}`,
+          };
+        }
+        
+        // Add data for this strategy
+        allStrategiesData[index][`${strategy}Balance`] = point.balance;
+        allStrategiesData[index][`${strategy}Payment`] = point.payment;
+        allStrategiesData[index][`${strategy}Interest`] = point.interest;
+        allStrategiesData[index][`${strategy}Principal`] = point.principal;
+        allStrategiesData[index][`${strategy}Percentage`] = ((1 - point.balance / avg) * 100).toFixed(1);
+      });
+    });
+    
+    // Fill in missing data points with null for shorter schedules
+    allStrategiesData.forEach((data, index) => {
+      strategies.forEach(strategy => {
+        if (data[`${strategy}Balance`] === undefined) {
+          data[`${strategy}Balance`] = null;
+          data[`${strategy}Payment`] = null;
+          data[`${strategy}Interest`] = null;
+          data[`${strategy}Principal`] = null;
+          data[`${strategy}Percentage`] = null;
+        }
+      });
+    });
+    
+    return allStrategiesData;
+  }, [selectedDebtType, paymentScenarios]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      
       return (
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-3 text-sm">
-          <div className="font-medium mb-1 text-white">Year {label}</div>
-          <div className="space-y-1">
-            <div className="text-white/80">
-              Balance: {formatCurrency(payload[0].value)}
-            </div>
-            <div className="text-white/80">
-              Payment: {formatCurrency(payload[0].payload.payment)}
-            </div>
-            <div className="text-[#88B04B]">
-              {payload[0].payload.percentagePaid}% Paid
-            </div>
+        <div className="bg-black/80 backdrop-blur-md border border-white/20 rounded-lg p-4 shadow-xl text-sm max-w-xs">
+          <div className="font-semibold mb-2 text-white border-b border-white/20 pb-2">
+            {data.formattedTime}
+          </div>
+          <div className="space-y-3">
+            {['minimum', 'recommended', 'aggressive'].map(strategy => {
+              if (data[`${strategy}Balance`] === null) return null;
+              
+              const strategyLabel = {
+                'minimum': 'Minimum',
+                'recommended': 'Recommended',
+                'aggressive': 'Aggressive'
+              }[strategy];
+              
+              const strategyColor = {
+                'minimum': '#FF6B6B',
+                'recommended': '#88B04B',
+                'aggressive': '#4ECDC4'
+              }[strategy];
+              
+              return (
+                <div key={strategy} className="space-y-1">
+                  <div className="font-medium text-white flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: strategyColor}}></div>
+                    {strategyLabel} Plan
+                  </div>
+                  <div className="text-white/80 pl-5 text-xs flex justify-between">
+                    <span>Balance:</span>
+                    <span>{formatCurrency(data[`${strategy}Balance`])}</span>
+                  </div>
+                  <div className="text-white/80 pl-5 text-xs flex justify-between">
+                    <span>Paid off:</span>
+                    <span>{data[`${strategy}Percentage`]}%</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       );
@@ -479,56 +570,80 @@ export default function DebtManagementVisualization() {
                 </div>
 
         {/* Amortization Chart */}
-                  <motion.div 
+        <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/5 rounded-xl p-6 border border-white/10"
         >
-          <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-            <LineChart className="w-5 h-5 text-[#88B04B]" />
-            Payment Progress Over Time
-          </h3>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+              <LineChart className="w-5 h-5 text-[#88B04B]" />
+              Payment Progress Comparison
+            </h3>
+            
+            <div className="flex items-center gap-3 mt-3 md:mt-0 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#FF6B6B]" />
+                <span className="text-white/80">Minimum</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#88B04B]" />
+                <span className="text-white/80">Recommended</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-[#4ECDC4]" />
+                <span className="text-white/80">Aggressive</span>
+              </div>
+            </div>
+          </div>
+          
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={chartData}
-                margin={{
-                  top: 10,
-                  right: 10,
-                  left: 10,
-                  bottom: 0,
-                }}
+                margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
               >
                 <defs>
-                  <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="minimumGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#FF6B6B" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#FF6B6B" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="recommendedGradient" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#88B04B" stopOpacity={0.2}/>
                     <stop offset="95%" stopColor="#88B04B" stopOpacity={0}/>
                   </linearGradient>
+                  <linearGradient id="aggressiveGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#4ECDC4" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#4ECDC4" stopOpacity={0}/>
+                  </linearGradient>
                 </defs>
+                
                 <CartesianGrid 
                   strokeDasharray="3 3" 
                   stroke="rgba(255,255,255,0.1)"
                   vertical={false}
                 />
+                
                 <XAxis
-                  dataKey="year"
+                  dataKey="timeLabel"
                   stroke="rgba(255,255,255,0.5)"
                   tick={{ fill: 'rgba(255,255,255,0.5)' }}
                   tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                   label={{ 
-                    value: 'Years', 
+                    value: 'Time', 
                     position: 'bottom',
                     fill: 'rgba(255,255,255,0.5)',
                     offset: -5
                   }}
                 />
+                
                 <YAxis
                   stroke="rgba(255,255,255,0.5)"
                   tick={{ fill: 'rgba(255,255,255,0.5)' }}
                   tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                  tickFormatter={(value) => `$${(value / 1000)}k`}
+                  tickFormatter={(value) => `$${value > 999 ? (value / 1000).toFixed(0) + 'k' : value}`}
                   label={{ 
                     value: 'Balance', 
                     angle: -90, 
@@ -537,16 +652,38 @@ export default function DebtManagementVisualization() {
                     offset: 10
                   }}
                 />
+                
                 <Tooltip
                   content={<CustomTooltip />}
-                  cursor={{ stroke: '#88B04B', strokeWidth: 1 }}
+                  cursor={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1, strokeDasharray: '5 5' }}
                 />
+                
                 <Area
                   type="monotone"
-                  dataKey="balance"
+                  dataKey="minimumBalance"
+                  stroke="#FF6B6B"
+                  strokeWidth={selectedPlan === 'minimum' ? 3 : 2}
+                  strokeOpacity={selectedPlan === 'minimum' ? 1 : 0.7}
+                  fill="url(#minimumGradient)"
+                  fillOpacity={selectedPlan === 'minimum' ? 1 : 0.7}
+                  animationDuration={1000}
+                  dot={false}
+                  activeDot={{
+                    r: 6,
+                    fill: "#FF6B6B",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                  }}
+                />
+                
+                <Area
+                  type="monotone"
+                  dataKey="recommendedBalance"
                   stroke="#88B04B"
-                  strokeWidth={2}
-                  fill="url(#colorBalance)"
+                  strokeWidth={selectedPlan === 'recommended' ? 3 : 2}
+                  strokeOpacity={selectedPlan === 'recommended' ? 1 : 0.7}
+                  fill="url(#recommendedGradient)"
+                  fillOpacity={selectedPlan === 'recommended' ? 1 : 0.7}
                   animationDuration={1000}
                   dot={false}
                   activeDot={{
@@ -556,20 +693,54 @@ export default function DebtManagementVisualization() {
                     strokeWidth: 2,
                   }}
                 />
+                
+                <Area
+                  type="monotone"
+                  dataKey="aggressiveBalance"
+                  stroke="#4ECDC4"
+                  strokeWidth={selectedPlan === 'aggressive' ? 3 : 2}
+                  strokeOpacity={selectedPlan === 'aggressive' ? 1 : 0.7}
+                  fill="url(#aggressiveGradient)"
+                  fillOpacity={selectedPlan === 'aggressive' ? 1 : 0.7}
+                  animationDuration={1000}
+                  dot={false}
+                  activeDot={{
+                    r: 6,
+                    fill: "#4ECDC4",
+                    stroke: "#fff",
+                    strokeWidth: 2,
+                  }}
+                />
               </AreaChart>
             </ResponsiveContainer>
-                </div>
-
-          {/* Legend */}
-          <div className="mt-8 flex items-center justify-center gap-8 text-sm text-white/60">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#88B04B]" />
-              <span>Balance Over Time</span>
+          </div>
+          
+          <div className="mt-8 bg-black/30 rounded-xl p-4 border border-white/10">
+            <div className="grid grid-cols-3 gap-4">
+              {['minimum', 'recommended', 'aggressive'].map(strategy => {
+                const strategyData = paymentScenarios[strategy as keyof typeof paymentScenarios];
+                const isSelected = selectedPlan === strategy;
+                
+                return (
+                  <div 
+                    key={strategy}
+                    className={`p-3 rounded-lg ${isSelected ? 'bg-white/10 ring-2 ring-offset-2 ring-offset-black/50 ring-white/20' : 'bg-black/20'} transition-all`}
+                  >
+                    <div className="text-xs font-medium mb-2 text-white/70">
+                      With {strategyData.label}:
                     </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-[#88B04B]/20" />
-              <span>Paid Amount</span>
-              </div>
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs text-white/60">Total paid:</span>
+                      <span className="text-sm font-semibold text-white">{formatCurrency(strategyData.totalPaid)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-white/60">Time to freedom:</span>
+                      <span className="text-sm font-semibold text-white">{strategyData.yearsToPayoff} years</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </motion.div>
       </div>

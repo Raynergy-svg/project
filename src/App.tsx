@@ -1,88 +1,99 @@
-import { Suspense, useEffect, useState } from "react";
-import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
-import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
-import { DeviceProvider } from "@/contexts/DeviceContext";
+import React, { useEffect, Suspense, lazy } from 'react';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Shield } from 'lucide-react';
+import LoadingScreen from '@/components/ui/loading-screen';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import AdminAuthCheck from '@/components/admin/AdminAuthCheck';
+import SkipToContent from "@/components/SkipToContent";
+import { IS_DEV } from "@/utils/environment";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import { usePerformanceMonitoring } from "@/hooks/usePerformanceMonitoring";
 import { useErrorTracking } from "@/hooks/useErrorTracking";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { SecurityProvider } from "@/contexts/SecurityContext";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { DeviceProvider } from "@/contexts/DeviceContext";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/toaster";
 import Navbar from "@/components/layout/Navbar";
-import { Layout } from "@/components/layout/Layout";
 import { lazyLoad, preloadComponents } from "@/utils/lazyLoad";
 import { createDebtTable, checkExecuteSqlFunction } from "@/lib/supabase/createDebtTable";
 import { createBankAccountsTable } from "@/lib/supabase/createBankAccountsTable";
 import { createTransactionHistoryTable } from "@/lib/supabase/createTransactionHistoryTable";
 import { supabase } from "@/utils/supabase/client";
-import SkipToContent from "@/components/SkipToContent";
-import { IS_DEV } from "@/utils/environment";
 
 // For development debugging only
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-let ConnectionStatus: React.ComponentType<any> | null = null;
+function logDevInfo(message: string) {
+  if (IS_DEV) {
+    console.log(`[DEV] ${message}`);
+  }
+}
 
 // We use top-level check that will be evaluated at build time
-// This prevents even references to debug components from being included in production builds
-// @ts-expect-error - Using global Function constructor to prevent static analysis
-new Function('IS_DEV', `
-  if (IS_DEV) {
-    try {
-      // This code will never be included in the production bundle
-      // due to the Function constructor evading static analysis
-      window.__loadDebugComponents = function() {
-        import('@/components/debug/ConnectionStatus')
-          .then(module => {
-            window.__ConnectionStatus = module.ConnectionStatus;
-          })
-          .catch(console.warn);
-      };
-      window.__loadDebugComponents();
-    } catch (e) {
-      console.warn('Debug components could not be loaded:', e);
-    }
+// eslint-disable-next-line no-new-func
+const ConnectionStatus = new Function(`
+  if (process.env.NODE_ENV === 'development') {
+    return require('@/components/dev/ConnectionStatus').ConnectionStatus;
+  } else {
+    return null;
   }
 `)(IS_DEV);
 
 // Lazy load routes with enhanced error handling and loading
-const Landing = lazyLoad(() => import("@/pages/Landing"));
-const Dashboard = lazyLoad(() => import("@/pages/Dashboard"));
-const DebtPlanner = lazyLoad(() => import("@/pages/DebtPlanner"));
-const Settings = lazyLoad(() => import("@/pages/Settings"));
-const About = lazyLoad(() => import("@/pages/About"));
-const Privacy = lazyLoad(() => import("@/pages/Privacy"));
-const Terms = lazyLoad(() => import("@/pages/Terms"));
-const Support = lazyLoad(() => import("@/pages/Support"));
-const Blog = lazyLoad(() => import("@/pages/Blog"));
-const Press = lazyLoad(() => import("@/pages/Press"));
-const Help = lazyLoad(() => import("@/pages/Help"));
-const Docs = lazyLoad(() => import("@/pages/Docs"));
-const Api = lazyLoad(() => import("@/pages/Api"));
-const Status = lazyLoad(() => import("@/pages/Status"));
-const Careers = lazyLoad(() => import("@/pages/Careers"));
-const JobApplication = lazyLoad(() => import("@/pages/JobApplication"));
-const Compliance = lazyLoad(() => import("@/pages/Compliance"));
-const AdminTools = lazyLoad(() => import("@/pages/AdminTools"));
-const SignUp = lazyLoad(() => 
-  import("@/pages/SignUp").catch(error => {
-    console.error("Error loading SignUp component:", error);
-    return { default: () => <div>Error loading signup page</div> };
-  }),
-  { retry: 3, retryDelay: 1000 }
-);
-const SignIn = lazyLoad(() => import("@/pages/SignIn"));
-const AuthDemo = lazyLoad(() => import("@/pages/AuthDemo"));
-const PaymentSuccess = lazyLoad(() => import("@/pages/PaymentSuccess"));
+const Landing = lazy(() => import("@/pages/Landing"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const DebtPlanner = lazy(() => import('@/pages/DebtPlanner'));
+const Settings = lazy(() => import('@/pages/Settings'));
+const About = lazy(() => import("@/pages/About"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const Support = lazy(() => import('@/pages/Support'));
+const Blog = lazy(() => import("@/pages/Blog"));
+const Press = lazy(() => import("@/pages/Press"));
+const Help = lazy(() => import('@/pages/Help'));
+const Docs = lazy(() => import("@/pages/Docs"));
+const Api = lazy(() => import("@/pages/Api"));
+const Status = lazy(() => import("@/pages/Status"));
+const Careers = lazy(() => import("@/pages/Careers"));
+const JobApplication = lazy(() => import('@/pages/JobApplication'));
+const Compliance = lazy(() => import("@/pages/Compliance"));
+const AdminTools = lazy(() => import("@/pages/AdminTools"));
+const SignUp = lazy(() => import("@/pages/SignUp"));
+const SignIn = lazy(() => import("@/pages/SignIn"));
+const AuthDemo = lazy(() => import("@/pages/AuthDemo"));
+const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const AccessDenied = lazy(() => import('@/pages/AccessDenied'));
 
 // Lazy load articles
-const SnowballMethodArticle = lazyLoad(() => import('@/components/help/articles/SnowballMethod'));
-const AvalancheMethodArticle = lazyLoad(() => import('@/components/help/articles/AvalancheMethod'));
-const AccountSetupArticle = lazyLoad(() => import('@/components/help/articles/account-setup'));
-const UnderstandingDashboardArticle = lazyLoad(() => import('@/components/help/articles/understanding-dashboard'));
-const AddingFirstDebtArticle = lazyLoad(() => import('@/components/help/articles/adding-first-debt'));
+const SnowballMethodArticle = lazy(() => import('@/components/help/articles/SnowballMethod'));
+const AvalancheMethodArticle = lazy(() => import('@/components/help/articles/AvalancheMethod'));
+const AccountSetupArticle = lazy(() => import('@/components/help/articles/account-setup'));
+const UnderstandingDashboardArticle = lazy(() => import('@/components/help/articles/understanding-dashboard'));
+const AddingFirstDebtArticle = lazy(() => import('@/components/help/articles/adding-first-debt'));
+
+// Admin pages
+const AdminLayout = lazy(() => import('@/pages/admin/AdminLayout'));
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
+const AdminUsers = lazy(() => import('@/pages/admin/AdminUsers'));
+const AdminContent = lazy(() => import('@/pages/admin/AdminContent'));
+const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'));
+const SecurityEvents = lazy(() => import('@/pages/admin/SecurityEvents'));
+
+// Placeholder components for pages that don't exist yet
+const VerifyEmail = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const ResetPassword = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const ForgotPassword = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const SavingsPlanner = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const AIInsights = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const ArticleDetail = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const AccountSettings = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const PreferencesSettings = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const SecuritySettings = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const BillingSettings = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const NotificationSettings = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
 
 // Preload critical components for better user experience
 preloadComponents([
@@ -90,13 +101,6 @@ preloadComponents([
   () => import("@/pages/SignIn"),
   () => import("@/pages/SignUp")
 ]);
-
-// Admin pages
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
-const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
-const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
-const AdminAnalytics = lazy(() => import('./pages/admin/AdminAnalytics'));
-const SecurityEvents = lazy(() => import('./pages/admin/SecurityEvents'));
 
 // Helper function to get page class based on path
 const getPageClass = (pathname: string): string => {
@@ -119,6 +123,7 @@ const AppRoutes = () => {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/access-denied" element={<AccessDenied />} />
         <Route path="/job-application" element={<JobApplication />} />
         <Route path="/support" element={<Support />} />
         

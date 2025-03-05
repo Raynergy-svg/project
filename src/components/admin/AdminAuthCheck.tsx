@@ -1,128 +1,115 @@
-import React, { ReactNode, useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { Shield, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
-import LoadingSpinner from '@/components/ui/loading-spinner';
-import { AlertCircle } from 'lucide-react';
+import LoadingScreen from '@/components/ui/loading-screen';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { IS_DEV } from '@/utils/environment';
 
 interface AdminAuthCheckProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 const AdminAuthCheck: React.FC<AdminAuthCheckProps> = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isChecking, setIsChecking] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (!isAuthenticated || !user) {
-        setIsAdmin(false);
-        setIsLoading(false);
-        return;
-      }
-
+      setIsChecking(true);
+      setError(null);
+      
       try {
-        // First check if we're in development mode - bypass admin check for easier testing
-        if (process.env.NODE_ENV === 'development') {
-          const { data, error } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', user.id)
-            .eq('role', 'admin')
-            .single();
-
-          if (error && error.code !== 'PGRST116') {
-            console.error('Error checking admin status:', error);
-            setError('Could not verify admin status. Please try again later.');
-            setIsAdmin(false);
-          } else {
-            setIsAdmin(!!data);
-          }
-        } else {
-          // In production, check admin status
-          const { data, error } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', user.id)
-            .eq('role', 'admin')
-            .single();
-
-          if (error && error.code !== 'PGRST116') {
-            console.error('Error checking admin status:', error);
-            setError('Could not verify admin status. Please try again later.');
-            setIsAdmin(false);
-          } else {
-            setIsAdmin(!!data);
-          }
+        if (!user) {
+          setIsAdmin(false);
+          return;
         }
+        
+        // In development mode, automatically grant admin access
+        if (IS_DEV) {
+          console.log('[DEV] Auto-granting admin access in development mode');
+          setIsAdmin(true);
+          return;
+        }
+        
+        // Here you would typically check if the user has admin role/permissions
+        // This could be fetched from your user metadata, a separate admin table, or via an API call
+        const hasAdminRole = user.app_metadata?.role === 'admin' || 
+                             user.user_metadata?.isAdmin === true;
+        
+        // For additional security, you could also make a server call to verify admin status
+        // const { data, error } = await supabase
+        //   .from('admin_users')
+        //   .select('*')
+        //   .eq('user_id', user.id)
+        //   .single();
+        
+        // setIsAdmin(!!data);
+
+        setIsAdmin(hasAdminRole);
       } catch (err) {
-        console.error('Exception checking admin status:', err);
-        setError('An unexpected error occurred. Please try again later.');
+        console.error('Error checking admin status:', err);
+        setError('Failed to verify admin permissions. Please try again later.');
         setIsAdmin(false);
       } finally {
-        setIsLoading(false);
+        setIsChecking(false);
       }
     };
 
     checkAdminStatus();
-  }, [user, isAuthenticated]);
+  }, [user]);
 
-  if (isLoading) {
+  if (isLoading || isChecking) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-        <LoadingSpinner size="lg" />
-        <p className="mt-4 text-gray-600">Verifying admin access...</p>
-      </div>
+      <LoadingScreen 
+        message="Verifying administrative access..." 
+        fullScreen={true} 
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
-        <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <div className="flex items-center text-red-500 mb-4">
-            <AlertCircle className="h-6 w-6 mr-2" />
-            <h2 className="text-xl font-semibold">Error</h2>
-          </div>
-          <p className="text-gray-700 mb-6">{error}</p>
-          <div className="flex justify-end">
-            <button
-              onClick={() => window.location.href = '/dashboard'}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertTriangle className="h-5 w-5" />
+          <AlertTitle>Authorization Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => window.location.href = '/'}
+              className="mr-2"
             >
-              Go to Dashboard
-            </button>
+              Return to Home
+            </Button>
+            <Button
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </Button>
           </div>
-        </div>
+        </Alert>
       </div>
     );
   }
 
   if (!isAdmin) {
-    // Record unauthorized access attempt
-    if (user) {
-      try {
-        supabase.rpc('insert_security_event', {
-          p_user_id: user.id,
-          p_event_type: 'unauthorized_admin_access',
-          p_ip_address: null,
-          p_user_agent: navigator.userAgent,
-          p_email: user.email,
-          p_details: {
-            timestamp: new Date().toISOString(),
-            path: window.location.pathname,
-          }
-        });
-      } catch (err) {
-        console.error('Failed to record unauthorized access attempt:', err);
-      }
-    }
-
-    return <Navigate to="/dashboard" replace />;
+    // Redirect to access denied page or home page
+    return (
+      <Navigate 
+        to="/access-denied" 
+        state={{ from: location, message: "You don't have administrative privileges." }} 
+        replace 
+      />
+    );
   }
 
+  // User is authenticated and has admin privileges
   return <>{children}</>;
 };
 

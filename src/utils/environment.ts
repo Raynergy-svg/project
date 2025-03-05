@@ -1,4 +1,55 @@
 /**
+ * Environment utility for checking app environment and configuration
+ */
+
+// Determine if we're in development mode
+export const IS_DEV = process.env.NODE_ENV === 'development';
+
+// Development login credentials that bypass normal auth
+export const DEV_EMAIL = 'dev@example.com';
+export const DEV_PASSWORD = 'development';
+
+// App configuration
+export const APP_NAME = 'FinWise';
+export const APP_VERSION = '0.1.0';
+
+// Feature flags
+export const FEATURES = {
+  ENABLE_AI_INSIGHTS: false,
+  ENABLE_SAVINGS_PLANNER: false,
+  ENABLE_ONBOARDING_TOUR: true,
+  ENABLE_SECURITY_LOGGING: true,
+  ENABLE_CAPTCHA: !IS_DEV, // Disable CAPTCHA in development
+};
+
+/**
+ * Helper function to log development-only messages
+ */
+export function logDev(message: string, data?: any) {
+  if (IS_DEV) {
+    if (data) {
+      console.log(`[DEV] ${message}`, data);
+    } else {
+      console.log(`[DEV] ${message}`);
+    }
+  }
+}
+
+/**
+ * Helper to conditionally return different values based on environment
+ */
+export function envValue<T>(devValue: T, prodValue: T): T {
+  return IS_DEV ? devValue : prodValue;
+}
+
+/**
+ * Check if a feature is enabled
+ */
+export function isFeatureEnabled(featureKey: keyof typeof FEATURES): boolean {
+  return FEATURES[featureKey];
+}
+
+/**
  * Environment detection utilities
  * These functions help determine the current environment and handle environment-specific logic
  */
@@ -25,5 +76,4 @@ export function isProductionMode(): boolean {
 }
 
 // For convenience, provide pre-evaluated constants
-export const IS_DEV = isDevelopmentMode();
 export const IS_PROD = isProductionMode(); 

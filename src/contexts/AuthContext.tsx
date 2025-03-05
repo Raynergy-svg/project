@@ -213,153 +213,202 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setAuthError(null);
     
     try {
-      // Get client IP for security logging
-      const clientIP = await getClientIP();
+      // Check if we're in development mode
+      const isDevelopment = process.env.NODE_ENV === 'development';
       
-      // Implement rate limiting for login attempts
-      const rateLimited = await checkRateLimiting(email, clientIP);
-      if (rateLimited) {
-        setAuthError('Too many login attempts. Please try again later.');
-        return { success: false, error: 'Too many login attempts. Please try again later.' };
+      // Get client IP for security logs
+      let ipAddress = "";
+      try {
+        ipAddress = await getClientIP();
+      } catch (err) {
+        console.warn("Failed to get client IP:", err);
+        // Non-critical error, continue with login
       }
       
-      // Handling development environment for easier testing
-      if (import.meta.env.MODE === 'development' && 
-          (email.endsWith('@example.com') || email.endsWith('@test.com'))) {
-        console.log('Development mode detected - bypassing captcha');
-        
-        // Simple login without captcha for development
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (error) {
-          console.error('Login error:', error);
-          setAuthError(error.message);
-          
-          // Record failed login attempt
-          await recordSecurityEvent({
-            event_type: 'failed_login',
-            email: email, // We don't have user_id yet for failed logins
-            ip_address: clientIP,
-            user_agent: navigator.userAgent,
-            details: `Failed login attempt: ${error.message}`
-          });
-          
-          return { success: false, error: error.message };
-        }
-        
-        if (data?.user) {
-          setUser(data.user);
-          setIsAuthenticated(true);
-          setLastActivity(Date.now());
-          
-          // Navigate to dashboard or specified redirect
-          navigate(redirectTo || '/dashboard');
-          
-          // Record successful login security event
-          await recordSecurityEvent({
-            user_id: data.user.id,
-            event_type: 'sign_in',
-            ip_address: clientIP,
-            user_agent: navigator.userAgent,
-            details: 'User signed in successfully (dev mode)'
-          });
-          
-          return { success: true };
-        }
-      } else {
-        // Production login with captcha
-        if (!captchaToken) {
-          setAuthError('CAPTCHA verification required');
-          return { success: false, error: 'CAPTCHA verification required' };
-        }
-        
-        // Verify captcha token on server side
-        const verifyCaptchaResponse = await fetch('/api/verify-captcha', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: captchaToken }),
-        });
-        
-        if (!verifyCaptchaResponse.ok) {
-          const captchaError = await verifyCaptchaResponse.text();
-          setAuthError(`CAPTCHA verification failed: ${captchaError}`);
-          return { success: false, error: `CAPTCHA verification failed: ${captchaError}` };
-        }
-        
-        // Proceed with login after captcha validation
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
-        if (error) {
-          console.error('Login error:', error);
-          setAuthError(error.message);
-          
-          // Check for specific error conditions
-          if (error.message.includes('Email not confirmed')) {
-            navigate(`/verify-email?email=${encodeURIComponent(email)}`);
-            return { success: false, error: 'Please verify your email before signing in' };
-          }
-          
-          // Record failed login attempt
-          await recordSecurityEvent({
-            event_type: 'failed_login',
-            email: email,
-            ip_address: clientIP,
-            user_agent: navigator.userAgent,
-            details: `Failed login attempt: ${error.message}`
-          });
-          
-          return { success: false, error: error.message };
-        }
-        
-        if (data?.user) {
-          setUser(data.user);
-          setIsAuthenticated(true);
-          setLastActivity(Date.now());
-          
-          // Get user's preferred session timeout setting
-          const { data: userSettings } = await supabase
-            .from('user_settings')
-            .select('session_timeout')
-            .eq('user_id', data.user.id)
-            .single();
+      // Check rate limiting (skip in development if needed)
+      if (!isDevelopment) {
+        try {
+          const isRateLimited = await checkRateLimiting(email, ipAddress);
+          if (isRateLimited) {
+            await recordSecurityEvent({
+              user_id: undefined,
+              event_type: 'rate_limit_exceeded',
+              ip_address: ipAddress,
+              user_agent: navigator.userAgent,
+              details: JSON.stringify({
+                email,
+                timestamp: new Date().toISOString(),
+                reason: 'Too many login attempts'
+              }),
+              email
+            });
             
-          if (userSettings?.session_timeout) {
-            // Convert minutes to milliseconds
-            setSessionTimeout(userSettings.session_timeout * 60 * 1000);
+            setIsLoading(false);
+            return { 
+              success: false, 
+              error: 'Too many login attempts. Please try again later or reset your password.' 
+            };
           }
-          
-          // Navigate to dashboard or specified redirect
-          navigate(redirectTo || '/dashboard');
-          
-          // Record successful login security event
-          await recordSecurityEvent({
-            user_id: data.user.id,
-            event_type: 'sign_in',
-            ip_address: clientIP,
-            user_agent: navigator.userAgent,
-            details: 'User signed in successfully'
-          });
-          
-          return { success: true };
+        } catch (err) {
+          console.warn("Rate limiting check failed:", err);
+          // Non-critical error, continue with login attempt
         }
       }
       
-      // Fallback error if we reach this point
-      setAuthError('An unexpected error occurred during login');
-      return { success: false, error: 'An unexpected error occurred during login' };
-    } catch (error) {
-      console.error('Login exception:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      setAuthError(errorMessage);
-      return { success: false, error: errorMessage };
-    } finally {
+      // For development, allow test users to bypass auth in dev environment with special credentials
+      if (isDevelopment && email === 'dev@example.com' && password === 'development') {
+        console.log("Development mode: Using simulated login");
+        
+        // Create a mock user for development
+        const mockUser = {
+          id: '00000000-0000-0000-0000-000000000001', // Use a fixed ID for development
+          email: 'dev@example.com',
+          name: 'Development User',
+          isPremium: true,
+          trialEndsAt: null,
+          createdAt: new Date().toISOString(),
+          subscription: {
+            status: 'active',
+            planName: 'developer',
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          }
+        };
+        
+        // Set user state directly
+        setUser(mockUser);
+        setIsAuthenticated(true);
+        setIsLoading(false);
+        setLastActivity(Date.now());
+        
+        // Record successful login event
+        try {
+          await recordSecurityEvent({
+            user_id: mockUser.id,
+            event_type: 'login_success_dev',
+            ip_address: ipAddress,
+            user_agent: navigator.userAgent,
+            details: JSON.stringify({
+              timestamp: new Date().toISOString(),
+              mode: 'development'
+            }),
+            email
+          });
+        } catch (err) {
+          console.warn("Failed to record dev login event:", err);
+        }
+        
+        return { success: true };
+      }
+      
+      // Regular authentication flow
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        ...(captchaToken ? { options: { captchaToken } } : {}),
+      });
+      
+      if (error) {
+        // Record failed login attempt
+        try {
+          await recordSecurityEvent({
+            user_id: undefined,
+            event_type: 'login_failed',
+            ip_address: ipAddress,
+            user_agent: navigator.userAgent,
+            details: JSON.stringify({
+              error: error.message,
+              code: error.status,
+              timestamp: new Date().toISOString()
+            }),
+            email
+          });
+        } catch (recordError) {
+          console.error("Failed to record failed login attempt:", recordError);
+        }
+        
+        let errorMessage = 'Invalid login credentials';
+        
+        // Handle specific errors with more user-friendly messages
+        if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please confirm your email before signing in. Check your inbox for a confirmation link.';
+        } else if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'The email or password you entered is incorrect. Please try again.';
+        } else if (error.status === 429) {
+          errorMessage = 'Too many login attempts. Please try again later or reset your password.';
+        } else if (error.status === 401) {
+          errorMessage = 'Your login session has expired. Please sign in again.';
+        } else if (error.status === 404 || error.status === 406) {
+          // Resource issues - this might happen in dev if tables aren't set up correctly
+          if (isDevelopment) {
+            errorMessage = 'Development environment setup incomplete. Some database tables may be missing.';
+          } else {
+            errorMessage = 'We\'re experiencing technical difficulties. Please try again later.';
+          }
+        } else if (error.status >= 500) {
+          errorMessage = 'Our servers are experiencing issues. Please try again later.';
+        }
+        
+        setAuthError(errorMessage);
+        setIsLoading(false);
+        return { success: false, error: errorMessage };
+      }
+      
+      // Authentication successful
+      if (data.user) {
+        // Record successful login
+        try {
+          await recordSecurityEvent({
+            user_id: data.user.id,
+            event_type: 'login_success',
+            ip_address: ipAddress,
+            user_agent: navigator.userAgent,
+            details: JSON.stringify({
+              timestamp: new Date().toISOString()
+            }),
+            email
+          });
+        } catch (recordError) {
+          console.error("Failed to record successful login:", recordError);
+        }
+        
+        // Reset the last activity time
+        setLastActivity(Date.now());
+        
+        // Fetching additional user data will be handled by the session listener
+        setIsLoading(false);
+        return { success: true };
+      }
+      
       setIsLoading(false);
+      return { success: false, error: 'Unknown error during login' };
+      
+    } catch (err: any) {
+      console.error('Unexpected error during login:', err);
+      
+      // Try to record the error
+      try {
+        await recordSecurityEvent({
+          user_id: undefined,
+          event_type: 'login_error',
+          ip_address: await getClientIP(),
+          user_agent: navigator.userAgent,
+          details: JSON.stringify({
+            error: err.message || 'Unknown error',
+            timestamp: new Date().toISOString()
+          }),
+          email
+        });
+      } catch (recordError) {
+        console.error("Failed to record login error:", recordError);
+      }
+      
+      const errorMessage = process.env.NODE_ENV === 'development' 
+        ? `Login error: ${err.message || 'Unknown error'}` 
+        : 'An unexpected error occurred. Please try again later.';
+        
+      setAuthError(errorMessage);
+      setIsLoading(false);
+      return { success: false, error: errorMessage };
     }
   };
 

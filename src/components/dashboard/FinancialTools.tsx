@@ -3,19 +3,31 @@ import { motion } from 'framer-motion';
 import { BookOpen, Calculator, Wallet, TrendingUp, PiggyBank, CreditCard, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 
 interface FinancialToolsProps {
   className?: string;
+  onLaunchCalculator?: (calculatorId: string) => void;
 }
 
-export default function FinancialTools({ className }: FinancialToolsProps) {
+export default function FinancialTools({ className, onLaunchCalculator }: FinancialToolsProps) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const toggleCategory = (category: string) => {
     if (activeCategory === category) {
       setActiveCategory(null);
     } else {
       setActiveCategory(category);
+    }
+  };
+
+  const handleLaunchCalculator = (calculatorId: string) => {
+    if (onLaunchCalculator) {
+      onLaunchCalculator(calculatorId);
+    } else {
+      // Default behavior - navigate to the calculator page
+      navigate(`/tools/${calculatorId}`);
     }
   };
 
@@ -60,25 +72,29 @@ export default function FinancialTools({ className }: FinancialToolsProps) {
       id: 'debt-payoff',
       title: 'Debt Payoff Calculator',
       icon: CreditCard,
-      description: 'Calculate how long it will take to pay off your debts using different strategies'
+      description: 'Calculate how long it will take to pay off your debts using different strategies',
+      route: '/tools/debt-payoff'
     },
     {
       id: 'interest-rate',
       title: 'Interest Rate Calculator',
       icon: TrendingUp,
-      description: 'Compare interest rates and see the impact on your total payment amount'
+      description: 'Compare interest rates and see the impact on your total payment amount',
+      route: '/dashboard/tools/interest-rate'
     },
     {
       id: 'budget',
       title: 'Budget Calculator',
       icon: Calculator,
-      description: 'Create a balanced budget based on your income and necessary expenses'
+      description: 'Create a balanced budget based on your income and necessary expenses',
+      route: '/dashboard/tools/budget'
     },
     {
       id: 'savings-goal',
       title: 'Savings Goal Calculator',
       icon: PiggyBank,
-      description: 'Plan how to reach your savings goals with regular contributions'
+      description: 'Plan how to reach your savings goals with regular contributions',
+      route: '/dashboard/tools/savings-goal'
     }
   ];
 
@@ -144,6 +160,7 @@ export default function FinancialTools({ className }: FinancialToolsProps) {
                       className="mt-4 ml-8 text-[#88B04B] border-[#88B04B]/30 hover:bg-[#88B04B]/10"
                       variant="outline"
                       size="sm"
+                      onClick={() => navigate('/financial-resources')}
                     >
                       Learn More
                       <ArrowRight className="ml-2 h-4 w-4" />
@@ -171,6 +188,7 @@ export default function FinancialTools({ className }: FinancialToolsProps) {
                 <p className="text-sm text-gray-400 mb-4">{calculator.description}</p>
                 <Button
                   className="w-full bg-[#88B04B] hover:bg-[#88B04B]/90"
+                  onClick={() => handleLaunchCalculator(calculator.id)}
                 >
                   Open Calculator
                 </Button>

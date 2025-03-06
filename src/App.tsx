@@ -81,6 +81,9 @@ const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const AccessDenied = lazy(() => import('@/pages/AccessDenied'));
 
+// Add DebtPayoffTool import
+const DebtPayoffTool = lazy(() => import('@/pages/tools/DebtPayoffTool'));
+
 // Lazy load articles
 const SnowballMethodArticle = lazy(() => import('@/components/help/articles/SnowballMethod'));
 const AvalancheMethodArticle = lazy(() => import('@/components/help/articles/AvalancheMethod'));
@@ -187,6 +190,16 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute requireSubscription={false}>
               <DebtPlanner />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Add DebtPayoffTool route */}
+        <Route 
+          path="/tools/debt-payoff" 
+          element={
+            <ProtectedRoute requireSubscription={false}>
+              <DebtPayoffTool />
             </ProtectedRoute>
           } 
         />

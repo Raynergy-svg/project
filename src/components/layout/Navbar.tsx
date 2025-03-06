@@ -65,7 +65,7 @@ export default function Navbar({
 
   const navItems: NavItem[] = [
     { id: 'features', label: 'Features', type: 'scroll' },
-    { id: 'visualization-heading', label: 'Methods', type: 'scroll' },
+    { id: 'debt-management', label: 'Methods', type: 'scroll' },
     { id: 'pricing', label: 'Pricing', type: 'scroll' },
     { 
       label: 'Company',
@@ -81,7 +81,7 @@ export default function Navbar({
       type: 'menu',
       items: [
         { label: 'Help Center', href: '/help' },
-        { label: 'Documentation', href: '/docs' },
+        { label: 'Financial Resources', href: '/docs' },
         { label: 'Status', href: '/status' }
       ]
     },

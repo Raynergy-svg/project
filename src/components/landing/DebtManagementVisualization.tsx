@@ -1,26 +1,14 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import { motion } from 'framer-motion';
 import { 
-  TrendingDown, 
-  Wallet, 
-  PieChart, 
-  Calendar, 
-  DollarSign, 
-  Calculator, 
-  Clock,
-  Target,
-  Sparkles,
   CreditCard,
   GraduationCap,
   Home,
   Car,
   LineChart,
-  ArrowUpRight,
-  ArrowDownRight,
   Info
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { CircularProgress } from '@/components/animations/CircularProgress';
-import { Button } from '@/components/ui/button';
+import { useState, useMemo, useEffect } from 'react';
 import {
   AreaChart,
   Area,
@@ -29,6 +17,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from 'recharts';
 
 // Real average debt statistics from Federal Reserve (2023)
@@ -39,126 +28,162 @@ const DEBT_STATISTICS = {
   mortgage: { avg: 350000, rate: 6.8 }
 };
 
-// Calculate minimum payment for credit cards (typically 1-3% of balance + interest)
-const calculateCreditCardMinPayment = (balance: number, rate: number) => {
+/**
+ * Calculate minimum payment for credit cards based on industry standards
+ */
+const calculateCreditCardMinPayment = (balance: number, rate: number): number => {
+  if (balance <= 0) return 0;
   const monthlyRate = rate / 100 / 12;
-  return Math.max(balance * 0.02 + (balance * monthlyRate), 25);
+  const interestAmount = balance * monthlyRate;
+  const percentOfBalance = balance * 0.02; // 2% of balance is typical minimum
+  return Math.max(interestAmount + percentOfBalance, 25); // Minimum $25 payment
 };
 
-// Calculate mortgage payment using amortization formula
-const calculateMortgagePayment = (principal: number, annualRate: number, years: number) => {
+/**
+ * Calculate mortgage payment using the standard amortization formula
+ */
+const calculateMortgagePayment = (principal: number, annualRate: number, years: number): number => {
+  if (principal <= 0 || annualRate <= 0 || years <= 0) return 0;
   const monthlyRate = annualRate / 100 / 12;
   const numberOfPayments = years * 12;
   return principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
          (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
 };
 
-// Dynamic payment scenarios based on debt type
+/**
+ * Calculate student loan payment using the standard amortization formula
+ */
+const calculateStudentLoanPayment = (principal: number, annualRate: number, years: number): number => {
+  if (principal <= 0 || annualRate <= 0 || years <= 0) return 0;
+  const monthlyRate = annualRate / 100 / 12;
+  const numberOfPayments = years * 12;
+  return principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+         (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+};
+
+/**
+ * Calculate auto loan payment using the standard amortization formula
+ */
+const calculateAutoLoanPayment = (principal: number, annualRate: number, years: number): number => {
+  if (principal <= 0 || annualRate <= 0 || years <= 0) return 0;
+  const monthlyRate = annualRate / 100 / 12;
+  const numberOfPayments = years * 12;
+  return principal * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / 
+         (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+};
+
+/**
+ * Generate payment scenarios based on debt type
+ */
 const getPaymentScenarios = (debtType: string) => {
   const { avg, rate } = DEBT_STATISTICS[debtType as keyof typeof DEBT_STATISTICS];
   
-  // Calculate scenarios based on debt type
-  const scenarios = {
-    creditCard: {
-      minimum: {
-        monthlyPayment: calculateCreditCardMinPayment(avg, rate),
-        yearsToPayoff: 25
-      },
-      recommended: {
-        monthlyPayment: Math.max(avg * 0.05 + (avg * rate / 100 / 12), calculateCreditCardMinPayment(avg, rate) * 2),
-        yearsToPayoff: 3
-      },
-      aggressive: {
-        monthlyPayment: Math.max(avg * 0.10 + (avg * rate / 100 / 12), calculateCreditCardMinPayment(avg, rate) * 3),
-        yearsToPayoff: 1
-      }
-    },
-    studentLoan: {
-      minimum: {
-        // Standard repayment plan (10 years)
-        monthlyPayment: (avg * (rate / 100 / 12) * Math.pow(1 + rate / 100 / 12, 120)) / 
-                       (Math.pow(1 + rate / 100 / 12, 120) - 1),
-        yearsToPayoff: 10
-      },
-      recommended: {
-        // Income-based repayment equivalent (15 years)
-        monthlyPayment: (avg * (rate / 100 / 12) * Math.pow(1 + rate / 100 / 12, 180)) / 
-                       (Math.pow(1 + rate / 100 / 12, 180) - 1) * 1.2,
-        yearsToPayoff: 15
-      },
-      aggressive: {
-        // Accelerated repayment (7 years)
-        monthlyPayment: (avg * (rate / 100 / 12) * Math.pow(1 + rate / 100 / 12, 84)) / 
-                       (Math.pow(1 + rate / 100 / 12, 84) - 1),
-        yearsToPayoff: 7
-      }
-    },
-    autoLoan: {
-      minimum: {
-        // Standard 72-month auto loan
-        monthlyPayment: (avg * (rate / 100 / 12) * Math.pow(1 + rate / 100 / 12, 72)) / 
-                       (Math.pow(1 + rate / 100 / 12, 72) - 1),
-        yearsToPayoff: 6
-      },
-      recommended: {
-        // Standard 60-month auto loan
-        monthlyPayment: (avg * (rate / 100 / 12) * Math.pow(1 + rate / 100 / 12, 60)) / 
-                       (Math.pow(1 + rate / 100 / 12, 60) - 1),
-        yearsToPayoff: 5
-      },
-      aggressive: {
-        // Accelerated 36-month auto loan
-        monthlyPayment: (avg * (rate / 100 / 12) * Math.pow(1 + rate / 100 / 12, 36)) / 
-                       (Math.pow(1 + rate / 100 / 12, 36) - 1),
-        yearsToPayoff: 3
-      }
-    },
-    mortgage: {
-      minimum: {
-        // 30-year fixed mortgage
-        monthlyPayment: calculateMortgagePayment(avg, rate, 30),
-        yearsToPayoff: 30
-      },
-      recommended: {
-        // 20-year fixed mortgage
-        monthlyPayment: calculateMortgagePayment(avg, rate, 20),
-        yearsToPayoff: 20
-      },
-      aggressive: {
-        // 15-year fixed mortgage
-        monthlyPayment: calculateMortgagePayment(avg, rate, 15),
-        yearsToPayoff: 15
-      }
-    }
-  };
+  let scenarios: Record<string, { monthlyPayment: number, yearsToPayoff: number }>;
+  
+  switch (debtType) {
+    case 'creditCard':
+      scenarios = {
+        minimum: {
+          monthlyPayment: calculateCreditCardMinPayment(avg, rate),
+          yearsToPayoff: 25
+        },
+        recommended: {
+          monthlyPayment: Math.max(avg * 0.05, calculateCreditCardMinPayment(avg, rate) * 2),
+          yearsToPayoff: 3
+        },
+        aggressive: {
+          monthlyPayment: Math.max(avg * 0.10, calculateCreditCardMinPayment(avg, rate) * 3),
+          yearsToPayoff: 1
+        }
+      };
+      break;
+      
+    case 'studentLoan':
+      scenarios = {
+        minimum: {
+          monthlyPayment: calculateStudentLoanPayment(avg, rate, 10),
+          yearsToPayoff: 10
+        },
+        recommended: {
+          monthlyPayment: calculateStudentLoanPayment(avg, rate, 8),
+          yearsToPayoff: 8
+        },
+        aggressive: {
+          monthlyPayment: calculateStudentLoanPayment(avg, rate, 5),
+          yearsToPayoff: 5
+        }
+      };
+      break;
+      
+    case 'autoLoan':
+      scenarios = {
+        minimum: {
+          monthlyPayment: calculateAutoLoanPayment(avg, rate, 6),
+          yearsToPayoff: 6
+        },
+        recommended: {
+          monthlyPayment: calculateAutoLoanPayment(avg, rate, 5),
+          yearsToPayoff: 5
+        },
+        aggressive: {
+          monthlyPayment: calculateAutoLoanPayment(avg, rate, 3),
+          yearsToPayoff: 3
+        }
+      };
+      break;
+      
+    case 'mortgage':
+      scenarios = {
+        minimum: {
+          monthlyPayment: calculateMortgagePayment(avg, rate, 30),
+          yearsToPayoff: 30
+        },
+        recommended: {
+          monthlyPayment: calculateMortgagePayment(avg, rate, 20),
+          yearsToPayoff: 20
+        },
+        aggressive: {
+          monthlyPayment: calculateMortgagePayment(avg, rate, 15),
+          yearsToPayoff: 15
+        }
+      };
+      break;
+      
+    default:
+      scenarios = {
+        minimum: { monthlyPayment: avg * 0.02, yearsToPayoff: 10 },
+        recommended: { monthlyPayment: avg * 0.03, yearsToPayoff: 5 },
+        aggressive: { monthlyPayment: avg * 0.05, yearsToPayoff: 3 }
+      };
+  }
 
-  const typeScenarios = scenarios[debtType as keyof typeof scenarios];
   const result: Record<string, any> = {};
 
-  // Calculate total interest and total paid for each scenario
-  Object.entries(typeScenarios).forEach(([key, scenario]) => {
+  Object.entries(scenarios).forEach(([key, scenario]) => {
     const schedule = calculateAmortization(
       avg,
       rate,
       scenario.monthlyPayment,
-      scenario.yearsToPayoff * 12
+      Math.ceil(scenario.yearsToPayoff * 12)
     );
     
     const totalPaid = schedule.reduce((sum, payment) => sum + payment.payment, 0);
     const totalInterest = totalPaid - avg;
-
+    
     result[key] = {
       label: key.charAt(0).toUpperCase() + key.slice(1) + " Payments",
       monthlyPayment: Math.round(scenario.monthlyPayment),
       totalInterest: Math.round(totalInterest),
       yearsToPayoff: scenario.yearsToPayoff,
-      totalPaid: Math.round(totalPaid)
+      totalPaid: Math.round(totalPaid),
+      monthlySavings: key !== "minimum" ? Math.round(scenarios.minimum.monthlyPayment * (scenarios.minimum.yearsToPayoff * 12) - totalPaid) : 0
     };
   });
 
   return result;
 };
 
+// Debt types with metadata
 const DEBT_TYPES = [
   {
     type: 'creditCard',
@@ -168,9 +193,9 @@ const DEBT_TYPES = [
     stats: {
       avgBalance: DEBT_STATISTICS.creditCard.avg,
       interestRate: DEBT_STATISTICS.creditCard.rate,
-          monthlyPayment: 300,
+      monthlyPayment: Math.round(calculateCreditCardMinPayment(DEBT_STATISTICS.creditCard.avg, DEBT_STATISTICS.creditCard.rate)),
       priorityLevel: 'Highest',
-      recommendation: 'Pay more than minimum to avoid compound interest'
+      recommendation: 'Pay more than the minimum payment to avoid excessive interest. Consider consolidating with a balance transfer card or personal loan.'
     }
   },
   {
@@ -181,9 +206,9 @@ const DEBT_TYPES = [
     stats: {
       avgBalance: DEBT_STATISTICS.studentLoan.avg,
       interestRate: DEBT_STATISTICS.studentLoan.rate,
-      monthlyPayment: 400,
+      monthlyPayment: Math.round(calculateStudentLoanPayment(DEBT_STATISTICS.studentLoan.avg, DEBT_STATISTICS.studentLoan.rate, 10)),
       priorityLevel: 'Medium',
-      recommendation: 'Consider income-driven repayment plans'
+      recommendation: "Consider income-driven repayment plans if you're struggling. Target high-interest unsubsidized loans first."
     }
   },
   {
@@ -194,9 +219,9 @@ const DEBT_TYPES = [
     stats: {
       avgBalance: DEBT_STATISTICS.autoLoan.avg,
       interestRate: DEBT_STATISTICS.autoLoan.rate,
-      monthlyPayment: 500,
+      monthlyPayment: Math.round(calculateAutoLoanPayment(DEBT_STATISTICS.autoLoan.avg, DEBT_STATISTICS.autoLoan.rate, 5)),
       priorityLevel: 'Medium',
-      recommendation: 'Refinance if your credit score has improved'
+      recommendation: 'Refinance if your credit score has improved since taking out the loan. Consider paying bi-weekly to reduce interest.'
     }
   },
   {
@@ -207,9 +232,9 @@ const DEBT_TYPES = [
     stats: {
       avgBalance: DEBT_STATISTICS.mortgage.avg,
       interestRate: DEBT_STATISTICS.mortgage.rate,
-      monthlyPayment: 2200,
+      monthlyPayment: Math.round(calculateMortgagePayment(DEBT_STATISTICS.mortgage.avg, DEBT_STATISTICS.mortgage.rate, 30)),
       priorityLevel: 'Low',
-      recommendation: 'Consider extra payments to principal'
+      recommendation: 'Consider making one extra payment per year to reduce your loan term and save on interest. Refinance if rates drop significantly.'
     }
   }
 ];
@@ -222,35 +247,69 @@ interface PaymentPlan {
   principal: number;
 }
 
+/**
+ * Calculate complete amortization schedule for a loan
+ */
 const calculateAmortization = (
   principal: number,
   annualRate: number,
   monthlyPayment: number,
   months: number
 ): PaymentPlan[] => {
-  const monthlyRate = annualRate / 100 / 12;
-  let balance = principal;
-  const schedule: PaymentPlan[] = [];
-
-  for (let month = 1; month <= months && balance > 0; month++) {
-    const interest = balance * monthlyRate;
-    const principalPayment = Math.min(monthlyPayment - interest, balance);
-    balance = Math.max(0, balance - principalPayment);
-
-    schedule.push({
-      month,
-      balance,
-      payment: monthlyPayment,
-      interest,
-      principal: principalPayment
-    });
+  if (principal <= 0 || months <= 0) {
+    return [{ month: 0, balance: 0, payment: 0, interest: 0, principal: 0 }];
   }
 
-  return schedule;
+  const monthlyRate = annualRate / 100 / 12;
+  let remainingBalance = principal;
+  const result: PaymentPlan[] = [];
+
+  // Ensure monthly payment is at least the interest on the principal
+  const minPayment = principal * monthlyRate;
+  if (monthlyPayment < minPayment) {
+    monthlyPayment = minPayment * 1.01; // Slightly more than interest only
+  }
+
+  for (let month = 1; month <= months && remainingBalance > 0; month++) {
+    const interestPayment = remainingBalance * monthlyRate;
+    const principalPayment = Math.min(remainingBalance, monthlyPayment - interestPayment);
+    
+    // In case of rounding errors
+    if (principalPayment <= 0 && remainingBalance < monthlyPayment) {
+      result.push({
+        month,
+        balance: 0,
+        payment: remainingBalance + interestPayment,
+        interest: interestPayment,
+        principal: remainingBalance
+      });
+      break;
+    }
+    
+    remainingBalance = Math.max(0, remainingBalance - principalPayment);
+    
+    result.push({
+      month,
+      balance: remainingBalance,
+      payment: interestPayment + principalPayment,
+      interest: interestPayment,
+      principal: principalPayment
+    });
+    
+    // If balance is very close to zero, consider it paid off
+    if (remainingBalance < 0.01) {
+      remainingBalance = 0;
+      break;
+    }
+  }
+  
+  return result;
 };
 
-// Add formatCurrency helper
-const formatCurrency = (amount: number) => {
+/**
+ * Format a number as currency with appropriate separators and decimal places
+ */
+const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
@@ -259,7 +318,7 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-export default function DebtManagementVisualization() {
+const DebtManagementVisualization: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<'minimum' | 'recommended' | 'aggressive'>('recommended');
   const [selectedDebtType, setSelectedDebtType] = useState<string>('creditCard');
 
@@ -277,132 +336,59 @@ export default function DebtManagementVisualization() {
     );
   }, [selectedPlan, selectedDebtType, currentPlan]);
 
-  // Add hover state for chart points
-  const [hoveredPoint, setHoveredPoint] = useState<PaymentPlan | null>(null);
-
+  // Generate chart data for all three payment strategies
   const chartData = useMemo(() => {
-    // Get data for all three payment strategies for comparison
-    const strategies = ['minimum', 'recommended', 'aggressive'];
-    const allStrategiesData: any[] = [];
+    const { avg, rate } = DEBT_STATISTICS[selectedDebtType as keyof typeof DEBT_STATISTICS];
     
-    // Max months across all strategies for consistent x-axis
-    let maxMonths = 0;
+    // Just for the selected debt type, not longest overall
+    const maxYears = Math.max(...Object.values(paymentScenarios).map(plan => plan.yearsToPayoff));
     
-    strategies.forEach(strategy => {
-      const { avg, rate } = DEBT_STATISTICS[selectedDebtType as keyof typeof DEBT_STATISTICS];
-      const scenarioData = paymentScenarios[strategy as keyof typeof paymentScenarios];
+    // Create 12 to 20 data points for a smooth curve but not too many
+    const numPoints = Math.min(Math.max(12, maxYears * 4), 20);
+    const data = [];
+    
+    // Create data points at regular intervals
+    for (let i = 0; i <= numPoints; i++) {
+      const yearFraction = (i / numPoints) * maxYears;
+      const month = Math.floor(yearFraction * 12);
       
-      const schedule = calculateAmortization(
-        avg,
-        rate,
-        scenarioData.monthlyPayment,
-        scenarioData.yearsToPayoff * 12
-      );
+      const dataPoint: any = {
+        year: Math.round(yearFraction * 10) / 10, // Round to 1 decimal place
+      };
       
-      maxMonths = Math.max(maxMonths, schedule.length);
-      
-      schedule.forEach((point, index) => {
-        // Create data point for each month if it doesn't exist
-        if (!allStrategiesData[index]) {
-          // Format month/year label more clearly
-          const months = point.month;
-          const years = Math.floor(months / 12);
-          const remainingMonths = months % 12;
+      // Calculate balance for each strategy at this point in time
+      Object.entries(paymentScenarios).forEach(([key, plan]) => {
+        if (month <= plan.yearsToPayoff * 12) {
+          const schedule = calculateAmortization(
+            avg,
+            rate,
+            plan.monthlyPayment,
+            month > 0 ? month : 1 // Ensure we have at least 1 month for calculation
+          );
           
-          let timeLabel;
-          if (years === 0) {
-            timeLabel = `${months}m`;
-          } else if (remainingMonths === 0) {
-            timeLabel = `${years}y`;
-          } else if (months % 6 === 0) {
-            timeLabel = `${years}y ${remainingMonths}m`;
-          } else {
-            // Only show certain intervals to avoid crowding
-            timeLabel = "";
-          }
+          // Get the latest balance from the amortization schedule
+          const currentBalance = schedule.length > 0 ? schedule[schedule.length - 1].balance : avg;
           
-          allStrategiesData[index] = {
-            month: point.month,
-            timeLabel,
-            formattedTime: years > 0 ? 
-              `${years} year${years > 1 ? 's' : ''}${remainingMonths > 0 ? `, ${remainingMonths} month${remainingMonths > 1 ? 's' : ''}` : ''}` : 
-              `${months} month${months > 1 ? 's' : ''}`,
-          };
-        }
-        
-        // Add data for this strategy
-        allStrategiesData[index][`${strategy}Balance`] = point.balance;
-        allStrategiesData[index][`${strategy}Payment`] = point.payment;
-        allStrategiesData[index][`${strategy}Interest`] = point.interest;
-        allStrategiesData[index][`${strategy}Principal`] = point.principal;
-        allStrategiesData[index][`${strategy}Percentage`] = ((1 - point.balance / avg) * 100).toFixed(1);
-      });
-    });
-    
-    // Fill in missing data points with null for shorter schedules
-    allStrategiesData.forEach((data, index) => {
-      strategies.forEach(strategy => {
-        if (data[`${strategy}Balance`] === undefined) {
-          data[`${strategy}Balance`] = null;
-          data[`${strategy}Payment`] = null;
-          data[`${strategy}Interest`] = null;
-          data[`${strategy}Principal`] = null;
-          data[`${strategy}Percentage`] = null;
+          // Add balance to the data point
+          dataPoint[`${key}Balance`] = currentBalance > 0 ? currentBalance : 0;
+        } else {
+          // If this time is beyond the payoff date, set balance to 0
+          dataPoint[`${key}Balance`] = 0;
         }
       });
-    });
+      
+      data.push(dataPoint);
+    }
     
-    return allStrategiesData;
+    return data;
   }, [selectedDebtType, paymentScenarios]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      
-      return (
-        <div className="bg-black/80 backdrop-blur-md border border-white/20 rounded-lg p-4 shadow-xl text-sm max-w-xs">
-          <div className="font-semibold mb-2 text-white border-b border-white/20 pb-2">
-            {data.formattedTime}
-          </div>
-          <div className="space-y-3">
-            {['minimum', 'recommended', 'aggressive'].map(strategy => {
-              if (data[`${strategy}Balance`] === null) return null;
-              
-              const strategyLabel = {
-                'minimum': 'Minimum',
-                'recommended': 'Recommended',
-                'aggressive': 'Aggressive'
-              }[strategy];
-              
-              const strategyColor = {
-                'minimum': '#FF6B6B',
-                'recommended': '#88B04B',
-                'aggressive': '#4ECDC4'
-              }[strategy];
-              
-              return (
-                <div key={strategy} className="space-y-1">
-                  <div className="font-medium text-white flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{backgroundColor: strategyColor}}></div>
-                    {strategyLabel} Plan
-                  </div>
-                  <div className="text-white/80 pl-5 text-xs flex justify-between">
-                    <span>Balance:</span>
-                    <span>{formatCurrency(data[`${strategy}Balance`])}</span>
-                  </div>
-                  <div className="text-white/80 pl-5 text-xs flex justify-between">
-                    <span>Paid off:</span>
-                    <span>{data[`${strategy}Percentage`]}%</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Add this useEffect for debugging if needed
+  // useEffect(() => {
+  //   console.log('Chart Data:', chartData);
+  //   console.log('Debt Type:', selectedDebtType);
+  //   console.log('Payment Scenarios:', paymentScenarios);
+  // }, [chartData, selectedDebtType, paymentScenarios]);
 
   return (
     <section className="py-24 px-4 sm:px-6 relative overflow-hidden">
@@ -410,7 +396,7 @@ export default function DebtManagementVisualization() {
 
       <div className="max-w-7xl mx-auto relative">
         <motion.div 
-          className="text-center mb-16"
+          className="text-center mb-12"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -426,9 +412,9 @@ export default function DebtManagementVisualization() {
             Based on real Federal Reserve data, explore how different payment strategies affect your path to financial freedom.
           </p>
         </motion.div>
-
+        
         {/* Debt Type Selection */}
-        <div className="grid md:grid-cols-4 gap-4 mb-12">
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
           {DEBT_TYPES.map((debt) => {
             const Icon = debt.icon;
             const isSelected = selectedDebtType === debt.type;
@@ -437,14 +423,14 @@ export default function DebtManagementVisualization() {
               <motion.button
                 key={debt.type}
                 onClick={() => setSelectedDebtType(debt.type)}
-                className={`relative p-6 rounded-xl border ${
+                className={`relative p-4 sm:p-6 rounded-xl border ${
                   isSelected 
                     ? 'bg-white/10 border-[#88B04B]' 
                     : 'bg-white/5 border-white/10 hover:border-white/20'
                 } text-left transition-all`}
                 whileHover={{ scale: 1.02 }}
               >
-                <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 rounded-lg" style={{ backgroundColor: `${debt.color}20` }}>
                     <Icon className="w-6 h-6 m-2" style={{ color: debt.color }} />
                   </div>
@@ -452,13 +438,13 @@ export default function DebtManagementVisualization() {
                     <h3 className="text-white font-medium">{debt.label}</h3>
                     <p className="text-sm text-white/60">Avg: ${debt.stats.avgBalance.toLocaleString()}</p>
                   </div>
-            </div>
+                </div>
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-white/80">{debt.stats.interestRate}% APR</span>
                   {isSelected && (
                     <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       className="px-2 py-1 rounded-full bg-[#88B04B]/20 text-[#88B04B] text-xs"
                     >
                       Selected
@@ -468,30 +454,232 @@ export default function DebtManagementVisualization() {
               </motion.button>
             );
           })}
-          </div>
+        </div>
 
-        {/* Debt Details */}
-        {selectedDebtInfo && (
-            <motion.div
+        {/* Two-column layout for chart and payment strategies */}
+        <div className="grid lg:grid-cols-12 gap-8 mb-8">
+          {/* Chart column - takes 8/12 of the grid on large screens */}
+          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/5 rounded-xl p-6 mb-12 border border-white/10"
+            className="lg:col-span-8 order-2 lg:order-1"
+          >
+            {/* Original visualization chart */}
+            <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+              <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <LineChart className="w-5 h-5 text-[#88B04B]" />
+                Payment Progress Comparison
+              </h3>
+              
+              <div className="h-[350px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={chartData}
+                    margin={{
+                      top: 5,
+                      right: 30,
+                      left: 20,
+                      bottom: 30,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                    <XAxis 
+                      dataKey="year" 
+                      label={{ 
+                        value: 'Years', 
+                        position: 'insideBottomRight', 
+                        offset: -10,
+                        fill: '#aaa'
+                      }}
+                      tick={{ fill: '#aaa' }}
+                      domain={[0, 'dataMax']}
+                      tickCount={6}
+                      interval={0}
+                      tickFormatter={(value) => value % 1 === 0 ? value : value.toFixed(1)}
+                    />
+                    <YAxis 
+                      label={{ 
+                        value: 'Balance ($)', 
+                        angle: -90, 
+                        position: 'insideLeft',
+                        fill: '#aaa'
+                      }}
+                      tick={{ fill: '#aaa' }}
+                      tickFormatter={tick => {
+                        const { avg } = DEBT_STATISTICS[selectedDebtType as keyof typeof DEBT_STATISTICS];
+                        if (avg >= 100000) {
+                          return `$${(tick / 1000).toFixed(0)}k`;
+                        } else if (avg >= 10000) {
+                          return `$${(tick / 1000).toFixed(1)}k`;
+                        } else {
+                          return `$${tick.toFixed(0)}`;
+                        }
+                      }}
+                      domain={[0, DEBT_STATISTICS[selectedDebtType as keyof typeof DEBT_STATISTICS].avg]}
+                    />
+                    <Tooltip 
+                      formatter={(value: number) => [
+                        `$${value.toLocaleString(undefined, {maximumFractionDigits: 0})}`, 
+                        'Remaining Balance'
+                      ]}
+                      labelFormatter={(label) => 
+                        label % 1 === 0 
+                          ? `${label} ${label === 1 ? 'year' : 'years'}`
+                          : `${Math.floor(label)} ${Math.floor(label) === 1 ? 'year' : 'years'}, ${Math.round((label % 1) * 12)} months`
+                      }
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)', 
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                        color: '#fff'
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="minimumBalance"
+                      name="Minimum Payments"
+                      stroke="#FF6B6B"
+                      strokeWidth={selectedPlan === 'minimum' ? 3 : 2}
+                      fill="#FF6B6B"
+                      fillOpacity={0.2}
+                      activeDot={selectedPlan === 'minimum' ? { r: 8, stroke: "#fff", strokeWidth: 2 } : false}
+                      isAnimationActive={true}
+                    />
+                    
+                    <Area
+                      type="monotone"
+                      dataKey="recommendedBalance"
+                      name="Recommended Payments"
+                      stroke="#88B04B"
+                      strokeWidth={selectedPlan === 'recommended' ? 3 : 2}
+                      fill="#88B04B"
+                      fillOpacity={0.2}
+                      activeDot={selectedPlan === 'recommended' ? { r: 8, stroke: "#fff", strokeWidth: 2 } : false}
+                      isAnimationActive={true}
+                    />
+                    
+                    <Area
+                      type="monotone"
+                      dataKey="aggressiveBalance"
+                      name="Aggressive Payments"
+                      stroke="#4ECDC4"
+                      strokeWidth={selectedPlan === 'aggressive' ? 3 : 2}
+                      fill="#4ECDC4"
+                      fillOpacity={0.2}
+                      activeDot={selectedPlan === 'aggressive' ? { r: 8, stroke: "#fff", strokeWidth: 2 } : false}
+                      isAnimationActive={true}
+                    />
+                    
+                    <defs>
+                      <linearGradient id="minimumColorGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#FF6B6B" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#FF6B6B" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="recommendedColorGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#88B04B" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#88B04B" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="aggressiveColorGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#4ECDC4" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#4ECDC4" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    
+                    <Legend 
+                      verticalAlign="top" 
+                      height={36}
+                      formatter={(value, entry) => {
+                        const { color } = entry as any;
+                        return <span style={{ color: '#fff', marginRight: '10px' }}>{value}</span>;
+                      }}
+                      onClick={(data) => {
+                        // When legend is clicked, change the selected plan
+                        const dataKey = (data as any).dataKey;
+                        if (dataKey.includes('minimum')) {
+                          setSelectedPlan('minimum');
+                        } else if (dataKey.includes('recommended')) {
+                          setSelectedPlan('recommended');
+                        } else if (dataKey.includes('aggressive')) {
+                          setSelectedPlan('aggressive');
+                        }
+                      }}
+                      wrapperStyle={{ paddingBottom: '10px' }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </motion.div>
+          
+          {/* Payment strategies column - takes 4/12 of the grid on large screens */}
+          <div className="lg:col-span-4 order-1 lg:order-2">
+            {/* Payment Strategy Selection */}
+            <div className="grid lg:grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              {Object.entries(paymentScenarios).map(([key, plan]) => {
+                const isSelected = selectedPlan === key;
+                return (
+                  <motion.button
+                    key={key}
+                    onClick={() => setSelectedPlan(key as any)}
+                    className={`p-4 rounded-xl border ${
+                      isSelected 
+                        ? 'bg-white/10 border-[#88B04B]' 
+                        : 'bg-white/5 border-white/10 hover:border-white/20'
+                    } text-left transition-all`}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <h3 className="text-lg font-semibold text-white mb-2">{plan.label}</h3>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/80">Monthly Payment</span>
+                        <span className="text-white font-medium">${plan.monthlyPayment}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/80">Years to Payoff</span>
+                        <span className="text-white font-medium">{plan.yearsToPayoff} years</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/80">Total Interest</span>
+                        <span className="text-white font-medium">${plan.totalInterest.toLocaleString()}</span>
+                      </div>
+                      <div className="h-px bg-white/10 my-2" />
+                      <div className="flex items-center justify-between font-medium">
+                        <span className="text-white/80">Total Paid</span>
+                        <span className="text-[#88B04B]">${plan.totalPaid.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Add extra spacing before the debt details section */}
+        <div className="mt-16"></div>
+
+        {/* Debt Details - moved below the chart with more spacing */}
+        {selectedDebtInfo && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white/5 rounded-xl p-6 mb-6 border border-white/10"
           >
             <div className="grid md:grid-cols-2 gap-8">
-                    <div>
+              <div>
                 <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
                   <selectedDebtInfo.icon className="w-5 h-5" style={{ color: selectedDebtInfo.color }} />
                   {selectedDebtInfo.label} Analysis
-                  </h3>
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-white/80">Average Balance</span>
                     <span className="text-white font-medium">${selectedDebtInfo.stats.avgBalance.toLocaleString()}</span>
-                        </div>
+                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-white/80">Interest Rate</span>
                     <span className="text-white font-medium">{selectedDebtInfo.stats.interestRate}% APR</span>
-                      </div>
+                  </div>
                   <div className="flex items-center justify-between">
                     <span className="text-white/80">Typical Monthly Payment</span>
                     <span className="text-white font-medium">${selectedDebtInfo.stats.monthlyPayment}</span>
@@ -507,10 +695,10 @@ export default function DebtManagementVisualization() {
                     }`}>
                       {selectedDebtInfo.stats.priorityLevel}
                     </span>
-                              </div>
-                            </div>
-                          </div>
-              <div className="border-l border-white/10 pl-8">
+                  </div>
+                </div>
+              </div>
+              <div className="md:border-l border-white/10 md:pl-8">
                 <h4 className="text-white font-medium mb-4 flex items-center gap-2">
                   <Info className="w-4 h-4 text-[#88B04B]" />
                   Smart Recommendations
@@ -522,228 +710,15 @@ export default function DebtManagementVisualization() {
                   <h5 className="text-[#88B04B] font-medium mb-2">Impact of Extra Payments</h5>
                   <p className="text-sm text-white/80">
                     Adding $100/month to your payment could save you ${(selectedDebtInfo.stats.avgBalance * selectedDebtInfo.stats.interestRate / 100 * 0.2).toFixed(0)} in interest and reduce your repayment time by {Math.round(selectedDebtInfo.stats.interestRate * 0.4)} months.
-                            </p>
-                          </div>
-                        </div>
-                        </div>
-                      </motion.div>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
-
-        {/* Payment Strategy Selection */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          {Object.entries(paymentScenarios).map(([key, plan]) => {
-            const isSelected = selectedPlan === key;
-            return (
-              <motion.button
-                key={key}
-                onClick={() => setSelectedPlan(key as any)}
-                className={`p-6 rounded-xl border ${
-                  isSelected 
-                    ? 'bg-white/10 border-[#88B04B]' 
-                    : 'bg-white/5 border-white/10 hover:border-white/20'
-                } text-left transition-all`}
-                whileHover={{ scale: 1.02 }}
-              >
-                <h3 className="text-xl font-semibold text-white mb-4">{plan.label}</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/80">Monthly Payment</span>
-                    <span className="text-white font-medium">${plan.monthlyPayment}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/80">Years to Payoff</span>
-                    <span className="text-white font-medium">{plan.yearsToPayoff} years</span>
-                </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/80">Total Interest</span>
-                    <span className="text-white font-medium">${plan.totalInterest.toLocaleString()}</span>
-                  </div>
-                  <div className="h-px bg-white/10 my-3" />
-                  <div className="flex items-center justify-between font-medium">
-                    <span className="text-white/80">Total Paid</span>
-                    <span className="text-[#88B04B]">${plan.totalPaid.toLocaleString()}</span>
-                  </div>
-                </div>
-              </motion.button>
-                    );
-                  })}
-                </div>
-
-        {/* Amortization Chart */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 rounded-xl p-6 border border-white/10"
-        >
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-white flex items-center gap-2">
-              <LineChart className="w-5 h-5 text-[#88B04B]" />
-              Payment Progress Comparison
-            </h3>
-            
-            <div className="flex items-center gap-3 mt-3 md:mt-0 text-sm">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#FF6B6B]" />
-                <span className="text-white/80">Minimum</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#88B04B]" />
-                <span className="text-white/80">Recommended</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#4ECDC4]" />
-                <span className="text-white/80">Aggressive</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
-                data={chartData}
-                margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="minimumGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FF6B6B" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#FF6B6B" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="recommendedGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#88B04B" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#88B04B" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="aggressiveGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#4ECDC4" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#4ECDC4" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="rgba(255,255,255,0.1)"
-                  vertical={false}
-                />
-                
-                <XAxis
-                  dataKey="timeLabel"
-                  stroke="rgba(255,255,255,0.5)"
-                  tick={{ fill: 'rgba(255,255,255,0.5)' }}
-                  tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                  label={{ 
-                    value: 'Time', 
-                    position: 'bottom',
-                    fill: 'rgba(255,255,255,0.5)',
-                    offset: -5
-                  }}
-                />
-                
-                <YAxis
-                  stroke="rgba(255,255,255,0.5)"
-                  tick={{ fill: 'rgba(255,255,255,0.5)' }}
-                  tickLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                  tickFormatter={(value) => `$${value > 999 ? (value / 1000).toFixed(0) + 'k' : value}`}
-                  label={{ 
-                    value: 'Balance', 
-                    angle: -90, 
-                    position: 'insideLeft',
-                    fill: 'rgba(255,255,255,0.5)',
-                    offset: 10
-                  }}
-                />
-                
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{ stroke: 'rgba(255,255,255,0.3)', strokeWidth: 1, strokeDasharray: '5 5' }}
-                />
-                
-                <Area
-                  type="monotone"
-                  dataKey="minimumBalance"
-                  stroke="#FF6B6B"
-                  strokeWidth={selectedPlan === 'minimum' ? 3 : 2}
-                  strokeOpacity={selectedPlan === 'minimum' ? 1 : 0.7}
-                  fill="url(#minimumGradient)"
-                  fillOpacity={selectedPlan === 'minimum' ? 1 : 0.7}
-                  animationDuration={1000}
-                  dot={false}
-                  activeDot={{
-                    r: 6,
-                    fill: "#FF6B6B",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                  }}
-                />
-                
-                <Area
-                  type="monotone"
-                  dataKey="recommendedBalance"
-                  stroke="#88B04B"
-                  strokeWidth={selectedPlan === 'recommended' ? 3 : 2}
-                  strokeOpacity={selectedPlan === 'recommended' ? 1 : 0.7}
-                  fill="url(#recommendedGradient)"
-                  fillOpacity={selectedPlan === 'recommended' ? 1 : 0.7}
-                  animationDuration={1000}
-                  dot={false}
-                  activeDot={{
-                    r: 6,
-                    fill: "#88B04B",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                  }}
-                />
-                
-                <Area
-                  type="monotone"
-                  dataKey="aggressiveBalance"
-                  stroke="#4ECDC4"
-                  strokeWidth={selectedPlan === 'aggressive' ? 3 : 2}
-                  strokeOpacity={selectedPlan === 'aggressive' ? 1 : 0.7}
-                  fill="url(#aggressiveGradient)"
-                  fillOpacity={selectedPlan === 'aggressive' ? 1 : 0.7}
-                  animationDuration={1000}
-                  dot={false}
-                  activeDot={{
-                    r: 6,
-                    fill: "#4ECDC4",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                  }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          
-          <div className="mt-8 bg-black/30 rounded-xl p-4 border border-white/10">
-            <div className="grid grid-cols-3 gap-4">
-              {['minimum', 'recommended', 'aggressive'].map(strategy => {
-                const strategyData = paymentScenarios[strategy as keyof typeof paymentScenarios];
-                const isSelected = selectedPlan === strategy;
-                
-                return (
-                  <div 
-                    key={strategy}
-                    className={`p-3 rounded-lg ${isSelected ? 'bg-white/10 ring-2 ring-offset-2 ring-offset-black/50 ring-white/20' : 'bg-black/20'} transition-all`}
-                  >
-                    <div className="text-xs font-medium mb-2 text-white/70">
-                      With {strategyData.label}:
-                    </div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs text-white/60">Total paid:</span>
-                      <span className="text-sm font-semibold text-white">{formatCurrency(strategyData.totalPaid)}</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-white/60">Time to freedom:</span>
-                      <span className="text-sm font-semibold text-white">{strategyData.yearsToPayoff} years</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </motion.div>
       </div>
     </section>
   );
-}
+};
+
+export default DebtManagementVisualization;

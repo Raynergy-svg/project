@@ -12,10 +12,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Security-Policy" content="
       default-src 'self';
-      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://js.stripe.com https://cdn.plaid.com;
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://js.stripe.com https://cdn.plaid.com https://www.google.com https://www.gstatic.com https://recaptcha.google.com https://www.recaptcha.net;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      img-src 'self' data: blob: https://*.supabase.co https://raw.githubusercontent.com https://*.cloudflare.com https://images.unsplash.com;
+      img-src 'self' data: blob: https://*.supabase.co https://raw.githubusercontent.com https://*.cloudflare.com https://images.unsplash.com https://www.gstatic.com;
       font-src 'self' https://fonts.gstatic.com;
       connect-src 'self' 
         https://*.supabase.co
@@ -25,8 +25,12 @@
         https://fonts.gstatic.com
         https://*.cloudflareinsights.com
         https://*.plaid.com
+        https://api.ipify.org
+        https://www.google.com
+        https://recaptcha.google.com
+        https://www.recaptcha.net
         https://*.projectdcertan84workersdev.workers.dev;
-      frame-src 'self' https://cdn.plaid.com https://js.stripe.com;
+      frame-src 'self' https://cdn.plaid.com https://js.stripe.com https://www.google.com https://recaptcha.google.com https://www.recaptcha.net;
       media-src 'self';
       object-src 'none';
       base-uri 'self';" />
@@ -39,6 +43,15 @@
     
     <!-- Preconnect to Plaid domain -->
     <link rel="preconnect" href="https://cdn.plaid.com" crossorigin />
+    
+    <!-- Preconnect to Google reCAPTCHA -->
+    <link rel="preconnect" href="https://www.google.com" crossorigin />
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://recaptcha.google.com" crossorigin />
+    <link rel="preconnect" href="https://www.recaptcha.net" crossorigin />
+    
+    <!-- Preconnect to IP service -->
+    <link rel="preconnect" href="https://api.ipify.org" crossorigin />
     
     <!-- Primary Meta Tags -->
     <title>Smart Debt Flow - Get Debt-Free Faster</title>

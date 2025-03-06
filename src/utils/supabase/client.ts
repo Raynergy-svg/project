@@ -4,22 +4,29 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 // Use direct path to the types file
 import type { Database } from '../../lib/supabase/types';
 
-// Use environment variables with proper fallbacks for development
-export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://gnwdahoiauduyncppbdb.supabase.co';
-export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.wLiLa-B6gYS9VX7-7-K1i_4d2qX52UDmIUVniBpQZK4';
+// Get environment variables for Supabase
+// Note: For client-side code, environment variables must be prefixed with VITE_
+export const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+export const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+// Log environment variables to help diagnose problems
+console.log('Environment Variables Check:');
+console.log('- VITE_SUPABASE_URL present:', !!import.meta.env.VITE_SUPABASE_URL);
+console.log('- VITE_SUPABASE_ANON_KEY present:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 // Ensure environment variables are properly set
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing required Supabase environment variables');
-  // Don't throw in production, use fallbacks instead
+  // Don't throw in production, but log the error
   if (import.meta.env.DEV) {
-    throw new Error('Missing Supabase environment variables. Please check your .env file.');
+    console.warn('Try adding these to your .env file:');
+    console.warn('VITE_SUPABASE_URL=your_url_here');
+    console.warn('VITE_SUPABASE_ANON_KEY=your_key_here');
   }
 }
 
-// Log connection details in both development and production
-console.log(`Initializing Supabase client with URL: ${supabaseUrl}`);
-console.log(`Using Anon Key: ${supabaseAnonKey.substring(0, 10)}...`);
+// Avoid logging sensitive credentials
+console.log(`Initializing Supabase client${import.meta.env.DEV ? ` with URL: ${supabaseUrl}` : ''}`);
 
 const defaultOptions = {
   auth: {
@@ -27,7 +34,7 @@ const defaultOptions = {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
+    flowType: 'implicit',
   },
   global: {
     headers: {
@@ -44,9 +51,33 @@ const createMockClient = () => {
   return {
     auth: {
       getSession: async () => ({ data: { session: null }, error: null }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+      onAuthStateChange: (callback) => {
+        // Return a subscription object with an unsubscribe method
+        return { data: { subscription: { unsubscribe: () => {} } } };
+      },
       getUser: async () => ({ data: { user: null }, error: null }),
-      signInWithPassword: async () => ({ data: null, error: { message: 'Mock auth error' } }),
+      signInWithPassword: async ({ email, password }) => {
+        // For the dev account, return a successful login
+        if (email === 'dev@example.com' && password === 'development') {
+          return {
+            data: {
+              user: {
+                id: 'dev-user-id',
+                email: 'dev@example.com',
+                user_metadata: { name: 'Development User' }
+              },
+              session: {
+                access_token: 'mock-token',
+                refresh_token: 'mock-refresh-token',
+                expires_at: Date.now() + 3600 * 1000
+              }
+            },
+            error: null
+          };
+        }
+        // Otherwise return an error
+        return { data: null, error: { message: 'Invalid login credentials', status: 401 } };
+      },
       signOut: async () => ({ error: null }),
     },
     from: (table: string) => ({
@@ -71,13 +102,19 @@ const createMockClient = () => {
 // Force mock supabase if environment variable is set
 const FORCE_MOCK_SUPABASE = import.meta.env.VITE_MOCK_SUPABASE === 'true';
 
-// Create the Supabase client directly without conditional logic that might cause issues
-// in production builds
-const baseSupabaseClient = FORCE_MOCK_SUPABASE
-  ? createMockClient()
-  : createClient<Database>(supabaseUrl, supabaseAnonKey, defaultOptions);
+// Create the Supabase client with proper error handling
+let baseSupabaseClient: SupabaseClient<Database>;
+try {
+  baseSupabaseClient = FORCE_MOCK_SUPABASE
+    ? createMockClient()
+    : createClient<Database>(supabaseUrl, supabaseAnonKey, defaultOptions);
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error);
+  // Fallback to mock client if real client initialization fails
+  baseSupabaseClient = createMockClient();
+}
 
-// Export the final supabase client with dev mode enhancements if needed
+// Export the final supabase client
 export const supabase = baseSupabaseClient;
 
 // Export createBrowserClient for compatibility

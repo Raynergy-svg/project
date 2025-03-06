@@ -15,19 +15,9 @@ interface FeaturesProps {
   id?: string;
 }
 
-// Optimize imports with dynamic imports for non-critical components
-const DebtManagementVisualization = lazy(() => 
-  import("@/components/landing/DebtManagementVisualization")
-    .then(module => ({
-      default: module.default as React.ComponentType
-    }))
-    .catch(error => {
-      console.error("Error loading DebtManagementVisualization:", error);
-      return {
-        default: () => null as unknown as React.ReactElement
-      };
-    })
-);
+// Import components directly instead of through the index file
+const DebtManagementVisualization = lazy(() => import("@/components/landing/DebtManagementVisualization"));
+
 const Features = lazy(() => 
   import("@/components/landing/Features")
     .then(module => ({

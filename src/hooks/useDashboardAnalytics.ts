@@ -37,11 +37,45 @@ interface DebtAnalytics {
   };
 }
 
+// Types for tracking events
+export type AnalyticsEvent = {
+  type: 'view' | 'click' | 'interaction' | 'feature_usage';
+  category: 'dashboard' | 'tool' | 'report' | 'setting';
+  action: string;
+  label?: string;
+  value?: number;
+  timestamp: Date;
+};
+
+export type FeatureUsage = {
+  featureId: string;
+  featureName: string;
+  usageCount: number;
+  lastUsed: Date;
+};
+
+export type DashboardAnalytics = {
+  userId: string;
+  sessionStartTime: Date;
+  sessionDuration: number;
+  events: AnalyticsEvent[];
+  featuresUsed: Record<string, FeatureUsage>;
+  pageViews: Record<string, number>;
+};
+
 export function useDashboardAnalytics() {
   const { user } = useAuth();
   const { dashboardState } = useDashboard();
   const [isLoading, setIsLoading] = useState(true);
   const [analytics, setAnalytics] = useState<DebtAnalytics | null>(null);
+  const [dashboardAnalytics, setDashboardAnalytics] = useState<DashboardAnalytics>({
+    userId: user?.id || 'anonymous',
+    sessionStartTime: new Date(),
+    sessionDuration: 0,
+    events: [],
+    featuresUsed: {},
+    pageViews: {},
+  });
 
   // Memoize the dashboardState reference to prevent unnecessary recalculations
   const memoizedDashboardState = useMemo(() => dashboardState, [
@@ -223,9 +257,154 @@ export function useDashboardAnalytics() {
     };
   }, [analytics, memoizedDashboardState]);
 
+  // Initialize analytics session
+  useEffect(() => {
+    if (user?.id) {
+      setDashboardAnalytics(prev => ({
+        ...prev,
+        userId: user.id,
+        sessionStartTime: new Date(),
+      }));
+    }
+
+    // Start session timer
+    const intervalId = setInterval(() => {
+      setDashboardAnalytics(prev => ({
+        ...prev,
+        sessionDuration: Math.floor((new Date().getTime() - prev.sessionStartTime.getTime()) / 1000),
+      }));
+    }, 1000);
+
+    // Track page view
+    trackPageView('dashboard');
+
+    return () => {
+      clearInterval(intervalId);
+      // Here you would typically send the session data to your analytics service
+      saveAnalyticsData();
+    };
+  }, [user?.id]);
+
+  // Save analytics data to storage or send to server
+  const saveAnalyticsData = useCallback(() => {
+    // In a real implementation, you would send this data to your analytics service
+    // For now, we'll just log it
+    console.log('Analytics data:', dashboardAnalytics);
+    
+    // You could use localStorage for a simple implementation
+    try {
+      const existingData = localStorage.getItem('dashboardAnalytics');
+      let allData = existingData ? JSON.parse(existingData) : [];
+      
+      // Add current session data
+      allData.push({
+        ...dashboardAnalytics,
+        sessionEndTime: new Date(),
+      });
+      
+      // Store back in localStorage (in a real app, send to server)
+      localStorage.setItem('dashboardAnalytics', JSON.stringify(allData));
+    } catch (error) {
+      console.error('Error saving analytics data:', error);
+    }
+  }, [dashboardAnalytics]);
+
+  // Track a specific event
+  const trackEvent = useCallback((
+    type: AnalyticsEvent['type'],
+    category: AnalyticsEvent['category'],
+    action: string,
+    label?: string,
+    value?: number
+  ) => {
+    const event: AnalyticsEvent = {
+      type,
+      category,
+      action,
+      label,
+      value,
+      timestamp: new Date(),
+    };
+
+    setDashboardAnalytics(prev => ({
+      ...prev,
+      events: [...prev.events, event],
+    }));
+
+    // For debugging
+    console.log('Event tracked:', event);
+  }, []);
+
+  // Track feature usage
+  const trackFeatureUsage = useCallback((featureId: string, featureName: string) => {
+    setDashboardAnalytics(prev => {
+      const existingFeature = prev.featuresUsed[featureId];
+      
+      return {
+        ...prev,
+        featuresUsed: {
+          ...prev.featuresUsed,
+          [featureId]: {
+            featureId,
+            featureName,
+            usageCount: existingFeature ? existingFeature.usageCount + 1 : 1,
+            lastUsed: new Date(),
+          },
+        },
+      };
+    });
+
+    // Also track as an event
+    trackEvent('feature_usage', 'tool', `use_${featureId}`, featureName);
+  }, [trackEvent]);
+
+  // Track page views
+  const trackPageView = useCallback((pageName: string) => {
+    setDashboardAnalytics(prev => {
+      const currentCount = prev.pageViews[pageName] || 0;
+      
+      return {
+        ...prev,
+        pageViews: {
+          ...prev.pageViews,
+          [pageName]: currentCount + 1,
+        },
+      };
+    });
+
+    // Also track as an event
+    trackEvent('view', 'dashboard', `view_${pageName}`);
+  }, [trackEvent]);
+
+  // Get most used features
+  const getMostUsedFeatures = useCallback(() => {
+    const features = Object.values(dashboardAnalytics.featuresUsed);
+    return features.sort((a, b) => b.usageCount - a.usageCount);
+  }, [dashboardAnalytics.featuresUsed]);
+
+  // Get engagement score (simple calculation - can be made more sophisticated)
+  const getEngagementScore = useCallback(() => {
+    const featuresUsedCount = Object.keys(dashboardAnalytics.featuresUsed).length;
+    const eventsCount = dashboardAnalytics.events.length;
+    const sessionMinutes = dashboardAnalytics.sessionDuration / 60;
+    
+    // Simple scoring formula - adjust weights as needed
+    return Math.min(100, (
+      (featuresUsedCount * 10) + 
+      (eventsCount * 2) + 
+      (sessionMinutes * 5)
+    ) / 10);
+  }, [dashboardAnalytics.featuresUsed, dashboardAnalytics.events, dashboardAnalytics.sessionDuration]);
+
   return {
     isLoading,
     analytics,
-    metrics
+    metrics,
+    trackEvent,
+    trackFeatureUsage,
+    trackPageView,
+    getMostUsedFeatures,
+    getEngagementScore,
+    dashboardAnalytics,
   };
 } 

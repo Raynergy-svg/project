@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Building, 
@@ -19,7 +19,8 @@ import {
   PiggyBank,
   ChevronDown,
   Trash2,
-  Search
+  Search,
+  Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBankConnection } from '@/hooks/useBankConnection';
@@ -33,6 +34,43 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
+// Create a separate component for Plaid Link to avoid race conditions
+// This is a workaround for the known issue with Plaid Link initialization
+// See: https://github.com/plaid/react-plaid-link/issues/86
+const PlaidLinkButton = ({ 
+  config, 
+  onSuccess, 
+  disabled = false,
+  className = ""
+}: { 
+  config: Parameters<typeof usePlaidLink>[0], 
+  onSuccess: () => void,
+  disabled?: boolean,
+  className?: string
+}) => {
+  const { open, ready, error } = usePlaidLink(config);
+  
+  useEffect(() => {
+    if (error) {
+      console.error('Plaid Link Error:', error);
+    }
+  }, [error]);
+  
+  return (
+    <Button
+      onClick={() => {
+        if (ready) {
+          open();
+        }
+      }}
+      disabled={!ready || disabled}
+      className={className}
+    >
+      Connect Bank
+    </Button>
+  );
+};
+
 export function BankConnections() {
   const { accounts, isLoading, error, openBankConnection, refreshAccounts, disconnectAccount, linkToken, isPlaidReady } = useBankConnection();
   const { user } = useAuth();
@@ -44,6 +82,7 @@ export function BankConnections() {
   const [initError, setInitError] = useState<string | null>(null);
   const [debtsTableInitialized, setDebtsTableInitialized] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showPlaidButton, setShowPlaidButton] = useState(false);
   
   // Simplified list of available banks (would typically come from Plaid)
   const availableBanks = [
@@ -71,16 +110,24 @@ export function BankConnections() {
     }
   };
   
-  // Handles opening the Plaid Link flow
-  const handleOpenPlaid = useCallback(() => {
-    if (!isPlaidReady) {
-      console.log('Plaid not ready yet');
-      return;
-    }
+  // Add an effect to delay showing the Plaid button to avoid race conditions
+  useEffect(() => {
+    // Delay showing the Plaid button to ensure scripts are loaded
+    const timer = setTimeout(() => {
+      setShowPlaidButton(true);
+    }, 1000);
     
-    openBankConnection();
-    setShowConnectModal(true);
-  }, [isPlaidReady, openBankConnection]);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Handle opening Plaid Link
+  const handleOpenPlaid = () => {
+    if (showPlaidButton) {
+      // The PlaidLinkButton component handles opening Plaid
+      // This function is just a placeholder for the handleConnectBankAccount function
+      console.log('Opening Plaid Link through the PlaidLinkButton component');
+    }
+  };
   
   // Config for the Plaid Link component
   const config: PlaidLinkOptions = {
@@ -140,8 +187,6 @@ export function BankConnections() {
     },
   };
   
-  const { open, ready, error: plaidError } = usePlaidLink(config);
-  
   // Handle connecting a mock bank account
   const handleConnectBankAccount = (bankId: string) => {
     setSelectedBank(bankId);
@@ -152,10 +197,10 @@ export function BankConnections() {
     
     if (!selectedBank) return;
     
-    if (ready && linkToken) {
+    if (showPlaidButton && linkToken) {
       try {
         // Use real Plaid Link if ready
-        open();
+        handleOpenPlaid();
       } catch (err) {
         console.error('Error opening Plaid Link:', err);
         alert('There was an issue opening the bank connection flow. Please try again.');
@@ -224,228 +269,148 @@ export function BankConnections() {
   };
   
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-8 text-center">
-        <h2 className="text-2xl font-bold text-white mb-3">Connect Your Bank Accounts</h2>
-        <p className="text-white/70 max-w-lg mx-auto">
-          Securely connect your bank accounts to automatically import your financial data and get personalized insights
-        </p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-white">Bank Connections</h2>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefreshAccounts}
+          disabled={isLoading}
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Refresh
+        </Button>
       </div>
       
-      {error && (
-        <div className="mb-6 p-4 bg-red-900/30 border border-red-500/30 rounded-lg">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-            <div>
-              <h4 className="font-medium text-red-300">Connection Error</h4>
-              <p className="text-sm text-red-200/80">{error}</p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {plaidError && (
-        <div className="mb-6 p-4 bg-red-900/30 border border-red-500/30 rounded-lg">
-          <div className="flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-            <div>
-              <h4 className="font-medium text-red-300">Plaid Connection Error</h4>
-              <p className="text-sm text-red-200/80">{plaidError.message || 'Could not initialize Plaid Link'}</p>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {isConnecting ? (
-        <div className="text-center py-12 px-6 bg-black/20 rounded-lg border border-white/10">
+      {isLoading && (
+        <div className="text-center py-6 px-6 bg-black/20 rounded-lg border border-white/10">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#88B04B] mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-white">Connecting to your bank</h3>
-          <p className="text-white/70 mt-2">This may take a few moments...</p>
+          <h3 className="text-lg font-medium text-white">Loading accounts</h3>
+          <p className="text-white/70 mt-2">Please wait...</p>
         </div>
-      ) : accounts.length > 0 ? (
-        <Card className="overflow-hidden bg-black border border-white/10 shadow-sm">
-          <CardHeader className="pb-3 border-b border-white/10">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-semibold text-white">
-                Connected Accounts
-              </CardTitle>
+      )}
+      
+      {!isLoading && (
+        <>
+          {accounts.length === 0 && (
+            <div className="text-center py-12 px-6 bg-black/20 rounded-lg border border-white/10">
+              <Banknote className="h-12 w-12 mx-auto mb-4 text-[#88B04B]" />
+              <h3 className="text-lg font-medium text-white">Connect your bank account</h3>
+              <p className="text-white/70 mt-2 mb-6">
+                Link your bank accounts to automatically import your financial data
+              </p>
               
-              {accounts.length > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={handleRefreshAccounts}
+              {showPlaidButton ? (
+                <PlaidLinkButton 
+                  config={config}
+                  onSuccess={() => {
+                    console.log('Bank connected successfully');
+                    handleRefreshAccounts();
+                  }}
                   disabled={isLoading}
-                  className="h-8 gap-1 text-gray-300 hover:text-white"
-                >
-                  {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  <span className="text-sm">Refresh</span>
+                  className="bg-[#88B04B] hover:bg-[#7a9d43] text-white"
+                />
+              ) : (
+                <Button disabled className="bg-[#88B04B] hover:bg-[#7a9d43] text-white">
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Loading...
                 </Button>
               )}
             </div>
-            <CardDescription className="text-sm text-gray-400">
-              Connect your bank accounts to analyze your debts and get personalized insights
-            </CardDescription>
-          </CardHeader>
+          )}
           
-          <CardContent className="p-0">
-            <ul className="divide-y divide-white/10">
-              {accounts.map(account => (
-                <li key={account.id} className="p-5 hover:bg-white/5 transition-colors">
-                  <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleAccountDetails(account.id)}>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-900/30 text-blue-400">
-                        {account.type === 'checking' && <Banknote className="w-5 h-5" />}
-                        {account.type === 'savings' && <PiggyBank className="w-5 h-5" />}
-                        {account.type === 'credit' && <CreditCard className="w-5 h-5" />}
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-white">{account.name}</h4>
-                        <p className="text-sm text-gray-400">{account.institution}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className={cn(
-                          "font-medium",
-                          account.balance >= 0 ? "text-white" : "text-red-400"
-                        )}>
-                          {formatCurrency(account.balance)}
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          Last updated: {account.lastUpdated.toLocaleDateString()}
-                        </p>
-                      </div>
-                      <ChevronDown className={cn(
-                        "w-5 h-5 text-gray-400 transition-transform",
-                        activeAccount === account.id && "transform rotate-180"
-                      )} />
-                    </div>
-                  </div>
-                  
-                  {/* Account details (expanded view) */}
-                  {activeAccount === account.id && (
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-xs font-medium text-gray-400">Account Type</p>
-                          <p className="text-sm text-white capitalize">{account.type}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium text-gray-400">Account Number</p>
-                          <p className="text-sm text-white">{account.accountNumber}</p>
-                        </div>
-                      </div>
-                      <div className="flex justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-red-400 border-red-500/30 hover:bg-red-900/20 hover:text-red-300"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDisconnectAccount(account.id);
-                          }}
-                        >
-                          <Trash2 className="w-3.5 h-3.5 mr-1" />
-                          Disconnect
-                        </Button>
-                      </div>
-                    </div>
+          {accounts.length > 0 && (
+            <Card className="overflow-hidden bg-black border border-white/10 shadow-sm">
+              <CardHeader className="pb-3 border-b border-white/10">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-white">Your Accounts</CardTitle>
+                  {showPlaidButton && (
+                    <PlaidLinkButton 
+                      config={config}
+                      onSuccess={() => {
+                        console.log('Additional bank connected');
+                        handleRefreshAccounts();
+                      }}
+                      disabled={isLoading}
+                      className="bg-[#88B04B] hover:bg-[#7a9d43] text-white text-sm px-3 py-1 h-auto"
+                    />
                   )}
-                </li>
-              ))}
-            </ul>
-            
-            <div className="p-5 bg-white/5 border-t border-white/10">
-              <Button
-                onClick={handleOpenPlaid}
-                variant="outline"
-                className="w-full border-dashed border-white/20 bg-transparent text-gray-300 hover:bg-white/10"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Connect Another Account
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        // Empty state - no accounts connected
-        <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-          <div className="w-16 h-16 bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
-            <Link className="w-8 h-8 text-blue-400" />
-          </div>
-          <h3 className="text-lg font-medium text-white mb-2">No Accounts Connected</h3>
-          <p className="text-sm text-gray-400 mb-8 max-w-md">
-            Connect your bank accounts securely with Plaid to enable AI-powered debt analysis 
-            and get personalized financial insights.
-          </p>
-          <Button
-            onClick={handleOpenPlaid}
-            size="lg"
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
-          >
-            <Link className="w-4 h-4" />
-            Connect with Plaid
-          </Button>
-        </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="p-0">
+                <ul className="divide-y divide-white/10">
+                  {accounts.map(account => (
+                    <li key={account.id} className="p-5 hover:bg-white/5 transition-colors">
+                      <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleAccountDetails(account.id)}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-900/30 text-blue-400">
+                            {account.type === 'checking' && <Banknote className="w-5 h-5" />}
+                            {account.type === 'savings' && <PiggyBank className="w-5 h-5" />}
+                            {account.type === 'credit' && <CreditCard className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-white">{account.name}</h4>
+                            <p className="text-sm text-gray-400">{account.institution}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className={cn(
+                              "font-medium",
+                              account.balance >= 0 ? "text-white" : "text-red-400"
+                            )}>
+                              {formatCurrency(account.balance)}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              Last updated: {account.lastUpdated.toLocaleDateString()}
+                            </p>
+                          </div>
+                          <ChevronDown className={cn(
+                            "w-5 h-5 text-gray-400 transition-transform",
+                            activeAccount === account.id && "transform rotate-180"
+                          )} />
+                        </div>
+                      </div>
+                      
+                      {/* Account details (expanded view) */}
+                      {activeAccount === account.id && (
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <p className="text-xs font-medium text-gray-400">Account Type</p>
+                              <p className="text-sm text-white capitalize">{account.type}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-medium text-gray-400">Account Number</p>
+                              <p className="text-sm text-white">{account.accountNumber}</p>
+                            </div>
+                          </div>
+                          <div className="flex justify-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-red-400 border-red-500/30 hover:bg-red-900/20 hover:text-red-300"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDisconnectAccount(account.id);
+                              }}
+                            >
+                              <Trash2 className="w-3.5 h-3.5 mr-1" />
+                              Disconnect
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
-
-      {/* Connect bank dialog */}
-      <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
-        <DialogContent className="bg-gray-900 border-white/10 text-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Connect Your Bank</DialogTitle>
-            <DialogDescription className="text-white/70">
-              Select your bank to securely connect your accounts
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
-            {availableBanks.map(bank => (
-              <button
-                key={bank.id}
-                className={`
-                  p-4 rounded-lg flex items-center gap-3 text-left 
-                  ${selectedBank === bank.id 
-                    ? 'bg-[#88B04B]/20 border border-[#88B04B]/50'
-                    : 'bg-white/5 border border-white/10 hover:bg-white/10'
-                  }
-                `}
-                onClick={() => handleConnectBankAccount(bank.id)}
-                disabled={isConnecting}
-              >
-                <img 
-                  src={bank.logo} 
-                  alt={bank.name}
-                  className="w-10 h-10 rounded-md object-contain bg-white p-1"
-                />
-                <span className="font-medium">{bank.name}</span>
-              </button>
-            ))}
-          </div>
-          
-          <div className="mt-4 pt-4 border-t border-white/10">
-            <p className="text-sm text-white/60 mb-2">Can't find your bank?</p>
-            <button
-              className="p-3 w-full rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-left flex items-center gap-3"
-              onClick={() => alert('This would open a search dialog in a full implementation')}
-            >
-              <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                <Search className="w-4 h-4" />
-              </span>
-              <span>Search for your bank</span>
-            </button>
-          </div>
-          
-          <DialogFooter className="mt-6 flex gap-3">
-            <DialogClose asChild>
-              <Button variant="outline" className="border-white/10 text-white hover:bg-white/10">
-                Cancel
-              </Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 } 

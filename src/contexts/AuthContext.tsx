@@ -6,6 +6,8 @@ import { supabase, createBrowserClient } from "@/utils/supabase/client";
 import { useDevAccount } from '@/hooks/useDevAccount';
 import { encryptField, decryptField } from '@/utils/encryption';
 import { logSecurityEvent, SecurityEventType } from '@/services/securityAuditService';
+import { getClientIpThroughProxy, mockGetClientIp } from '@/api/clientIpProxy';
+import { IS_DEV } from '@/utils/environment';
 
 export interface User {
   id: string;
@@ -229,9 +231,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const login = async (
     email: string,
     password: string,
-    captchaToken?: string,
-    redirectTo?: string
-  ): Promise<{ success: boolean; error?: string }> => {
+    options?: Record<string, any>
+  ): Promise<any> => {
     setIsLoading(true);
     setAuthError(null);
     
@@ -324,87 +325,129 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       
       // Regular authentication flow
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-        ...(captchaToken ? { options: { captchaToken } } : {}),
-      });
-      
-      if (error) {
-        // Record failed login attempt
-        try {
-          await recordSecurityEvent({
-            user_id: undefined,
-            event_type: 'login_failed',
-            ip_address: ipAddress,
-            user_agent: navigator.userAgent,
-            details: JSON.stringify({
-              error: error.message,
-              code: error.status,
-              timestamp: new Date().toISOString()
-            }),
-            email
-          });
-        } catch (recordError) {
-          console.error("Failed to record failed login attempt:", recordError);
+      try {
+        console.log("Attempting to sign in with Supabase:", email);
+        
+        // Log the options passed to signInWithPassword
+        if (options && options.captchaToken) {
+          console.log("Using CAPTCHA token for authentication");
         }
         
-        let errorMessage = 'Invalid login credentials';
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+          ...(options || {})
+        });
         
-        // Handle specific errors with more user-friendly messages
-        if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Please confirm your email before signing in. Check your inbox for a confirmation link.';
-        } else if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'The email or password you entered is incorrect. Please try again.';
-        } else if (error.status === 429) {
-          errorMessage = 'Too many login attempts. Please try again later or reset your password.';
-        } else if (error.status === 401) {
-          errorMessage = 'Your login session has expired. Please sign in again.';
-        } else if (error.status === 404 || error.status === 406) {
-          // Resource issues - this might happen in dev if tables aren't set up correctly
-          if (isDevelopment) {
-            errorMessage = 'Development environment setup incomplete. Some database tables may be missing.';
-          } else {
-            errorMessage = 'We\'re experiencing technical difficulties. Please try again later.';
+        if (error) {
+          // Enhanced error logging for debugging
+          console.error('Authentication error details:', {
+            message: error.message,
+            status: error.status,
+            name: error.name
+          });
+          
+          // Record failed login attempt
+          try {
+            await recordSecurityEvent({
+              user_id: undefined,
+              event_type: 'login_failed',
+              ip_address: ipAddress,
+              user_agent: navigator.userAgent,
+              details: JSON.stringify({
+                error: error.message,
+                code: error.status,
+                timestamp: new Date().toISOString()
+              }),
+              email
+            });
+          } catch (recordError) {
+            console.error("Failed to record failed login attempt:", recordError);
           }
-        } else if (error.status >= 500) {
-          errorMessage = 'Our servers are experiencing issues. Please try again later.';
+          
+          let errorMessage = 'Invalid login credentials';
+          
+          // Handle specific errors with more user-friendly messages
+          if (error.message.includes('Email not confirmed')) {
+            errorMessage = 'Please confirm your email before signing in. Check your inbox for a confirmation link.';
+          } else if (error.message.includes('Invalid login credentials')) {
+            errorMessage = 'The email or password you entered is incorrect. Please try again.';
+          } else if (error.status === 429) {
+            errorMessage = 'Too many login attempts. Please try again later or reset your password.';
+          } else if (error.status === 401) {
+            errorMessage = 'Your login session has expired. Please sign in again.';
+          } else if (error.status === 404 || error.status === 406) {
+            // Resource issues - this might happen in dev if tables aren't set up correctly
+            if (isDevelopment) {
+              errorMessage = 'Development environment setup incomplete. Some database tables may be missing.';
+            } else {
+              errorMessage = 'We\'re experiencing technical difficulties. Please try again later.';
+            }
+          } else if (error.message.includes('captcha verification')) {
+            console.error('CAPTCHA verification failed:', error);
+            errorMessage = 'CAPTCHA verification failed. Please try again or contact support if the issue persists.';
+          } else if (error.status === 500) {
+            // Handle the specific 500 Internal Server Error case
+            console.error('Database error during login:', error);
+            
+            // Check for specific database field errors
+            if (error.message.includes('last_sign_in') || error.message.includes('last_login')) {
+              errorMessage = 'We need to run a database update. Please contact the administrator to run the SQL scripts to add the required fields.';
+            } else {
+              errorMessage = 'We\'re experiencing database issues. This might be due to missing fields in the auth schema. Please contact support.';
+            }
+            
+            // Log detailed error for debugging
+            console.debug('Login 500 error details:', {
+              message: error.message,
+              status: error.status,
+              name: error.name
+            });
+          } else if (error.status >= 500) {
+            errorMessage = 'Our servers are experiencing issues. Please try again later.';
+          }
+          
+          setAuthError(errorMessage);
+          setIsLoading(false);
+          return { success: false, error: errorMessage };
         }
         
-        setAuthError(errorMessage);
-        setIsLoading(false);
-        return { success: false, error: errorMessage };
-      }
-      
-      // Authentication successful
-      if (data.user) {
-        // Record successful login
-        try {
-          await recordSecurityEvent({
-            user_id: data.user.id,
-            event_type: 'login_success',
-            ip_address: ipAddress,
-            user_agent: navigator.userAgent,
-            details: JSON.stringify({
-              timestamp: new Date().toISOString()
-            }),
-            email
-          });
-        } catch (recordError) {
-          console.error("Failed to record successful login:", recordError);
+        // Authentication successful
+        if (data.user) {
+          // Record successful login
+          try {
+            await recordSecurityEvent({
+              user_id: data.user.id,
+              event_type: 'login_success',
+              ip_address: ipAddress,
+              user_agent: navigator.userAgent,
+              details: JSON.stringify({
+                timestamp: new Date().toISOString()
+              }),
+              email
+            });
+          } catch (recordError) {
+            console.error("Failed to record successful login:", recordError);
+          }
+          
+          // Reset the last activity time
+          setLastActivity(Date.now());
+          
+          // Fetching additional user data will be handled by the session listener
+          setIsLoading(false);
+          return { success: true };
         }
         
-        // Reset the last activity time
-        setLastActivity(Date.now());
-        
-        // Fetching additional user data will be handled by the session listener
         setIsLoading(false);
-        return { success: true };
+        return { success: false, error: 'Unknown error during login' };
+      } catch (err) {
+        console.error('Supabase authentication error:', err);
+        setIsLoading(false);
+        return { 
+          success: false, 
+          error: err instanceof Error ? err.message : 'Error during authentication' 
+        };
       }
-      
-      setIsLoading(false);
-      return { success: false, error: 'Unknown error during login' };
-      
     } catch (err: any) {
       console.error('Unexpected error during login:', err);
       
@@ -472,9 +515,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Helper function to get client IP for security logging
   const getClientIP = async (): Promise<string> => {
     try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      return data.ip;
+      // Use our proxy service to avoid CSP issues
+      const { ip } = IS_DEV 
+        ? await mockGetClientIp() 
+        : await getClientIpThroughProxy();
+      
+      return ip || 'unknown';
     } catch (error) {
       console.error('Could not get client IP:', error);
       return 'unknown';
@@ -512,7 +558,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
   
-  // Helper function to record security events
+  // Log security events for auditing
   const recordSecurityEvent = async (eventData: {
     user_id?: string;
     event_type: string;
@@ -522,29 +568,93 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     email?: string;
   }) => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        return { success: false, error: 'Supabase client not initialized' };
+      }
+      
       // Format details as JSON if it's a string
       const parsedDetails = typeof eventData.details === 'string' 
         ? JSON.parse(eventData.details) 
         : eventData.details;
       
-      // Call our database function to record the security event
-      const { data, error } = await supabase.rpc('insert_security_event', {
-        p_user_id: eventData.user_id || null,
-        p_event_type: eventData.event_type,
-        p_ip_address: eventData.ip_address,
-        p_user_agent: eventData.user_agent,
-        p_email: eventData.email || null,
-        p_details: parsedDetails
-      });
+      // Try to call our database function to record the security event
+      try {
+        const { data, error } = await supabase.rpc('insert_security_event', {
+          p_user_id: eventData.user_id || null,
+          p_event_type: eventData.event_type,
+          p_ip_address: eventData.ip_address,
+          p_user_agent: eventData.user_agent,
+          p_email: eventData.email || null,
+          p_details: parsedDetails
+        });
 
-      if (error) {
-        console.error('Error recording security event:', error);
+        if (error) {
+          console.warn('Error recording security event:', error);
+          // Store the event in local storage as fallback
+          storeSecurityEventLocally(eventData);
+        }
+
+        return { success: !error, error };
+      } catch (rpcError) {
+        console.warn('RPC error recording security event:', rpcError);
+        // Fallback to direct table insert if RPC fails (function might not exist yet)
+        try {
+          const { error: insertError } = await supabase
+            .from('security_events')
+            .insert({
+              user_id: eventData.user_id || null,
+              event_type: eventData.event_type,
+              ip_address: eventData.ip_address,
+              user_agent: eventData.user_agent,
+              email: eventData.email || null,
+              details: parsedDetails
+            });
+            
+          if (insertError) {
+            console.warn('Direct insert error:', insertError);
+            storeSecurityEventLocally(eventData);
+          }
+          
+          return { success: !insertError, error: insertError };
+        } catch (insertCatchError) {
+          console.warn('Insert catch error:', insertCatchError);
+          storeSecurityEventLocally(eventData);
+          return { success: false, error: insertCatchError };
+        }
       }
-
-      return { success: !error, error };
     } catch (error) {
-      console.error('Failed to record security event:', error);
+      console.error('Error recording security event:', error);
+      // Store the event in local storage as fallback
+      storeSecurityEventLocally(eventData);
       return { success: false, error };
+    }
+  };
+
+  // Helper function to store security events locally when DB storage fails
+  const storeSecurityEventLocally = (eventData: {
+    user_id?: string;
+    event_type: string;
+    ip_address: string;
+    user_agent: string;
+    details: string;
+    email?: string;
+  }): void => {
+    try {
+      // Get existing events or initialize empty array
+      const storedEvents = JSON.parse(localStorage.getItem('offline_security_events') || '[]');
+      // Add timestamp to event
+      const eventWithTimestamp = {
+        ...eventData,
+        timestamp: new Date().toISOString(),
+        stored_locally: true
+      };
+      // Add new event
+      storedEvents.push(eventWithTimestamp);
+      // Store back to localStorage
+      localStorage.setItem('offline_security_events', JSON.stringify(storedEvents));
+    } catch (error) {
+      console.error('Error storing security event locally:', error);
     }
   };
 

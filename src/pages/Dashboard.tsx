@@ -50,6 +50,8 @@ const NextPayment = lazy(() => import('@/components/dashboard/NextPayment'));
 const BankConnections = lazy(() => import('@/components/dashboard/BankConnections'));
 const DebtProjection = lazy(() => import('@/components/dashboard/DebtProjection'));
 const FinancialTools = lazy(() => import('@/components/dashboard/FinancialTools'));
+const DataFreshnessIndicator = lazy(() => import('@/components/dashboard/DataFreshnessIndicator'));
+const DashboardAnalytics = lazy(() => import('@/components/dashboard/DashboardAnalytics'));
 const LoadingSpinner = lazy(() => import('@/components/ui/LoadingSpinner').then(module => ({ default: module.LoadingSpinner })));
 
 const DashboardSkeleton = () => (
@@ -909,6 +911,7 @@ export function Dashboard() {
   const [isFixingDatabase, setIsFixingDatabase] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const isMountedRef = useRef(true);
   
   const { 
@@ -935,13 +938,17 @@ export function Dashboard() {
   const isOnboardingComplete = true;
 
   // Prevent duplicate refreshes
-  const handleRefreshDashboard = useCallback(() => {
+  const handleRefreshDashboard = useCallback(async () => {
     setIsRefreshing(true);
-    refreshDashboard().finally(() => {
+    try {
+      await refreshDashboard();
+      // Update lastUpdated timestamp when refresh is successful
+      setLastUpdated(new Date());
+    } finally {
       if (isMountedRef.current) {
         setIsRefreshing(false);
       }
-    });
+    }
   }, [refreshDashboard]);
 
   // Initial data load only when user ID changes
@@ -1169,16 +1176,20 @@ export function Dashboard() {
     <DashboardLayout>
       <div className="container max-w-7xl mx-auto px-4 py-8">
         {/* Page header with branded gradient text */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
             Financial Dashboard
           </h1>
-          <RefreshButton 
-            onClick={handleRefreshDashboard} 
-            isLoading={isRefreshing}
-            className="text-white bg-[#2A2A2A] hover:bg-[#3A3A3A] border border-white/10"
-          />
         </div>
+        
+        {/* Data Freshness Indicator */}
+        <Suspense fallback={<div className="h-12 bg-black/20 rounded-lg animate-pulse mb-6"></div>}>
+          <DataFreshnessIndicator 
+            lastUpdated={lastUpdated}
+            onRefresh={handleRefreshDashboard}
+            className="mb-6"
+          />
+        </Suspense>
 
         {/* Subscription summary card */}
         <SubscriptionSummary 
@@ -1286,6 +1297,11 @@ export function Dashboard() {
             {/* Financial Tools Section */}
             <Suspense fallback={<Skeleton variant="card" className="h-96" />}>
               <FinancialTools />
+            </Suspense>
+            
+            {/* Dashboard Analytics Section */}
+            <Suspense fallback={<Skeleton variant="card" className="h-96" />}>
+              <DashboardAnalytics />
             </Suspense>
           </div>
         )}

@@ -9,8 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IS_DEV } from '@/utils/environment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import ReCAPTCHA from 'react-google-recaptcha';
-import { checkSupabaseConnection } from '@/utils/supabase/client';
+import { checkSupabaseConnection, supabase, createDirectAuthClient } from '@/utils/supabase/client';
 
 interface FormData {
   email: string;
@@ -21,6 +20,7 @@ interface FormErrors {
   email?: string;
   password?: string;
   general?: string;
+  captcha?: string;
 }
 
 export default function SignIn() {
@@ -39,15 +39,14 @@ export default function SignIn() {
   const [rememberMe, setRememberMe] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showConfirmationAlert, setShowConfirmationAlert] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [showCaptcha, setShowCaptcha] = useState(false);
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<{isConnected: boolean, error: string | null} | null>(null);
-  const [recaptchaLoadFailed, setRecaptchaLoadFailed] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [useMagicLink, setUseMagicLink] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+
   const navigate = useNavigate();
   const location = useLocation();
-  const captchaRef = useRef<ReCAPTCHA>(null);
   
   // Parse the redirect URL from search params
   const searchParams = new URLSearchParams(location.search);
@@ -127,11 +126,6 @@ export default function SignIn() {
 
   // Reset captcha when component is mounted or errors occur
   useEffect(() => {
-    if (captchaRef.current) {
-      captchaRef.current.reset();
-    }
-    
-    // Show security message if session expired
     if (sessionExpired) {
       setSecurityMessage('Your session has expired due to inactivity. Please sign in again.');
     }
@@ -144,34 +138,20 @@ export default function SignIn() {
     }
   }, [isAuthenticated, authLoading, navigate, redirectTo]);
   
-  // Show CAPTCHA after first failed attempt
   useEffect(() => {
-    if (failedAttempts > 0) {
-      setShowCaptcha(true);
+    // Check if we have cached login validation errors
+    const errors = sessionStorage.getItem('login_errors');
+    if (errors) {
+      try {
+        const parsedErrors = JSON.parse(errors);
+        setFormErrors(parsedErrors);
+        sessionStorage.removeItem('login_errors'); // Clear after using
+      } catch (e) {
+        console.error('Error parsing login errors from session storage:', e);
+        sessionStorage.removeItem('login_errors');
+      }
     }
-  }, [failedAttempts]);
-  
-  // Add an effect to detect if reCAPTCHA fails to load
-  useEffect(() => {
-    if (showCaptcha) {
-      // Set a timeout to check if reCAPTCHA loaded
-      const timeoutId = setTimeout(() => {
-        // Check if google recaptcha script loaded
-        const recaptchaScript = document.querySelector('script[src*="recaptcha"]');
-        if (!recaptchaScript || !(window as any).grecaptcha) {
-          console.warn("reCAPTCHA failed to load, using fallback verification");
-          setRecaptchaLoadFailed(true);
-        }
-      }, 3000); // Check after 3 seconds
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [showCaptcha]);
-  
-  const handleCaptchaChange = (token: string | null) => {
-    console.log('CAPTCHA token received:', token ? 'Valid token' : 'No token');
-    setCaptchaToken(token);
-  };
+  }, []);
 
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
@@ -213,166 +193,101 @@ export default function SignIn() {
     }
   };
 
-  // Fallback to verify manually if reCAPTCHA has CSP issues
-  const manualCaptchaVerificationFallback = async (email: string): Promise<boolean> => {
-    try {
-      console.log("Using manual captcha verification fallback");
-      
-      // In production, this should ideally contact your server
-      // For now, we'll just delay for a moment to simulate verification
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      return true;
-    } catch (error) {
-      console.error("Manual captcha verification failed:", error);
-      return false;
-    }
-  };
-
-  // Improved CAPTCHA verification
-  const handleCaptchaVerification = async (): Promise<boolean> => {
-    if (!showCaptcha) return true; // Skip if captcha not shown
-    
-    if (recaptchaLoadFailed) {
-      // Use fallback verification if reCAPTCHA failed to load
-      return await manualCaptchaVerificationFallback(formData.email);
-    }
-    
-    // Normal reCAPTCHA verification
-    const captchaValue = captchaRef.current?.getValue();
-    
-    if (!captchaValue && !captchaToken) {
-      setFormErrors(prev => ({ ...prev, general: 'Please complete the CAPTCHA verification' }));
-      return false;
-    }
-    
-    return true;
-  };
-
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       
-      // Start submission process - show loading state
+      // Validate form data
+      const validationResult = validateForm();
+      if (!validationResult) {
+        setFormErrors(formErrors);
+        return;
+      }
+      
+      // Clear previous errors
+      setFormErrors({});
       setIsSubmitting(true);
       
       try {
-        // First run validation
-        const isValid = validateForm();
-        if (!isValid) {
-          setIsSubmitting(false);
-          return;
+        const { email, password } = formData;
+        // Sanitize inputs for extra security
+        const sanitizedEmail = email.trim().toLowerCase();
+        const sanitizedPassword = password;
+        
+        console.log('Attempting to sign in:', sanitizedEmail);
+        
+        // Check if login function is available from AuthContext
+        if (!auth || !login) {
+          throw new Error('Authentication service is not available');
         }
         
-        // Clear any previous alerts
-        setSecurityMessage(null);
-
-        // CAPTCHA verification if needed
-        if (showCaptcha) {
-          const captchaVerified = await handleCaptchaVerification();
-          if (!captchaVerified) {
-            setIsSubmitting(false);
-            return;
-          }
-        }
-        
-        // Attempt to log in with provided credentials
-        try {
-          // Apply sanitization if available
-          let sanitizedEmail = formData.email.trim().toLowerCase();
-          let sanitizedPassword = formData.password;
-          
-          if (sensitiveDataHandler && typeof sensitiveDataHandler.sanitizeSensitiveData === 'function') {
-            sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(formData.email);
-            sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(formData.password);
-          }
-          
-          console.log('Attempting to sign in:', sanitizedEmail);
-          
-          // Check if login function is available from AuthContext
-          if (!auth || !login) {
-            throw new Error('Authentication service is not available');
-          }
-          
-          // Prepare login options if we have a captcha token
-          const options = captchaToken ? { 
-            captchaToken,
-            options: {
-              redirectTo: window.location.origin,
+        // For development, we use the special dev account flow
+        if (IS_DEV && sanitizedEmail === 'dev@example.com') {
+          try {
+            // Call the development sign-in function
+            const devResult = await handleDevSignIn(sanitizedEmail, sanitizedPassword);
+            
+            if (!devResult.success) {
+              throw new Error(devResult.message || 'Development authentication failed');
             }
-          } : undefined;
-          
-          // For development, we use the special dev account flow
-          if (IS_DEV && sanitizedEmail === 'dev@example.com') {
-            try {
-              // Call the development sign-in function
-              const devResult = await handleDevSignIn(sanitizedEmail, sanitizedPassword);
-              
-              if (!devResult.success) {
-                throw new Error(devResult.message || 'Development authentication failed');
+            
+            // If no error is thrown, login was successful
+            handleSuccessfulLogin(sanitizedEmail);
+            console.log('Development login successful');
+          } catch (devError) {
+            console.error('Development login failed:', devError);
+            throw devError; // Re-throw to handle in the catch block
+          }
+        } else {
+          // Standard authentication flow for regular users
+          try {
+            // USE DIRECT AUTH: Instead of calling the normal login function
+            const directAuth = createDirectAuthClient();
+            
+            // Auth options without captcha token
+            const authOptions: any = {
+              email: sanitizedEmail,
+              password: sanitizedPassword,
+              options: {
+                redirectTo: window.location.origin
               }
-              
-              // If no error is thrown, login was successful
-              handleSuccessfulLogin(sanitizedEmail);
-              console.log('Development login successful');
-            } catch (devError) {
-              console.error('Development login failed:', devError);
-              throw devError; // Re-throw to handle in the catch block
+            };
+            
+            const result = await directAuth.signInWithPassword(authOptions);
+            
+            if (result.error) {
+              throw result.error;
             }
-          } else {
-            // Standard authentication flow for regular users
-            try {
-              // Call the login function from AuthContext - which may or may not return a result
-              await login(sanitizedEmail, sanitizedPassword, options);
-              
-              // If we get here, login was successful (no error was thrown)
-              handleSuccessfulLogin(sanitizedEmail);
-              console.log('Login successful, redirecting...');
-            } catch (loginError) {
-              console.error('Login failed:', loginError);
-              
-              // Special handling for 500 error messages about missing database fields
-              if (loginError instanceof Error && 
-                  (loginError.message.includes('Database error') || 
-                  loginError.message.includes('500'))) {
-                setSecurityMessage('We are experiencing database issues. This might be due to missing fields in our database schema. Please try again later or contact support.');
-              }
-              
-              throw loginError; // Re-throw to handle in the catch block
-            }
-          }
-          
-        } catch (error) {
-          console.error('Login error:', error);
-          
-          // Handle specific error messages
-          let errorMessage = "Invalid email or password";
-          if (error instanceof Error) {
-            if (error.message.includes('Email not confirmed')) {
-              errorMessage = "Please check your email to confirm your account before signing in.";
-              setShowConfirmationAlert(true);
-            } else if (error.message.includes('Database error')) {
-              errorMessage = "We're experiencing database issues. Our team has been notified.";
-            } else if (error.message.includes('500')) {
-              errorMessage = "Internal server error. This might be due to database configuration issues.";
+            
+            // If we get here, login was successful
+            handleSuccessfulLogin(sanitizedEmail);
+            console.log('Login successful, redirecting...');
+          } catch (loginError) {
+            console.error('Login failed:', loginError);
+            
+            // Special handling for 500 error messages about missing database fields
+            if (loginError instanceof Error && loginError.message.includes('Database error')) {
+              setSecurityMessage('We are experiencing database issues. This might be due to missing fields in our database schema. Please try again later or contact support.');
             } else {
-              errorMessage = error.message;
+              // Handle other login errors
+              setFormErrors({
+                general: loginError instanceof Error ? loginError.message : 'An unknown error occurred during login'
+              });
             }
+            
+            setFailedAttempts(prev => prev + 1);
           }
-          
-          setFormErrors({ general: errorMessage });
-          setFailedAttempts(prev => prev + 1);
-        } finally {
-          setIsSubmitting(false);
         }
+        
       } catch (error) {
         console.error('Submission error:', error);
         setFormErrors({ general: 'An error occurred. Please try again later.' });
         setFailedAttempts(prev => prev + 1);
+      } finally {
         setIsSubmitting(false);
       }
     },
-    [formData, validateForm, auth, login, handleDevSignIn, showCaptcha, captchaToken, handleCaptchaVerification, IS_DEV]
+    [formData, validateForm, auth, login, handleDevSignIn, IS_DEV]
   );
   
   // Function to handle successful login actions
@@ -402,8 +317,55 @@ export default function SignIn() {
     }
   }, [devSignInError]);
 
-  // Update the button UI to show when auth is loading too
+  // Calculate if button should be disabled
   const isButtonDisabled = isSubmitting || authLoading || devSignInLoading || failedAttempts >= 3;
+
+  const handleMagicLinkRequest = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    if (!formData.email || !validateEmail(formData.email)) {
+      setFormErrors({
+        ...formErrors,
+        email: 'Please enter a valid email address'
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setFormErrors({});
+    
+    try {
+      // Use direct auth client for magic link
+      const directAuth = createDirectAuthClient();
+      const { error } = await directAuth.signInWithOtp({
+        email: formData.email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: window.location.origin,
+        }
+      });
+      
+      if (error) {
+        console.error('Magic link error:', error);
+        setFormErrors({
+          general: 'Could not send magic link: ' + error.message
+        });
+      } else {
+        setMagicLinkSent(true);
+      }
+    } catch (err) {
+      console.error('Magic link exception:', err);
+      setFormErrors({
+        general: 'An error occurred while sending the magic link. Please try again.'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
   // If already authenticated, don't render the form
   if (isAuthenticated && !authLoading) {
@@ -490,201 +452,237 @@ export default function SignIn() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Honeypot field */}
-            <div className="hidden">
-              <input 
-                type="text" 
-                name="honeypot" 
-                id="honeypot"
-                tabIndex={-1} 
-                autoComplete="off" 
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-2">
-                Email Address
-              </label>
-              <Input
-                type="email"
-                id="email"
-                name="email"
-                className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
-                  formErrors.email ? "border-red-500" : "border-white/10"
-                } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
-                value={formData.email}
-                onChange={handleInputChange}
-                placeholder="you@example.com"
-                autoComplete="email"
-                aria-invalid={Boolean(formErrors.email)}
-                aria-describedby={formErrors.email ? "email-error" : undefined}
-                disabled={isSubmitting}
-              />
-              {formErrors.email && (
-                <p 
-                  id="email-error" 
-                  className="mt-2 text-red-400 text-sm"
-                  role="alert"
-                >
-                  {formErrors.email}
-                </p>
-              )}
-            </div>
-            
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  id="password"
-                  name="password"
-                  className={`w-full px-4 py-3 rounded-lg bg-white/5 border ${
-                    formErrors.password ? "border-red-500" : "border-white/10"
-                  } focus:outline-none focus:border-[#88B04B] text-white transition-colors`}
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  autoComplete="current-password"
-                  aria-invalid={Boolean(formErrors.password)}
-                  aria-describedby={formErrors.password ? "password-error" : undefined}
-                  disabled={isSubmitting}
+          {!useMagicLink ? (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="hidden">
+                <input 
+                  type="text" 
+                  name="honeypot" 
+                  id="honeypot"
+                  tabIndex={-1} 
+                  autoComplete="off" 
                 />
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label 
+                    htmlFor="email"
+                    className="block text-sm font-medium mb-1.5"
+                  >
+                    Email Address
+                  </label>
+                  <Input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    autoComplete="email"
+                    className="w-full"
+                    placeholder="email@example.com"
+                    required
+                  />
+                  {formErrors.email && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
+                  )}
+                </div>
+                
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="password" className="block text-sm font-medium">
+                      Password
+                    </label>
+                    <div className="text-sm">
+                      <Link to="/forgot-password" className="text-white hover:text-gray-300 hover:underline">
+                        Forgot password?
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      autoComplete="current-password"
+                      className="w-full pr-10"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                  {formErrors.password && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.password}</p>
+                  )}
+                </div>
+                
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="remember-me"
+                    name="remember-me"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                  />
+                  <label htmlFor="remember-me" className="ml-2 text-sm text-gray-300">
+                    Remember me
+                  </label>
+                </div>
+                
+                <Button
+                  type="submit"
+                  id="sign-in-button"
+                  name="sign-in-button"
+                  className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                  disabled={isButtonDisabled}
+                >
+                  {isSubmitting || authLoading || devSignInLoading ? (
+                    <>
+                      <Loader2 size={20} className="animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      Sign In
+                      <ArrowRight size={20} />
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <div className="text-center pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  id="toggle-password"
-                  name="toggle-password"
+                  onClick={() => setUseMagicLink(true)}
+                  className="text-white hover:text-gray-300 text-sm font-medium hover:underline"
                 >
-                  {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+                  Or sign in with a magic link instead
                 </button>
               </div>
-              {formErrors.password && (
-                <p 
-                  id="password-error" 
-                  className="mt-2 text-red-400 text-sm"
-                  role="alert"
-                >
-                  {formErrors.password}
-                </p>
-              )}
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="remember-me"
-                  name="remember-me"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
-                />
-                <span className="text-sm text-gray-300">Remember me</span>
-              </label>
-
-              <Link
-                to="/forgot-password"
-                className="text-[#88B04B] hover:text-[#7a9d43] text-sm transition-colors"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            
-            {/* CAPTCHA component */}
-            {showCaptcha && (
-              <div className="flex flex-col items-center mt-4">
-                {recaptchaLoadFailed ? (
-                  <div className="text-yellow-400 p-3 border border-yellow-500 rounded-lg bg-yellow-900 bg-opacity-30 mb-4">
-                    <p className="font-medium">CAPTCHA could not load</p>
-                    <p className="text-sm">Alternative verification will be used.</p>
-                  </div>
-                ) : (
-                  <ReCAPTCHA
-                    ref={captchaRef}
-                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'} // fallback to test key
-                    onChange={handleCaptchaChange}
-                    theme="dark"
-                    onError={(err) => {
-                      console.error('reCAPTCHA error:', err);
-                      setRecaptchaLoadFailed(true);
-                    }}
-                    onExpired={() => {
-                      console.warn('reCAPTCHA token expired');
-                      setCaptchaToken(null);
-                    }}
-                  />
-                )}
-              </div>
-            )}
-            
-            <div className="pt-4">
-              <Button
-                type="submit"
-                id="sign-in-button"
-                name="sign-in-button"
-                className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isButtonDisabled || (showCaptcha && !captchaToken && !recaptchaLoadFailed)}
-                onClick={(e) => {
-                  // This is a backup in case the form submit doesn't trigger
-                  if (!e.isDefaultPrevented()) {
-                    console.log('Button clicked directly');
-                    // Since this button is inside a form, clicking it should trigger handleSubmit
-                    // No need to call handleSubmit directly
-                  }
-                }}
-              >
-                {isSubmitting || authLoading || devSignInLoading ? (
-                  <>
-                    <Loader2 size={20} className="animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    Sign In
-                    <ArrowRight size={20} />
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <p className="text-center text-gray-300 mt-6">
-              Don't have an account?{' '}
-              <Link to="/signup" className="text-[#88B04B] hover:text-[#7a9d43] transition-colors">
-                Sign Up
-              </Link>
-            </p>
-          </form>
-        </div>
-
-        <div className="mt-8 pt-8 border-t border-white/10">
-          <div className="flex items-start gap-3 text-gray-300">
-            <Shield className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1" />
-            <div className="space-y-2">
-              <span className="text-sm block">Your information is secured with:</span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-[#88B04B]" />
-                  <span>256-bit SSL encryption</span>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              {magicLinkSent ? (
+                <div className="bg-green-50 border border-green-400 p-4 rounded-md">
+                  <h3 className="font-medium text-green-800">Magic Link Sent!</h3>
+                  <p className="text-green-700 mt-1">
+                    We've sent a sign-in link to <span className="font-medium">{formData.email}</span>. 
+                    Please check your email to continue.
+                  </p>
+                  <p className="text-green-700 mt-3 text-sm">
+                    Don't see it? Check your spam folder or 
+                    <button 
+                      type="button"
+                      onClick={handleMagicLinkRequest}
+                      className="text-green-800 font-medium hover:underline ml-1"
+                    >
+                      try again
+                    </button>.
+                  </p>
                 </div>
+              ) : (
+                <form onSubmit={(e) => { 
+                  e.preventDefault(); 
+                  // Create a synthetic mouse event to pass to handleMagicLinkRequest
+                  handleMagicLinkRequest(e as unknown as React.MouseEvent);
+                }}>
+                  <div className="space-y-4">
+                    <div>
+                      <label 
+                        htmlFor="email-magic"
+                        className="block text-sm font-medium mb-1.5"
+                      >
+                        Email Address
+                      </label>
+                      <Input
+                        type="email"
+                        id="email-magic"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        autoComplete="email"
+                        className="w-full"
+                        placeholder="email@example.com"
+                        required
+                      />
+                      {formErrors.email && (
+                        <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
+                      )}
+                    </div>
+                    
+                    <p className="text-gray-400 text-sm">
+                      We'll email you a magic link that will sign you in instantly. No password needed!
+                    </p>
+                    
+                    <Button
+                      type="submit"
+                      className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 size={20} className="animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          Send Magic Link
+                          <ArrowRight size={20} />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              )}
+              
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseMagicLink(false);
+                    setMagicLinkSent(false);
+                  }}
+                  className="text-white hover:text-gray-300 text-sm font-medium hover:underline"
+                >
+                  Or sign in with password instead
+                </button>
               </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>
-            <Link to="/terms" className="hover:text-white">
-              Terms of Service
-            </Link>{" "}
-            •{" "}
-            <Link to="/privacy" className="hover:text-white">
-              Privacy Policy
+          <p className="text-center text-gray-300 mt-6">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-[#88B04B] hover:text-[#7a9d43] transition-colors">
+              Sign Up
             </Link>
           </p>
+        </div>
+
+        {/* Footer with security info and links */}
+        <div className="mt-8 pt-6 border-t border-white/10 text-center">
+          <div className="flex items-center justify-center gap-2 text-gray-400 mb-4">
+            <Lock className="w-4 h-4 text-[#88B04B]" />
+            <span className="text-sm">Your information is secured with 256-bit SSL encryption</span>
+          </div>
+          
+          <div className="text-sm text-gray-500">
+            <Link to="/terms" className="hover:text-white">Terms of Service</Link>
+            <span className="mx-2">•</span>
+            <Link to="/privacy" className="hover:text-white">Privacy Policy</Link>
+          </div>
         </div>
       </div>
     </div>

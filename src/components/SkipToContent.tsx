@@ -47,6 +47,8 @@ const SkipToContent: React.FC<SkipToContentProps> = ({
       onClick={handleClick}
       onFocus={() => setIsFocused(true)}
       onBlur={() => setIsFocused(false)}
+      role="link"
+      aria-label="Skip to main content"
       {...accessibilityProps({
         description: 'Skip to main content'
       })}

@@ -24,7 +24,7 @@ export default function AdminTools() {
   useEffect(() => {
     // Ensure user is logged in and has an admin email
     if (isAuthenticated === false) {
-      navigate('/login');
+      navigate('/signin');
       return;
     }
 

@@ -28,7 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Logo } from '@/components/Logo';
 import DebtProjection from '@/components/dashboard/DebtProjection';
 import { SavingsOpportunities } from '@/components/dashboard/SavingsOpportunities';
-import { DebtPayoffCalculator } from '@/components/dashboard/DebtPayoffCalculator';
+import DebtPayoffCalculator from '@/components/dashboard/DebtPayoffCalculator';
 import { Transactions } from '@/components/dashboard/Transactions';
 import { useDashboard } from '@/hooks/useDashboard';
 import { Debts } from '@/components/sections/Debts';

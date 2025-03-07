@@ -4,13 +4,14 @@ import { useAuth } from '@/hooks/useAuth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Lock, CreditCard, Headphones, MessageCircle, Mail, Code, Shield, ArrowLeft, Home } from 'lucide-react';
+import { User, Lock, CreditCard, Headphones, MessageCircle, Mail, Code, Shield, ArrowLeft, Home, KeyRound, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import MockDataToggle from '@/components/settings/MockDataToggle';
 import { ProfileForm } from '@/components/settings/ProfileForm';
 import { AvatarUpload } from '@/components/settings/AvatarUpload';
 import { PasswordChange } from '@/components/settings/PasswordChange';
 import { SecuritySettings } from '@/components/settings/SecuritySettings';
+import { AccountDeletion } from '@/components/settings/AccountDeletion';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Settings() {
@@ -19,7 +20,7 @@ export default function Settings() {
   const [searchParams] = useSearchParams();
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl || 'account');
-  
+
   // Show developer tab only in development mode
   const isDevelopment = import.meta.env.DEV;
 
@@ -41,9 +42,9 @@ export default function Settings() {
                 Manage your account settings and preferences
               </p>
             </div>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               className="flex items-center gap-2 border-[#88B04B]/20 text-[#88B04B]"
               onClick={() => navigate('/dashboard')}
             >
@@ -51,13 +52,13 @@ export default function Settings() {
               Back to Dashboard
             </Button>
           </div>
-          
-          <Tabs 
-            value={activeTab} 
+
+          <Tabs
+            value={activeTab}
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className={`grid w-full ${isDevelopment ? 'grid-cols-5' : 'grid-cols-4'} mb-8`}>
+            <TabsList className={`grid w-full ${isDevelopment ? 'grid-cols-6' : 'grid-cols-5'} mb-8`}>
               <TabsTrigger value="account" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span>Profile</span>
@@ -65,6 +66,10 @@ export default function Settings() {
               <TabsTrigger value="security" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 <span>Security</span>
+              </TabsTrigger>
+              <TabsTrigger value="privacy" className="flex items-center gap-2">
+                <KeyRound className="h-4 w-4" />
+                <span>Privacy & Data</span>
               </TabsTrigger>
               <TabsTrigger value="support" className="flex items-center gap-2">
                 <Headphones className="h-4 w-4" />
@@ -108,6 +113,18 @@ export default function Settings() {
               </motion.div>
             </TabsContent>
 
+            {/* Privacy & Data Settings */}
+            <TabsContent value="privacy">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-6"
+              >
+                <AccountDeletion />
+              </motion.div>
+            </TabsContent>
+
             {/* Support Settings */}
             <TabsContent value="support">
               <motion.div
@@ -119,7 +136,7 @@ export default function Settings() {
                 <div className="rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden p-6">
                   <h3 className="text-lg font-medium mb-4">Support Options</h3>
                   <p className="text-gray-400">Contact our support team or find answers to common questions.</p>
-                  
+
                   <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
                     <div className="rounded-md border border-gray-700 p-4">
                       <h4 className="flex items-center gap-2 font-medium text-white">
@@ -131,7 +148,7 @@ export default function Settings() {
                         Start Chat
                       </Button>
                     </div>
-                    
+
                     <div className="rounded-md border border-gray-700 p-4">
                       <h4 className="flex items-center gap-2 font-medium text-white">
                         <Mail className="h-4 w-4 text-[#88B04B]" />
@@ -145,7 +162,7 @@ export default function Settings() {
                       </a>
                     </div>
                   </div>
-                  
+
                   <div className="mt-6">
                     <h4 className="font-medium text-white">Frequently Asked Questions</h4>
                     <ul className="mt-2 space-y-2">
@@ -186,7 +203,7 @@ export default function Settings() {
                 <div className="rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden p-6">
                   <h3 className="text-lg font-medium mb-4">Billing Information</h3>
                   <p className="text-gray-400 mb-4">Manage your subscription and payment methods.</p>
-                  
+
                   <div className="rounded-md border border-gray-700 p-4 mb-6">
                     <h4 className="font-medium text-white mb-2">Current Plan</h4>
                     <div className="flex justify-between items-center">
@@ -195,9 +212,9 @@ export default function Settings() {
                           {user?.subscription?.planName || 'Free Plan'}
                         </p>
                         <p className="text-sm text-gray-400">
-                          {user?.subscription?.status === 'active' 
-                            ? 'Active until ' + new Date(user?.subscription?.currentPeriodEnd || '').toLocaleDateString() 
-                            : user?.subscription?.status === 'trialing' 
+                          {user?.subscription?.status === 'active'
+                            ? 'Active until ' + new Date(user?.subscription?.currentPeriodEnd || '').toLocaleDateString()
+                            : user?.subscription?.status === 'trialing'
                               ? 'Trial ends ' + new Date(user?.trialEndsAt || '').toLocaleDateString()
                               : 'No active subscription'}
                         </p>
@@ -207,7 +224,7 @@ export default function Settings() {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="rounded-md border border-gray-700 p-4">
                     <h4 className="font-medium text-white mb-2">Payment Methods</h4>
                     <p className="text-sm text-gray-400 mb-4">
@@ -220,7 +237,7 @@ export default function Settings() {
                 </div>
               </motion.div>
             </TabsContent>
-            
+
             {/* Developer Settings - Only shown in development mode */}
             {isDevelopment && (
               <TabsContent value="developer">
@@ -233,10 +250,10 @@ export default function Settings() {
                   <div className="rounded-lg border border-gray-800 bg-gray-900/50 backdrop-blur-sm overflow-hidden p-6">
                     <h3 className="text-lg font-medium mb-4">Development Settings</h3>
                     <p className="text-gray-400 mb-6">These settings are only available in development mode.</p>
-                    
+
                     <div className="space-y-4">
                       <MockDataToggle />
-                      
+
                       <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-lg p-4 mt-6">
                         <h4 className="text-yellow-400 font-medium">Development Mode Active</h4>
                         <p className="text-sm text-gray-300 mt-1">

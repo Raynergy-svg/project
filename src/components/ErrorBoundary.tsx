@@ -20,23 +20,40 @@ export class ErrorBoundary extends Component<Props, State> {
     hasError: false,
     showThankYou: false,
     error: null,
-    errorInfo: null,
+    errorInfo: undefined,
   };
 
   public static getDerivedStateFromError(error: Error): State {
+    // Don't show error UI for Supabase configuration errors
+    if (error && error.message && error.message.includes("Missing Supabase credentials")) {
+      return { 
+        hasError: false, 
+        error: null, 
+        showThankYou: false, 
+        errorInfo: undefined 
+      };
+    }
+    
     // Update state so the next render will show the fallback UI.
-    return { hasError: true, error };
+    return { 
+      hasError: true, 
+      error, 
+      showThankYou: false, 
+      errorInfo: undefined 
+    };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // For Supabase configuration errors, we don't want to show an error
+    if (error && error.message && error.message.includes("Missing Supabase credentials")) {
+      // Reset the error state to prevent showing the error UI
+      this.setState({ hasError: false, error: null });
+      return;
+    }
+
     // Log error to console in development
     if (process.env.NODE_ENV === "development") {
       console.error("Uncaught error:", error, errorInfo);
-    }
-
-    // For Supabase configuration errors, we don't want to show an error
-    if (error.message.includes("Missing Supabase credentials")) {
-      return;
     }
 
     // Track error for analytics
@@ -80,11 +97,13 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public render() {
-    if (this.state.hasError) {
-      const isSupabaseError = this.state.error?.message.includes(
-        "Missing Supabase credentials"
-      );
+    // Don't show error UI for Supabase configuration errors
+    if (this.state.error && this.state.error.message && 
+        this.state.error.message.includes("Missing Supabase credentials")) {
+      return this.props.children;
+    }
 
+    if (this.state.hasError) {
       return this.props.fallback || (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <div className="max-w-md w-full p-6 text-center">

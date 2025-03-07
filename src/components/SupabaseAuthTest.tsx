@@ -6,13 +6,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from './LoadingSpinner';
-import HCaptcha from '@hcaptcha/react-hcaptcha';
-import { 
-  HCAPTCHA_SITE_KEY,
-  handleCaptchaVerify,
-  handleCaptchaExpire,
-  verifyCaptchaPresent
-} from '@/utils/captcha';
 
 export const SupabaseAuthTest: React.FC = () => {
   const [testEmail, setTestEmail] = useState(`test_${Math.floor(Math.random() * 10000)}@example.com`);
@@ -22,11 +15,7 @@ export const SupabaseAuthTest: React.FC = () => {
   const [message, setMessage] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('signup');
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   
-  // Add this to keep track of captcha verification
-  const [isCaptchaVerified, setIsCaptchaVerified] = useState(false);
-
   // Check for existing session on mount
   useEffect(() => {
     const checkSession = async () => {
@@ -56,30 +45,11 @@ export const SupabaseAuthTest: React.FC = () => {
     };
   }, []);
 
-  // Handle captcha verification
-  const onCaptchaVerify = (token: string) => {
-    handleCaptchaVerify(token, setCaptchaToken, setIsCaptchaVerified);
-  };
-
-  // Handle captcha expiration
-  const onCaptchaExpire = () => {
-    handleCaptchaExpire(setCaptchaToken, setIsCaptchaVerified);
-  };
-
   const handleSignUp = async () => {
     try {
       setStatus('loading');
       setMessage('');
 
-      // Check for captcha
-      const captchaError = verifyCaptchaPresent(captchaToken);
-      if (captchaError) {
-        setStatus('error');
-        setMessage(captchaError);
-        return;
-      }
-
-      // Proceed with signup
       const { data, error } = await supabase.auth.signUp({
         email: testEmail,
         password: testPassword,
@@ -87,7 +57,7 @@ export const SupabaseAuthTest: React.FC = () => {
           data: {
             name: testName,
           },
-          captchaToken: captchaToken,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
@@ -117,21 +87,9 @@ export const SupabaseAuthTest: React.FC = () => {
       setStatus('loading');
       setMessage('');
 
-      // Check for captcha
-      const captchaError = verifyCaptchaPresent(captchaToken);
-      if (captchaError) {
-        setStatus('error');
-        setMessage(captchaError);
-        return;
-      }
-
-      // Proceed with signin
       const { data, error } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword,
-        options: {
-          captchaToken: captchaToken,
-        }
       });
 
       if (error) {
@@ -247,12 +205,6 @@ export const SupabaseAuthTest: React.FC = () => {
                 />
               </div>
               
-              <HCaptcha
-                sitekey={HCAPTCHA_SITE_KEY}
-                onVerify={onCaptchaVerify}
-                onExpire={onCaptchaExpire}
-              />
-              
               <Button onClick={handleSignUp} className="w-full" disabled={status === 'loading'}>
                 {status === 'loading' ? (
                   <>
@@ -282,12 +234,6 @@ export const SupabaseAuthTest: React.FC = () => {
                   onChange={(e) => setTestPassword(e.target.value)}
                 />
               </div>
-              
-              <HCaptcha
-                sitekey={HCAPTCHA_SITE_KEY}
-                onVerify={onCaptchaVerify}
-                onExpire={onCaptchaExpire}
-              />
               
               <Button onClick={handleSignIn} className="w-full" disabled={status === 'loading'}>
                 {status === 'loading' ? <LoadingSpinner className="mr-2 h-4 w-4" /> : null}

@@ -5,7 +5,6 @@ import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
 import { userSchema } from '@/lib/utils/validation';
 import { validatePasswordStrength } from '@/utils/validation';
-import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { z } from 'zod';
 import { useSecurity } from '@/contexts/SecurityContext';
 import type { SignUpData } from '@/types';
@@ -26,7 +25,9 @@ interface FormData {
   selectedTier: string;
   name: string;
   acceptTerms: boolean;
-  captchaToken?: string;
+  marketingConsent?: boolean;
+  dataProcessingConsent?: boolean;
+  ageVerification?: boolean;
 }
 
 interface FormErrors {
@@ -36,7 +37,7 @@ interface FormErrors {
   name?: string;
   general?: string;
   acceptTerms?: string;
-  captcha?: string;
+  ageVerification?: string;
 }
 
 interface PaymentResult {
@@ -90,11 +91,11 @@ export default function SignUp() {
   const { sensitiveDataHandler } = useSecurity();
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Get plan from URL parameters
   const searchParams = new URLSearchParams(location.search);
   const planFromUrl = searchParams.get('plan');
-  
+
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
@@ -102,16 +103,17 @@ export default function SignUp() {
     selectedTier: planFromUrl || 'basic',
     name: '',
     acceptTerms: false,
-    captchaToken: ''
+    marketingConsent: false,
+    dataProcessingConsent: false,
+    ageVerification: false,
   });
-  
+
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
   const [confirmedEmail, setConfirmedEmail] = useState("");
-  const captchaRef = useRef<HCaptcha>(null);
 
   const { signup, resendConfirmationEmail } = useAuth();
 
@@ -122,70 +124,53 @@ export default function SignUp() {
 
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
-    
+
     // Email validation
     if (!formData.email) {
       errors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = 'Please enter a valid email address';
     }
-    
+
     // Name validation
     if (!formData.name) {
       errors.name = 'Name is required';
     }
-    
+
     // Password validation using our new strengthened validation
     const passwordValidation = validatePasswordStrength(formData.password);
     if (!passwordValidation.isValid) {
       errors.password = passwordValidation.errors[0]; // Display the first error
     }
-    
+
     // Confirm password validation
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = 'Passwords do not match';
     }
-    
+
     // Terms acceptance validation
     if (!formData.acceptTerms) {
       errors.acceptTerms = 'You must accept the terms and conditions';
     }
-    
-    // CAPTCHA validation - only require in production, not in dev environments
-    const isDevEnvironment = import.meta.env.DEV || window.location.hostname === 'localhost';
-    if (!isDevEnvironment && !formData.captchaToken) {
-      errors.captcha = 'Please complete the CAPTCHA verification';
+
+    // Age verification validation (required)
+    if (!formData.ageVerification) {
+      errors.ageVerification = 'You must confirm that you are of legal age';
     }
-    
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  const handleCaptchaVerify = (token: string) => {
-    setFormData({ ...formData, captchaToken: token });
-  };
-
-  const getPasswordStrength = useCallback((password: string): { strength: number; label: string } => {
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[a-z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-
-    const labels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
-    return { strength, label: labels[strength - 1] || 'Very Weak' };
-  }, []);
-
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       // First make sure the security handler is initialized
       if (sensitiveDataHandler) {
@@ -198,9 +183,9 @@ export default function SignUp() {
           // The server will handle unencrypted data appropriately
         }
       }
-      
+
       // Use direct Stripe payment link based on selected tier
-      const paymentLink = formData.selectedTier === 'basic' 
+      const paymentLink = formData.selectedTier === 'basic'
         ? 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ'  // Basic plan link
         : 'https://buy.stripe.com/6oE7tnbPrfDecogfYY'; // Pro plan link
 
@@ -212,7 +197,7 @@ export default function SignUp() {
         selectedTier: formData.selectedTier
         // Don't store password in localStorage
       }));
-      
+
       // Set a flag to indicate we need to collect the password again
       localStorage.setItem('requirePasswordConfirmation', 'true');
 
@@ -224,8 +209,6 @@ export default function SignUp() {
       });
     } finally {
       setIsSubmitting(false);
-      // Reset captcha
-      captchaRef.current?.resetCaptcha();
     }
   }, [formData, validateForm, sensitiveDataHandler]);
 
@@ -237,9 +220,9 @@ export default function SignUp() {
       if (!storedData) {
         throw new Error('Registration data not found. Please try again.');
       }
-      
+
       const pendingSignup = JSON.parse(storedData);
-      
+
       // Check if we need to collect password again (it wasn't stored in localStorage for security)
       const needPasswordConfirmation = localStorage.getItem('requirePasswordConfirmation') === 'true';
       if (needPasswordConfirmation) {
@@ -248,32 +231,37 @@ export default function SignUp() {
         // In a real app, you would prompt the user again for their password
         console.log('Using password from current form state since we avoided storing it in localStorage');
       }
-      
-      // Prepare registration data
+
+      // Get the selected tier and other required data
       const registrationData = {
-        email: pendingSignup.email || formData.email,
-        name: pendingSignup.name || formData.name,
-        password: formData.password, // Use password from current form state
-        subscriptionId: paymentResult.subscriptionId
+        email: pendingSignup.email,
+        password: formData.password,
+        name: pendingSignup.name,
+        selectedTier: pendingSignup.selectedTier,
+        // Include consent data
+        acceptTerms: formData.acceptTerms,
+        marketingConsent: formData.marketingConsent,
+        dataProcessingConsent: formData.dataProcessingConsent,
+        ageVerification: formData.ageVerification,
       };
-      
+
       // Try to use the security handler for encryption if available
       let encryptedData = { ...registrationData };
-      
+
       try {
         // Only attempt encryption if the handler is properly initialized
-        if (sensitiveDataHandler && 
-            typeof sensitiveDataHandler.sanitizeSensitiveData === 'function' && 
-            typeof sensitiveDataHandler.encryptSensitiveData === 'function') {
-            
+        if (sensitiveDataHandler &&
+          typeof sensitiveDataHandler.sanitizeSensitiveData === 'function' &&
+          typeof sensitiveDataHandler.encryptSensitiveData === 'function') {
+
           // Initialize if not already done
           await sensitiveDataHandler.initializeKey();
-          
+
           // Sanitize and encrypt sensitive data
           const sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(registrationData.email);
           const sanitizedName = sensitiveDataHandler.sanitizeSensitiveData(registrationData.name);
           const sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(registrationData.password);
-          
+
           // Encrypt the data - with error handling for each field
           try {
             const encryptedEmail = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
@@ -282,7 +270,7 @@ export default function SignUp() {
             console.warn('Failed to encrypt email:', err);
             // Continue with unencrypted email
           }
-          
+
           try {
             const encryptedName = await sensitiveDataHandler.encryptSensitiveData(sanitizedName);
             encryptedData.name = encryptedName.encryptedData;
@@ -290,7 +278,7 @@ export default function SignUp() {
             console.warn('Failed to encrypt name:', err);
             // Continue with unencrypted name
           }
-          
+
           try {
             const encryptedPassword = await sensitiveDataHandler.encryptSensitiveData(sanitizedPassword);
             encryptedData.password = encryptedPassword.encryptedData;
@@ -305,26 +293,44 @@ export default function SignUp() {
         console.error('Encryption failed:', encryptionError);
         // Continue with unencrypted data as fallback
       }
-      
+
+      // Record consent information
+      const consentRecord = {
+        userId: null, // Will be filled in by backend
+        consentDate: new Date().toISOString(),
+        consentVersion: "1.0", // Current version of Terms/Privacy
+        termsAccepted: formData.acceptTerms,
+        privacyAccepted: formData.acceptTerms,
+        marketingConsent: formData.marketingConsent,
+        dataProcessingConsent: formData.dataProcessingConsent,
+        ageVerified: formData.ageVerification,
+        ipAddress: "{{client_ip}}", // Placeholder - would be captured by backend
+        userAgent: navigator.userAgent,
+        consentMethod: "signup_form",
+      };
+
+      // Include the consent record with the encrypted data
+      encryptedData.consentRecord = consentRecord;
+
       // Register user with subscription and encrypted data
       const result = await signup(encryptedData);
-      
+
       // Check if email confirmation is needed
       if (result.needsEmailConfirmation) {
         setEmailConfirmationSent(true);
         setConfirmedEmail(registrationData.email);
         return;
       }
-      
+
       const returnUrl = new URLSearchParams(location.search).get('returnUrl');
-      
+
       // Clean up sensitive data from localStorage
       localStorage.removeItem('pendingSignup');
       localStorage.removeItem('requirePasswordConfirmation');
-      
+
       // Navigate to dashboard or return URL
       navigate(returnUrl || '/dashboard');
-      
+
     } catch (error) {
       setFormErrors({
         general: error instanceof Error ? error.message : "An error occurred during registration. Please try again."
@@ -336,7 +342,7 @@ export default function SignUp() {
 
   const handleResendConfirmation = async () => {
     if (!confirmedEmail) return;
-    
+
     setIsSubmitting(true);
     try {
       await resendConfirmationEmail(confirmedEmail);
@@ -344,13 +350,11 @@ export default function SignUp() {
       // Show success message
       setFormErrors({ general: "Confirmation email has been resent. Please check your inbox." });
     } catch (error) {
-      setFormErrors({ 
-        general: error instanceof Error ? error.message : "Failed to resend confirmation email. Please try again." 
+      setFormErrors({
+        general: error instanceof Error ? error.message : "Failed to resend confirmation email. Please try again."
       });
     } finally {
       setIsSubmitting(false);
-      // Reset captcha
-      captchaRef.current?.resetCaptcha();
     }
   };
 
@@ -397,7 +401,7 @@ export default function SignUp() {
               <Shield className="w-16 h-16 text-[#88B04B] mb-4" />
               <h1 className="text-2xl font-bold mb-3">Verify Your Email</h1>
               <p className="mb-6 text-gray-300">
-                We've sent a confirmation email to <strong>{confirmedEmail}</strong>. 
+                We've sent a confirmation email to <strong>{confirmedEmail}</strong>.
                 Please check your inbox and click the verification link to activate your account.
               </p>
               <div className="bg-[#111] p-4 rounded-md text-left w-full mb-6">
@@ -452,9 +456,8 @@ export default function SignUp() {
                   type="text"
                   id="name"
                   name="name"
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                    formErrors.name ? "border-red-500" : "border-white/10"
-                  } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${formErrors.name ? "border-red-500" : "border-white/10"
+                    } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="John Doe"
@@ -478,9 +481,8 @@ export default function SignUp() {
                   type="email"
                   id="email"
                   name="email"
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                    formErrors.email ? "border-red-500" : "border-white/10"
-                  } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${formErrors.email ? "border-red-500" : "border-white/10"
+                    } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="you@example.com"
@@ -507,9 +509,8 @@ export default function SignUp() {
                       type={showPassword ? "text" : "password"}
                       id="password"
                       name="password"
-                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                        formErrors.password ? "border-red-500" : "border-white/10"
-                      } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${formErrors.password ? "border-red-500" : "border-white/10"
+                        } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                       autoComplete="new-password"
@@ -542,9 +543,8 @@ export default function SignUp() {
                       type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
                       name="confirmPassword"
-                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${
-                        formErrors.confirmPassword ? "border-red-500" : "border-white/10"
-                      } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${formErrors.confirmPassword ? "border-red-500" : "border-white/10"
+                        } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                       autoComplete="new-password"
@@ -569,37 +569,81 @@ export default function SignUp() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 mt-2">
-                <input
-                  type="checkbox"
-                  id="acceptTerms"
-                  name="acceptTerms"
-                  checked={formData.acceptTerms}
-                  onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                  className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
-                />
-                <label htmlFor="acceptTerms" className="text-xs sm:text-sm text-gray-300">
-                  I accept the <Link to="/terms" className="text-[#88B04B] hover:text-[#7a9d43]">Terms of Service</Link> and{' '}
-                  <Link to="/privacy" className="text-[#88B04B] hover:text-[#7a9d43]">Privacy Policy</Link>
-                </label>
-              </div>
-              {formErrors.acceptTerms && (
-                <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">{formErrors.acceptTerms}</p>
-              )}
+              <div className="flex flex-col gap-3 mt-4 border border-gray-700/50 p-4 rounded-lg bg-gray-900/30">
+                <h3 className="text-sm font-medium text-white">Consent Options</h3>
 
-              <div className="mb-4">
-                <HCaptcha
-                  sitekey={import.meta.env.VITE_HCAPTCHA_SITE_KEY || '10000000-ffff-ffff-ffff-000000000001'}
-                  onVerify={handleCaptchaVerify}
-                  ref={captchaRef}
-                />
-                {renderErrorMessage('captcha')}
-                {formErrors.captcha && (
-                  <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mt-2 rounded">
-                    <p className="font-bold">CAPTCHA Required</p>
-                    <p>Please complete the CAPTCHA verification to proceed. This helps us prevent automated submissions.</p>
-                  </div>
+                {/* Terms and Privacy Policy Consent - Required */}
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="acceptTerms"
+                    name="acceptTerms"
+                    checked={formData.acceptTerms}
+                    onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                  />
+                  <label htmlFor="acceptTerms" className="text-xs sm:text-sm text-gray-300">
+                    I accept the <Link to="/terms" className="text-[#88B04B] hover:text-[#7a9d43]">Terms of Service</Link> and{' '}
+                    <Link to="/privacy" className="text-[#88B04B] hover:text-[#7a9d43]">Privacy Policy</Link>
+                    <span className="ml-1 text-xs text-red-400">*</span>
+                  </label>
+                </div>
+                {formErrors.acceptTerms && (
+                  <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">{formErrors.acceptTerms}</p>
                 )}
+
+                {/* Marketing Communications Consent - Optional */}
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="marketingConsent"
+                    name="marketingConsent"
+                    checked={formData.marketingConsent || false}
+                    onChange={(e) => setFormData({ ...formData, marketingConsent: e.target.checked })}
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                  />
+                  <label htmlFor="marketingConsent" className="text-xs sm:text-sm text-gray-300">
+                    I agree to receive marketing communications about products, services, and promotions.
+                  </label>
+                </div>
+
+                {/* Data Processing Consent - Optional */}
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="dataProcessingConsent"
+                    name="dataProcessingConsent"
+                    checked={formData.dataProcessingConsent || false}
+                    onChange={(e) => setFormData({ ...formData, dataProcessingConsent: e.target.checked })}
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                  />
+                  <label htmlFor="dataProcessingConsent" className="text-xs sm:text-sm text-gray-300">
+                    I consent to the processing of my data for service improvement and personalization purposes.
+                  </label>
+                </div>
+
+                {/* Age Verification - Required */}
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    id="ageVerification"
+                    name="ageVerification"
+                    checked={formData.ageVerification || false}
+                    onChange={(e) => setFormData({ ...formData, ageVerification: e.target.checked })}
+                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                  />
+                  <label htmlFor="ageVerification" className="text-xs sm:text-sm text-gray-300">
+                    I confirm that I am at least 18 years old or the age of majority in my jurisdiction.
+                    <span className="ml-1 text-xs text-red-400">*</span>
+                  </label>
+                </div>
+                {formData.ageVerification === false && formSubmitted && (
+                  <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">You must confirm that you are of legal age to continue.</p>
+                )}
+
+                <p className="text-xs text-gray-500 mt-1">
+                  Fields marked with <span className="text-red-400">*</span> are required.
+                </p>
               </div>
 
               <div className="flex gap-4 mt-6">

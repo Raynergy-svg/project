@@ -1,0 +1,19 @@
+# Supabase Edge Functions Deployment Configuration
+
+# Cookie consent API
+[functions.consent]
+  verify_jwt = true
+  method = "GET,POST"
+  path = "/consent"
+
+# Account management API (deletion and data export)
+[functions.account-management]
+  verify_jwt = true
+  method = "GET,POST,DELETE"
+  path = "/account-management/*"
+
+# Scheduled tasks for processing deletion requests
+[functions.scheduled-tasks]
+  schedule = "@daily"
+  # This function runs on a schedule and is triggered by Supabase
+  verify_jwt = false 

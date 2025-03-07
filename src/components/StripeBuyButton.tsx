@@ -26,10 +26,14 @@ export default function StripeBuyButton() {
   }, []);
 
   return (
-    <div className="w-full max-w-md mx-auto mt-8">
+    <div className="w-full max-w-md mx-auto mt-8" data-testid="stripe-container">
       {isLoading ? (
         <div className="flex items-center justify-center p-4">
-          <Loader2 className="w-6 h-6 text-[#88B04B] animate-spin" />
+          <Loader2 
+            className="w-6 h-6 text-[#88B04B] animate-spin" 
+            role="status"
+            aria-label="Loading payment button"
+          />
         </div>
       ) : (
         <stripe-buy-button

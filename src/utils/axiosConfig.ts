@@ -22,7 +22,7 @@ api.interceptors.response.use(
       } catch (err) {
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        window.location.href = '/signin';
         return Promise.reject(err);
       }
     }

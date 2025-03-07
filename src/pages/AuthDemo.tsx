@@ -9,7 +9,7 @@ export default function AuthDemo() {
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Authentication Demo</CardTitle>
           <CardDescription>
-            This page demonstrates our authentication system with hCaptcha integration for enhanced security.
+            This page demonstrates our authentication system with enhanced security features.
           </CardDescription>
         </CardHeader>
         
@@ -18,7 +18,6 @@ export default function AuthDemo() {
             <h2 className="text-xl font-semibold mb-4">Security Features</h2>
             <ul className="list-disc pl-5 space-y-2">
               <li>Email and password authentication</li>
-              <li>hCaptcha integration to prevent automated attacks</li>
               <li>Secure token handling</li>
               <li>Email verification</li>
             </ul>

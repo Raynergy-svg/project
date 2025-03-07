@@ -17,6 +17,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { Layout } from "@/components/layout/Layout";
 import { Toaster } from "@/components/ui/toaster";
+import { CookieConsent } from "@/components/CookieConsent";
 import Navbar from "@/components/layout/Navbar";
 import { lazyLoad, preloadComponents } from "@/utils/lazyLoad";
 import { createDebtTable, checkExecuteSqlFunction } from "@/lib/supabase/createDebtTable";
@@ -101,8 +102,8 @@ const SecurityEvents = lazy(() => import('@/pages/admin/SecurityEvents'));
 
 // Placeholder components for pages that don't exist yet
 const VerifyEmail = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
-const ResetPassword = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
-const ForgotPassword = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
+const ResetPassword = lazy(() => import('@/components/auth/ResetPassword').then(module => ({ default: module.ResetPassword })));
+const ForgotPassword = lazy(() => import('@/components/auth/ForgotPassword').then(module => ({ default: module.ForgotPassword })));
 const SavingsPlanner = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
 const AIInsights = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
 const ArticleDetail = lazy(() => Promise.resolve({ default: () => <NotFound /> }));
@@ -131,11 +132,11 @@ const getPageClass = (pathname: string): string => {
 const ApplyRedirect = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     const position = searchParams.get('position');
     const department = searchParams.get('department');
-    
+
     // If we have parameters, redirect with them
     if (position && department) {
       navigate(`/job-application?position=${encodeURIComponent(position)}&department=${encodeURIComponent(department)}`, { replace: true });
@@ -144,7 +145,7 @@ const ApplyRedirect = () => {
       navigate('/careers', { replace: true });
     }
   }, [navigate, searchParams]);
-  
+
   return <LoadingScreen />;
 };
 
@@ -154,10 +155,11 @@ const AppRoutes = () => {
     <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route path="/" element={<Landing />} />
-        
+
         {/* Public routes */}
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/login" element={<Navigate to="/signin" replace />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -165,71 +167,71 @@ const AppRoutes = () => {
         <Route path="/job-application" element={<JobApplication />} />
         <Route path="/apply" element={<ApplyRedirect />} />
         <Route path="/support" element={<Support />} />
-        
+
         {/* Protected routes - require authentication */}
-        <Route 
-          path="/support/tickets" 
+        <Route
+          path="/support/tickets"
           element={
             <ProtectedRoute requireSubscription={false}>
               <SupportTickets />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/dashboard" 
+
+        <Route
+          path="/dashboard"
           element={
             <ProtectedRoute requireSubscription={false}>
               <Dashboard />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/debt-planner" 
+
+        <Route
+          path="/debt-planner"
           element={
             <ProtectedRoute requireSubscription={false}>
               <DebtPlanner />
             </ProtectedRoute>
-          } 
+          }
         />
-        
+
         {/* Add DebtPayoffTool route */}
-        <Route 
-          path="/tools/debt-payoff" 
+        <Route
+          path="/tools/debt-payoff"
           element={
             <ProtectedRoute requireSubscription={false}>
               <DebtPayoffTool />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/savings-planner" 
+
+        <Route
+          path="/savings-planner"
           element={
             <ProtectedRoute requireSubscription={false}>
               <SavingsPlanner />
             </ProtectedRoute>
-          } 
+          }
         />
-        
-        <Route 
-          path="/insights" 
+
+        <Route
+          path="/insights"
           element={
             <ProtectedRoute requireSubscription={true}>
               <AIInsights />
             </ProtectedRoute>
-          } 
+          }
         />
-        
+
         {/* Settings routes */}
-        <Route 
-          path="/settings" 
+        <Route
+          path="/settings"
           element={
             <ProtectedRoute requireSubscription={false}>
               <Settings />
             </ProtectedRoute>
-          } 
+          }
         >
           <Route index element={<Navigate to="/settings/account" replace />} />
           <Route path="account" element={<AccountSettings />} />
@@ -238,12 +240,12 @@ const AppRoutes = () => {
           <Route path="billing" element={<BillingSettings />} />
           <Route path="notifications" element={<NotificationSettings />} />
         </Route>
-        
+
         {/* Help & Article routes */}
         <Route path="/help" element={<Help />} />
         <Route path="/docs" element={<FinancialResources />} />
         <Route path="/articles/:slug" element={<ArticleDetail />} />
-        
+
         {/* Public information pages */}
         <Route path="/compliance" element={<Compliance />} />
         <Route path="/about" element={<About />} />
@@ -253,17 +255,17 @@ const AppRoutes = () => {
         <Route path="/careers" element={<Careers />} />
         <Route path="/press" element={<Press />} />
         <Route path="/status" element={<Status />} />
-        
+
         {/* Admin routes - require admin role */}
-        <Route 
-          path="/admin" 
+        <Route
+          path="/admin"
           element={
             <ProtectedRoute requireSubscription={false}>
               <AdminAuthCheck>
                 <AdminLayout />
               </AdminAuthCheck>
             </ProtectedRoute>
-          } 
+          }
         >
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
@@ -272,7 +274,7 @@ const AppRoutes = () => {
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="security" element={<SecurityEvents />} />
         </Route>
-        
+
         {/* Fallback 404 route */}
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -340,27 +342,27 @@ function AppContent() {
       console.log("[DEV] Checking and initializing database tables for development...");
       try {
         const { data: fnCheck, error: fnError } = await checkExecuteSqlFunction();
-        
+
         if (fnError) {
           console.error("[DEV] Error checking SQL function:", fnError);
         } else {
           console.log("[DEV] SQL function check result:", fnCheck);
         }
-        
+
         const { error: debtError } = await createDebtTable();
         if (debtError) {
           console.error("[DEV] Error creating debt table:", debtError);
         } else {
           console.log("[DEV] Debt table created or already exists");
         }
-        
+
         const { error: accountsError } = await createBankAccountsTable();
         if (accountsError) {
           console.error("[DEV] Error creating bank accounts table:", accountsError);
         } else {
           console.log("[DEV] Bank accounts table created or already exists");
         }
-        
+
         const { error: transactionError } = await createTransactionHistoryTable();
         if (transactionError) {
           console.error("[DEV] Error creating transaction history table:", transactionError);
@@ -397,6 +399,7 @@ function AppContent() {
         </main>
       </Suspense>
       <Toaster />
+      <CookieConsent />
     </Layout>
   );
 }
@@ -404,7 +407,7 @@ function AppContent() {
 function App() {
   // Initialize performance monitoring
   usePerformanceMonitoring();
-  
+
   // Initialize error tracking
   useErrorTracking();
 

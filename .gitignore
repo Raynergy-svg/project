@@ -82,9 +82,10 @@ local/
 # package-lock.json
 # pnpm-lock.yaml
 
-#ignore readme files
+# Documentation files (non-production)
 README*
-.md*
+*.md
+!LICENSE.md
 
 # Debug files
 debug.html
@@ -94,6 +95,84 @@ src/DebugApp.tsx
 src/index.html
 .debug-backup/
 **/debug/
+*debug*
+*debug.*
+*Debug*
+debug_*
+Debug*
+**/debug-**
+
+# Test files
+test/
+tests/
+**/*.test.*
+**/*.spec.*
+**/*.e2e.*
+**/*_test.*
+**/*_spec.*
+**/test-*
+**/tests-*
+test-*
+tests-*
+**/test_*
+**/tests_*
+test_*
+tests_*
+**/Test*
+Test*
+test-results/
+**/test-results/
+test-connection.js
+vitest.config.*
+jest.config.*
+cypress.config.*
+playwright.config.*
+karma.conf.*
+*.cy.*
+*.e2e.*
+mocks/
+__mocks__/
+__tests__/
+test-ai-service.js
+test-event.json
+
+# Shell scripts and other executable files
+*.sh
+*.bat
+*.cmd
+*.ps1
+*.exe
+install.sh
+start-server.js
+dev.log
+
+# Temporary and intermediate files
+temp/
+tmp/
+.tmp/
+.temp/
+
+# Vercel/Netlify/Deployment files
+.vercel/
+.netlify/
+netlify.toml
+vercel.json
+wrangler.toml
+workers-site/
+.wrangler/
+.github/
+web.config
+
+# Development server files
+dev-dist/
+proxy-server.js
+
+# Miscellaneous non-production files
+.bolt/
+.debug-backup/
+tsconfig.server.json
+package.json.backup
+check-auth-settings.js
 
 # Investor account related files
 scripts/investor-signup.html

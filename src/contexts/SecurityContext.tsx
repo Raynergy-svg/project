@@ -128,15 +128,15 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           auth.logout().catch(err => {
             console.warn('Logout failed:', err);
             // Still try to navigate to login even if logout fails
-            navigate('/login');
+            navigate('/signin');
           });
         } else {
           // If no logout function, just navigate to login
-          navigate('/login');
+          navigate('/signin');
         }
       } else {
         // No authenticated user, just navigate to login
-        navigate('/login');
+        navigate('/signin');
       }
       return true;
     }

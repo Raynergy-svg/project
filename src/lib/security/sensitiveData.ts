@@ -156,9 +156,22 @@ export class SensitiveDataHandler {
   }
 
   public sanitizeSensitiveData(data: string): string {
+    if (!data) return '';
+    
     return data
-      .replace(/[<>]/g, '') // Remove potential HTML tags
-      .replace(/[;'"\\]/g, '') // Remove potential SQL injection characters
-      .trim(); // Remove leading/trailing whitespace
+      // Remove potential SQL injection patterns
+      .replace(/\b(DROP|DELETE|UPDATE|INSERT|SELECT|UNION|ALTER)\b\s+(TABLE|DATABASE|INTO|FROM)\b/gi, '')
+      // Remove potential HTML/script tags
+      .replace(/<[^>]*>/g, '')
+      // Remove potentially dangerous characters and SQL injection characters
+      .replace(/['";\\]/g, '')
+      // Remove multiple spaces
+      .replace(/\s+/g, ' ')
+      // Remove comments
+      .replace(/\/\*[\s\S]*?\*\/|--.*$/gm, '')
+      // Remove null bytes and other control characters
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      // Trim whitespace
+      .trim();
   }
 } 

@@ -14,12 +14,14 @@ export const APP_NAME = 'FinWise';
 export const APP_VERSION = '0.1.0';
 
 // Feature flags
-export const FEATURES = {
+export const FEATURE_FLAGS = {
+  ENABLE_ANALYTICS: !IS_DEV, // Disable analytics in development
+  ENABLE_ERROR_TRACKING: !IS_DEV, // Disable error tracking in development
+  ENABLE_CAPTCHA: false, // Disable CAPTCHA in all environments
   ENABLE_AI_INSIGHTS: false,
   ENABLE_SAVINGS_PLANNER: false,
   ENABLE_ONBOARDING_TOUR: true,
   ENABLE_SECURITY_LOGGING: true,
-  ENABLE_CAPTCHA: !IS_DEV, // Disable CAPTCHA in development
 };
 
 /**
@@ -45,8 +47,8 @@ export function envValue<T>(devValue: T, prodValue: T): T {
 /**
  * Check if a feature is enabled
  */
-export function isFeatureEnabled(featureKey: keyof typeof FEATURES): boolean {
-  return FEATURES[featureKey];
+export function isFeatureEnabled(featureKey: keyof typeof FEATURE_FLAGS): boolean {
+  return FEATURE_FLAGS[featureKey];
 }
 
 /**

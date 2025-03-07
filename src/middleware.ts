@@ -94,10 +94,16 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   
   // Set Content-Security-Policy header
-  response.headers.set(
-    'Content-Security-Policy',
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.stripe.com; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.projectdcertan84workersdev.workers.dev; frame-src 'self' https://js.stripe.com https://hcaptcha.com https://*.hcaptcha.com; object-src 'none';"
-  );
+  const cspHeader = 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com; " + 
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: blob: https://*.stripe.com; " +
+    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.projectdcertan84workersdev.workers.dev; " +
+    "frame-src 'self' https://js.stripe.com; " +
+    "object-src 'none';";
+  
+  response.headers.set('Content-Security-Policy', cspHeader);
   
   // Set Strict-Transport-Security header for HTTPS enforcement
   if (process.env.NODE_ENV === 'production') {

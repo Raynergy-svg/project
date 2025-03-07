@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [lastActivity, setLastActivity] = useState<number>(Date.now());
+  const [lastActivityTime, setLastActivityTime] = useState<number>(Date.now());
   const [sessionTimeout, setSessionTimeout] = useState<number>(3 * 60 * 60 * 1000); // 3 hours default
   const navigate = useNavigate();
   
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Handle user activity tracking for session management
   useEffect(() => {
     const updateActivity = () => {
-      setLastActivity(Date.now());
+      setLastActivityTime(Date.now());
     };
     
     // Track user activity to prevent timeouts during active usage
@@ -100,7 +100,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     
     const checkInactivity = setInterval(() => {
       const now = Date.now();
-      const inactiveTime = now - lastActivity;
+      const inactiveTime = now - lastActivityTime;
       
       // Check if user is on a support page by looking for the lastSupportActivity in sessionStorage
       const lastSupportActivity = sessionStorage.getItem('lastSupportActivity');
@@ -115,123 +115,114 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }, 60000); // Check every minute
     
     return () => clearInterval(checkInactivity);
-  }, [isAuthenticated, lastActivity, sessionTimeout]);
+  }, [isAuthenticated, lastActivityTime, sessionTimeout]);
 
-  // Initialize authentication state
+  // Initialize auth by checking for session and setting up user
   useEffect(() => {
+    // Function to check current auth session
     const initAuth = async () => {
       try {
-        setIsLoading(true);
+        // Get the current session
+        const { data, error } = await supabase.auth.getSession();
         
-        // Get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Error getting session:', sessionError);
-          setAuthError(sessionError.message);
-          setIsAuthenticated(false);
-          setUser(null);
-          return;
+        if (error) {
+          throw error;
         }
         
-        if (session) {
-          const { data: userData, error: userError } = await supabase.auth.getUser();
-          
-          if (userError) {
-            console.error('Error getting user:', userError);
-            setAuthError(userError.message);
-            setIsAuthenticated(false);
-            setUser(null);
-            return;
-          }
-          
-          if (userData?.user) {
-            // Get user settings from database
-            const { data: userSettings, error: settingsError } = await supabase
-              .from('user_settings')
-              .select('session_timeout')
-              .eq('user_id', userData.user.id)
-              .single();
-              
-            if (!settingsError && userSettings?.session_timeout) {
-              // Convert minutes to milliseconds
-              setSessionTimeout(userSettings.session_timeout * 60 * 1000);
-            }
-            
-            setUser(userData.user);
-            setIsAuthenticated(true);
-            
-            // Record login security event
-            await recordSecurityEvent({
-              user_id: userData.user.id,
-              event_type: 'session_continued',
-              ip_address: await getClientIP(),
-              user_agent: navigator.userAgent,
-              details: 'Session restored during application initialization'
-            });
-          }
+        if (data.session) {
+          // We have a session, fetch the user data
+          const user = await fetchUserData(data.session.user.id);
+          setUser(user);
+          setIsAuthenticated(true);
+          setLastActivityTime(Date.now());
         } else {
-          setIsAuthenticated(false);
+          // No active session
           setUser(null);
+          setIsAuthenticated(false);
         }
-        
-        // Listen for auth state changes
-        const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log('Auth state changed:', event);
-          
-          if (event === 'SIGNED_IN' && session) {
-            const { user } = session;
-            
-            if (user) {
-              setUser(user);
-              setIsAuthenticated(true);
-              setLastActivity(Date.now());
-              
-              // Record login security event
-              await recordSecurityEvent({
-                user_id: user.id,
-                event_type: 'sign_in',
-                ip_address: await getClientIP(),
-                user_agent: navigator.userAgent,
-                details: 'User signed in successfully'
-              });
-            }
-          }
-          
-          if (event === 'SIGNED_OUT') {
-            setUser(null);
-            setIsAuthenticated(false);
-            navigate('/signin');
-          }
-          
-          if (event === 'USER_UPDATED' && session) {
-            setUser(session.user);
-          }
-          
-          if (event === 'PASSWORD_RECOVERY') {
-            navigate('/reset-password');
-          }
-        });
-        
-        return () => {
-          authListener.subscription?.unsubscribe();
-        };
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error('Error checking session:', error);
+        setUser(null);
+        setIsAuthenticated(false);
+        setAuthError(error instanceof Error ? error.message : 'Failed to check authentication');
+      }
+    };
+
+    // Wrapper function that handles loading state
+    const initializeAuth = async () => {
+      try {
+        setIsLoading(true);
+        await initAuth();
+      } catch (error) {
+        console.error('Error during auth initialization:', error);
         setAuthError(error instanceof Error ? error.message : 'Authentication initialization failed');
       } finally {
         setIsLoading(false);
       }
     };
     
-    initAuth();
+    initializeAuth();
+    
+    // Listen for authentication changes (sign in/sign out)
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, session ? 'User session found' : 'No session');
+      
+      if (event === 'SIGNED_IN' && session) {
+        try {
+          // Fetch user data when signed in
+          setIsLoading(true);
+          const user = await fetchUserData(session.user.id);
+          setUser(user);
+          setIsAuthenticated(true);
+          
+          // Reset activity timer
+          setLastActivityTime(Date.now());
+          
+          // Record successful sign-in to security logs
+          const ip = await getClientIP();
+          await recordSecurityEvent({
+            user_id: session.user.id,
+            event_type: 'sign_in_successful',
+            ip_address: ip,
+            user_agent: navigator.userAgent,
+            details: JSON.stringify({
+              method: 'session_auth_change',
+              timestamp: new Date().toISOString()
+            })
+          });
+        } catch (error) {
+          console.error('Error handling sign in:', error);
+          
+          // If there's an issue with user data, log the user out
+          if (error instanceof Error && error.message.includes('user data')) {
+            await supabase.auth.signOut();
+            setAuthError('Error loading user profile. Please sign in again.');
+          }
+        } finally {
+          setIsLoading(false);
+        }
+      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setUser(null);
+        setIsAuthenticated(false);
+        setLastActivityTime(null);
+      }
+    });
+    
+    // Always clean up the listener
+    return () => {
+      if (authListener && authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
   }, []);
 
-  // Improved login function with comprehensive error handling
+  // Update the login function to simplify options and remove CAPTCHA handling
   const login = async (
     email: string,
     password: string,
-    options?: Record<string, any>
+    options?: {
+      data?: Record<string, any>;
+    }
   ): Promise<any> => {
     setIsLoading(true);
     setAuthError(null);
@@ -302,7 +293,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(mockUser);
         setIsAuthenticated(true);
         setIsLoading(false);
-        setLastActivity(Date.now());
+        setLastActivityTime(Date.now());
         
         // Record successful login event
         try {
@@ -328,92 +319,103 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         console.log("Attempting to sign in with Supabase:", email);
         
-        // Log the options passed to signInWithPassword
-        if (options && options.captchaToken) {
-          console.log("Using CAPTCHA token for authentication");
-        }
-        
-        const { data, error } = await supabase.auth.signInWithPassword({
+        // Format options properly for Supabase (without CAPTCHA)
+        const authOptions: {
+          email: string;
+          password: string;
+          options?: {
+            redirectTo?: string;
+          };
+        } = {
           email,
           password,
-          ...(options || {})
+          options: {}
+        };
+        
+        // Add other options if provided
+        if (options && options.data) {
+          authOptions.options = {
+            ...authOptions.options,
+            ...options.data
+          };
+        }
+        
+        console.log("Auth options (sensitive info redacted):", {
+          ...authOptions,
+          password: "********"
         });
         
-        if (error) {
-          // Enhanced error logging for debugging
-          console.error('Authentication error details:', {
-            message: error.message,
-            status: error.status,
-            name: error.name
-          });
+        // Add a retry mechanism for 500 errors
+        let retryCount = 0;
+        const maxRetries = 2;
+        
+        while (retryCount <= maxRetries) {
+          const { data, error } = await supabase.auth.signInWithPassword(authOptions);
           
-          // Record failed login attempt
-          try {
-            await recordSecurityEvent({
-              user_id: undefined,
-              event_type: 'login_failed',
-              ip_address: ipAddress,
-              user_agent: navigator.userAgent,
-              details: JSON.stringify({
-                error: error.message,
-                code: error.status,
-                timestamp: new Date().toISOString()
-              }),
-              email
-            });
-          } catch (recordError) {
-            console.error("Failed to record failed login attempt:", recordError);
-          }
-          
-          let errorMessage = 'Invalid login credentials';
-          
-          // Handle specific errors with more user-friendly messages
-          if (error.message.includes('Email not confirmed')) {
-            errorMessage = 'Please confirm your email before signing in. Check your inbox for a confirmation link.';
-          } else if (error.message.includes('Invalid login credentials')) {
-            errorMessage = 'The email or password you entered is incorrect. Please try again.';
-          } else if (error.status === 429) {
-            errorMessage = 'Too many login attempts. Please try again later or reset your password.';
-          } else if (error.status === 401) {
-            errorMessage = 'Your login session has expired. Please sign in again.';
-          } else if (error.status === 404 || error.status === 406) {
-            // Resource issues - this might happen in dev if tables aren't set up correctly
-            if (isDevelopment) {
-              errorMessage = 'Development environment setup incomplete. Some database tables may be missing.';
-            } else {
-              errorMessage = 'We\'re experiencing technical difficulties. Please try again later.';
-            }
-          } else if (error.message.includes('captcha verification')) {
-            console.error('CAPTCHA verification failed:', error);
-            errorMessage = 'CAPTCHA verification failed. Please try again or contact support if the issue persists.';
-          } else if (error.status === 500) {
-            // Handle the specific 500 Internal Server Error case
-            console.error('Database error during login:', error);
-            
-            // Check for specific database field errors
-            if (error.message.includes('last_sign_in') || error.message.includes('last_login')) {
-              errorMessage = 'We need to run a database update. Please contact the administrator to run the SQL scripts to add the required fields.';
-            } else {
-              errorMessage = 'We\'re experiencing database issues. This might be due to missing fields in the auth schema. Please contact support.';
-            }
-            
-            // Log detailed error for debugging
-            console.debug('Login 500 error details:', {
+          if (error) {
+            // Enhanced error logging for debugging
+            console.error(`Authentication error on attempt ${retryCount + 1} of ${maxRetries + 1}:`, {
               message: error.message,
               status: error.status,
               name: error.name
             });
-          } else if (error.status >= 500) {
-            errorMessage = 'Our servers are experiencing issues. Please try again later.';
+            
+            // When handling errors, remove specific CAPTCHA error handling
+            // Instead of checking for CAPTCHA errors, just handle general 500 errors
+            if (error.status === 500) {
+              console.log(`Retrying authentication after 500 error (attempt ${retryCount + 1} of ${maxRetries})`);
+              retryCount++;
+              // Wait before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, retryCount * 1000));
+              continue;
+            }
+            
+            // Record failed login attempt
+            try {
+              await recordSecurityEvent({
+                user_id: undefined,
+                event_type: 'login_failed',
+                ip_address: ipAddress,
+                user_agent: navigator.userAgent,
+                details: JSON.stringify({
+                  error: error.message,
+                  code: error.status,
+                  timestamp: new Date().toISOString()
+                }),
+                email
+              });
+            } catch (recordError) {
+              console.error("Failed to record failed login attempt:", recordError);
+            }
+            
+            let errorMessage = 'Invalid login credentials';
+            
+            // Handle specific errors with more user-friendly messages
+            if (error.message.includes('Invalid login credentials')) {
+              errorMessage = 'Invalid email or password. Please check your credentials and try again.';
+            } else if (error.message.includes('Email not confirmed')) {
+              errorMessage = 'Please check your email and follow the confirmation link before signing in.';
+            } else if (error.message.includes('Too many requests')) {
+              errorMessage = 'Too many login attempts. Please try again later.';
+            } else if (error.message.includes('Token expired')) {
+              errorMessage = 'Your session has expired. Please sign in again.';
+            } else if (error.status >= 500) {
+              errorMessage = 'Our servers are experiencing issues. Please try again later.';
+            } else {
+              console.error('Unhandled authentication error:', error);
+            }
+            
+            setAuthError(errorMessage);
+            setIsLoading(false);
+            throw new Error(errorMessage);
           }
           
-          setAuthError(errorMessage);
-          setIsLoading(false);
-          return { success: false, error: errorMessage };
+          // If we reached here, authentication succeeded
+          break;
         }
         
         // Authentication successful
-        if (data.user) {
+        if (data?.user) {
           // Record successful login
           try {
             await recordSecurityEvent({
@@ -431,7 +433,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }
           
           // Reset the last activity time
-          setLastActivity(Date.now());
+          setLastActivityTime(Date.now());
           
           // Fetching additional user data will be handled by the session listener
           setIsLoading(false);
@@ -515,15 +517,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Helper function to get client IP for security logging
   const getClientIP = async (): Promise<string> => {
     try {
-      // Use our proxy service to avoid CSP issues
-      const { ip } = IS_DEV 
-        ? await mockGetClientIp() 
-        : await getClientIpThroughProxy();
-      
-      return ip || 'unknown';
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
     } catch (error) {
-      console.error('Could not get client IP:', error);
-      return 'unknown';
+      console.warn('Could not get client IP:', error);
+      return '0.0.0.0'; // Default if unable to fetch
+    }
+  };
+  
+  // Fetch user data with profile information after authentication
+  const fetchUserData = async (userId: string): Promise<User> => {
+    if (!userId) {
+      throw new Error('Cannot fetch user data: No user ID provided');
+    }
+    
+    try {
+      // First get the user's auth data
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        throw new Error(`Error getting auth user: ${userError.message}`);
+      }
+      
+      if (!userData?.user) {
+        throw new Error('No user found in auth data');
+      }
+      
+      // Then get the extended profile data from the profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) {
+        console.warn(`Could not fetch user profile: ${profileError.message}`);
+        // Return basic user data even if profile can't be fetched
+        return {
+          id: userData.user.id,
+          email: userData.user.email || '',
+          isPremium: false,
+          trialEndsAt: null,
+          createdAt: userData.user.created_at || new Date().toISOString()
+        };
+      }
+      
+      // Combine auth user and profile data
+      const user: User = {
+        id: userData.user.id,
+        email: userData.user.email || '',
+        name: profileData?.name || undefined,
+        isPremium: profileData?.is_premium || false,
+        trialEndsAt: profileData?.trial_ends_at || null,
+        createdAt: userData.user.created_at || new Date().toISOString(),
+        // Add subscription data if available
+        subscription: profileData?.subscription_status ? {
+          status: profileData.subscription_status as any,
+          planName: profileData.subscription_plan,
+          currentPeriodEnd: profileData.subscription_end_date ? new Date(profileData.subscription_end_date) : new Date()
+        } : undefined
+      };
+      
+      return user;
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      throw new Error(`Failed to fetch user data: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
   
@@ -558,140 +617,103 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
   
-  // Log security events for auditing
+  // Records security events like login attempts and password changes
   const recordSecurityEvent = async (eventData: {
-    user_id?: string;
+    user_id: string;
     event_type: string;
     ip_address: string;
     user_agent: string;
     details: string;
-    email?: string;
   }) => {
     try {
-      if (!supabase) {
-        console.error('Supabase client not initialized');
-        return { success: false, error: 'Supabase client not initialized' };
+      // Check if the security_logs table exists by querying its structure
+      const { error: checkError } = await supabase
+        .from('security_logs')
+        .select('id')
+        .limit(1);
+      
+      // If there's an error here, the table likely doesn't exist
+      if (checkError) {
+        console.warn('Security logs table not available:', checkError.message);
+        return; // Exit early, can't log security events
       }
       
-      // Format details as JSON if it's a string
-      const parsedDetails = typeof eventData.details === 'string' 
-        ? JSON.parse(eventData.details) 
-        : eventData.details;
+      const { error } = await supabase
+        .from('security_logs')
+        .insert([eventData]);
       
-      // Try to call our database function to record the security event
-      try {
-        const { data, error } = await supabase.rpc('insert_security_event', {
-          p_user_id: eventData.user_id || null,
-          p_event_type: eventData.event_type,
-          p_ip_address: eventData.ip_address,
-          p_user_agent: eventData.user_agent,
-          p_email: eventData.email || null,
-          p_details: parsedDetails
-        });
-
-        if (error) {
-          console.warn('Error recording security event:', error);
-          // Store the event in local storage as fallback
-          storeSecurityEventLocally(eventData);
-        }
-
-        return { success: !error, error };
-      } catch (rpcError) {
-        console.warn('RPC error recording security event:', rpcError);
-        // Fallback to direct table insert if RPC fails (function might not exist yet)
-        try {
-          const { error: insertError } = await supabase
-            .from('security_events')
-            .insert({
-              user_id: eventData.user_id || null,
-              event_type: eventData.event_type,
-              ip_address: eventData.ip_address,
-              user_agent: eventData.user_agent,
-              email: eventData.email || null,
-              details: parsedDetails
-            });
-            
-          if (insertError) {
-            console.warn('Direct insert error:', insertError);
-            storeSecurityEventLocally(eventData);
-          }
-          
-          return { success: !insertError, error: insertError };
-        } catch (insertCatchError) {
-          console.warn('Insert catch error:', insertCatchError);
-          storeSecurityEventLocally(eventData);
-          return { success: false, error: insertCatchError };
-        }
+      if (error) {
+        console.error('Error recording security event:', error);
       }
-    } catch (error) {
-      console.error('Error recording security event:', error);
-      // Store the event in local storage as fallback
-      storeSecurityEventLocally(eventData);
-      return { success: false, error };
-    }
-  };
-
-  // Helper function to store security events locally when DB storage fails
-  const storeSecurityEventLocally = (eventData: {
-    user_id?: string;
-    event_type: string;
-    ip_address: string;
-    user_agent: string;
-    details: string;
-    email?: string;
-  }): void => {
-    try {
-      // Get existing events or initialize empty array
-      const storedEvents = JSON.parse(localStorage.getItem('offline_security_events') || '[]');
-      // Add timestamp to event
-      const eventWithTimestamp = {
-        ...eventData,
-        timestamp: new Date().toISOString(),
-        stored_locally: true
-      };
-      // Add new event
-      storedEvents.push(eventWithTimestamp);
-      // Store back to localStorage
-      localStorage.setItem('offline_security_events', JSON.stringify(storedEvents));
-    } catch (error) {
-      console.error('Error storing security event locally:', error);
+    } catch (err) {
+      // Log but don't throw - security logging should not block authentication
+      console.error('Failed to record security event:', err);
     }
   };
 
   const signup = async (data: SignUpData): Promise<{ needsEmailConfirmation?: boolean }> => {
     try {
-      // Encrypt sensitive user data
-      const { encryptedValue: encryptedEmail, iv: emailIv } = await encryptField(data.email);
+      setIsLoading(true);
+      setAuthError(null);
       
-      let nameIv = '';
-      let encryptedName = '';
-      if (data.name) {
-        const result = await encryptField(data.name);
-        encryptedName = result.encryptedValue;
-        nameIv = result.iv;
-      }
-
-      // Sign up the user
-      const { data: authData, error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
+      // Extract consent data if provided
+      const { consentRecord, ...signupData } = data;
+      
+      // Prepare signup options
+      const signupOptions: any = {
+        email: signupData.email,
+        password: signupData.password,
         options: {
           data: {
-            // Store encrypted data and IVs
-            email: encryptedEmail,
-            emailIv: emailIv,
-            name: encryptedName,
-            nameIv: nameIv,
-            isPremium: false,
-            subscription: {
-              status: 'free'
-            }
+            name: signupData.name,
+            // Add any other profile data here
           },
-          captchaToken: data.captchaToken
-        }
-      });
-
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      };
+      
+      // Perform the signup
+      const { data: authData, error } = await supabase.auth.signUp(signupOptions);
+      
       if (error) throw error;
+
+      // If signup was successful and we have consent information
+      if (authData.user && consentRecord) {
+        try {
+          // Store each consent type separately in the user_consent_records table
+          const consentTypes = [
+            { type: 'terms_of_service', value: consentRecord.termsAccepted },
+            { type: 'privacy_policy', value: consentRecord.privacyAccepted },
+            { type: 'marketing', value: consentRecord.marketingConsent },
+            { type: 'data_processing', value: consentRecord.dataProcessingConsent },
+            { type: 'age_verification', value: consentRecord.ageVerified },
+          ];
+          
+          // Record each consent type
+          for (const consent of consentTypes) {
+            // Skip if consent property is undefined
+            if (consent.value === undefined) continue;
+            
+            // Store consent record
+            await supabase.rpc('record_user_consent', {
+              p_user_id: authData.user.id,
+              p_consent_type: consent.type,
+              p_consent_given: consent.value,
+              p_consent_version: consentRecord.consentVersion || '1.0',
+              p_consent_method: consentRecord.consentMethod || 'signup_form',
+              p_ip_address: consentRecord.ipAddress || null,
+              p_user_agent: consentRecord.userAgent || navigator.userAgent,
+              p_metadata: { 
+                signup_flow: true,
+                timestamp: consentRecord.timestamp || new Date().toISOString()
+              }
+            });
+          }
+        } catch (consentError) {
+          // Log error but don't fail the signup
+          console.error('Failed to record consent:', consentError);
+        }
+      }
 
       // Check if email confirmation is required
       const needsEmailConfirmation = authData.user?.identities?.length === 0;
@@ -763,7 +785,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
       setIsAuthenticated(true);
-      setLastActivity(Date.now());
+      setLastActivityTime(Date.now());
     } catch (error) {
       console.error('Error updating user:', error);
     }

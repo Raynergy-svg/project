@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,9 +81,10 @@ export function SignInForm() {
           onChange={handleEmailChange}
           className={emailError ? "border-red-500" : ""}
           required
+          aria-label="Email"
         />
         {emailError && (
-          <p className="text-red-500 text-sm mt-1">{emailError}</p>
+          <p className="text-red-500 text-sm mt-1" role="error-message">{emailError}</p>
         )}
         <Input
           type="password"
@@ -91,7 +92,13 @@ export function SignInForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
+          aria-label="Password"
         />
+        <div className="flex justify-end">
+          <Link to="/forgot-password" className="text-sm text-blue-500 hover:text-blue-700">
+            Forgot password?
+          </Link>
+        </div>
       </div>
       
       <Alert variant="outline" className="bg-blue-50">
@@ -102,7 +109,13 @@ export function SignInForm() {
       </Alert>
       
       <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? <LoadingSpinner className="w-4 h-4" /> : "Sign In"}
+        {isLoading ? (
+          <div data-testid="loading-spinner">
+            <LoadingSpinner className="w-4 h-4" />
+          </div>
+        ) : (
+          "Sign In"
+        )}
       </Button>
     </form>
   );

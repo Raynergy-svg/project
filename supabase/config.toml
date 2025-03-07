@@ -125,10 +125,10 @@ password_requirements = ""
 # Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
 [auth.captcha]
 enabled = false
-provider = "hcaptcha"
+provider = "turnstile"
 secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"
-# Using production hCaptcha keys
-# Site key (frontend): 0x4AAAAAAA_KNHY49GyF-yvh
+# Using Cloudflare Turnstile
+# Site key (frontend): 0x4AAAAAAAS6TSQgRY0VCCww
 # Secret key (backend): set via environment variable
 
 [auth.email]

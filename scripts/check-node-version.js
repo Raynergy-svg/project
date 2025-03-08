@@ -38,7 +38,7 @@ async function checkNodeVersion() {
     const packageJson = JSON.parse(packageJsonContent);
 
     // Extract Node.js version requirement
-    const requiredNodeVersion = packageJson.engines?.node || "^20.15.1";
+    const requiredNodeVersion = packageJson.engines?.node || ">=18.20.3";
 
     console.log(
       `${colors.blue}Checking Node.js version compatibility...${colors.reset}`
@@ -62,23 +62,17 @@ async function checkNodeVersion() {
         `\n${colors.red}${colors.bold}✗ Node.js version is NOT compatible!${colors.reset}`
       );
       console.error(
-        `\n${colors.yellow}Please install Node.js version ${requiredNodeVersion} using one of the following methods:${colors.reset}`
+        `\n${colors.yellow}When using Bolt.new, you're limited to the available Node.js version.${colors.reset}`
       );
-
-      // Provide instructions based on platform
-      if (process.platform === "win32") {
-        console.log(`\n${colors.cyan}Windows:${colors.reset}`);
-        console.log("1. Visit https://nodejs.org/en/download/");
-        console.log("2. Download and install Node.js 20.x LTS");
-      } else {
-        console.log(`\n${colors.cyan}macOS/Linux:${colors.reset}`);
-        console.log("Using nvm (Node Version Manager):");
-        console.log("1. nvm install 20");
-        console.log("2. nvm use 20");
-        console.log("\nOr using n:");
-        console.log("1. npm install -g n");
-        console.log("2. n 20.15.1");
-      }
+      console.error(
+        `\n${colors.yellow}If you're using Bolt.new, we recommend:${colors.reset}`
+      );
+      console.error(
+        `1. Continue using Node.js v18.20.3 with older package versions`
+      );
+      console.error(
+        `2. Try a different environment that supports Node.js v20+`
+      );
 
       process.exit(1);
     }

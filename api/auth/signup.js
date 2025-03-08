@@ -38,16 +38,34 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Server configuration error" });
     }
 
-    // Parse JSON body safely
+    // Parse request body - handle different body formats
     let email, password, metadata;
     try {
-      const body = JSON.parse(req.body);
-      email = body.email;
-      password = body.password;
-      metadata = body.metadata || {};
+      // In production, req.body might already be an object
+      if (typeof req.body === "object" && req.body !== null) {
+        email = req.body.email;
+        password = req.body.password;
+        metadata = req.body.metadata || {};
+      } else {
+        // Try to parse as JSON string
+        const body = JSON.parse(req.body || "{}");
+        email = body.email;
+        password = body.password;
+        metadata = body.metadata || {};
+      }
     } catch (parseError) {
-      console.error("Failed to parse request body:", parseError);
-      return res.status(400).json({ error: "Invalid request body" });
+      console.error(
+        "Failed to parse request body:",
+        parseError,
+        "body is:",
+        typeof req.body
+      );
+      return res
+        .status(400)
+        .json({
+          error: "Invalid request body format",
+          details: `Body type: ${typeof req.body}`,
+        });
     }
 
     if (!email || !password) {

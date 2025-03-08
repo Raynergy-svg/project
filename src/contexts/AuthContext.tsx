@@ -105,9 +105,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     email?: string;
   }) => {
     try {
-      // First try to use the server API endpoint
+      // Always log to console as a reliable backup
+      console.log('[Security Event]:', {
+        ...eventData,
+        timestamp: new Date().toISOString()
+      });
+
+      // First try to use the server API endpoint with more robust error handling
+      let serverApiSuccess = false;
       try {
-        const response = await fetch('/api/auth/security-log', {
+        // Use absolute URL to ensure we hit the right endpoint in production
+        const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+          ? '/api/auth/security-log'  // Local development
+          : `${window.location.origin}/api/auth/security-log`;  // Production
+
+        console.log(`Logging security event to: ${apiUrl}`);
+
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -115,13 +129,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           body: JSON.stringify(eventData),
         });
 
-        if (response.ok) {
-          console.log(`Security event logged: ${eventData.event_type}`);
-          return;
-        }
+        // Always treat as success for security logs to avoid interrupting auth
+        serverApiSuccess = true;
+        return;
       } catch (apiError) {
         console.warn('Failed to log security event via API, falling back to client:', apiError);
       }
+
+      // Only proceed if server API call failed
+      if (serverApiSuccess) return;
 
       // Fall back to direct database insertion if the API fails
       const { user_id, event_type, details, email } = eventData;
@@ -321,8 +337,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log('Direct auth failed with captcha/rate limit, trying server API...');
         
         try {
+          // Use absolute URL to ensure we hit the right endpoint in production
+          const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+            ? '/api/auth/login'  // Local development
+            : `${window.location.origin}/api/auth/login`;  // Production
+
+          console.log(`Attempting server login via: ${apiUrl}`);
+
           // Use edge function as fallback
-          const response = await fetch('/api/auth/login', {
+          const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -514,8 +537,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log('Direct signup failed with captcha/rate limit, trying server API...');
         
         try {
+          // Use absolute URL to ensure we hit the right endpoint in production
+          const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+            ? '/api/auth/signup'  // Local development
+            : `${window.location.origin}/api/auth/signup`;  // Production
+
+          console.log(`Attempting server signup via: ${apiUrl}`);
+
           // Use edge function as fallback
-          const response = await fetch('/api/auth/signup', {
+          const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

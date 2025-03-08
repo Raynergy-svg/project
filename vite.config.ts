@@ -170,7 +170,7 @@ export default defineConfig(({ mode }) => {
     server: {
       https: sslCertificates,
       headers: {
-        'Content-Security-Policy': generateCSP(mode),
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://js.stripe.com https://cdn.plaid.com https://www.google.com https://www.gstatic.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://*.vercel-analytics.com https://*.vercel.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.supabase.co https://raw.githubusercontent.com https://*.cloudflare.com https://images.unsplash.com https://*.unsplash.com https://www.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.supabase.com https://fonts.googleapis.com https://fonts.gstatic.com https://*.cloudflareinsights.com https://api.stripe.com https://*.stripe.com https://*.plaid.com https://api.ipify.org https://va.vercel-scripts.com https://*.vercel-scripts.com https://*.vercel-analytics.com https://*.vercel.com https://*.projectdcertan84workersdev.workers.dev https://challenges.cloudflare.com http://localhost:* ws://localhost:*; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://cdn.plaid.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self';",
       },
       proxy: {
         '/api/ai': {

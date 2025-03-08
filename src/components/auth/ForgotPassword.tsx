@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, ArrowLeftIcon } from "lucide-react";
+import { InfoIcon, ArrowLeftIcon, Eye, EyeOff, Lock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import TurnstileCaptcha from '../TurnstileCaptcha';
+import { isTurnstileDisabled } from '../../utils/turnstile';
 
 interface ForgotPasswordResponse {
   message?: string;
@@ -19,7 +21,10 @@ export function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  const turnstileDisabled = isTurnstileDisabled();
 
   // Validate email format
   const validateEmail = (email: string): boolean => {
@@ -44,12 +49,28 @@ export function ForgotPassword() {
     setEmail(newEmail);
     if (newEmail) validateEmail(newEmail);
   };
+  
+  const handleTurnstileVerify = (token: string) => {
+    setTurnstileToken(token);
+    setEmailError("");
+  };
+
+  const handleTurnstileError = () => {
+    setTurnstileToken(null);
+    setEmailError("Verification failed. Please try again.");
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     
     // Validate email before submitting
     if (!validateEmail(email)) {
+      return;
+    }
+    
+    // In production, verify that Turnstile token exists
+    if (!turnstileDisabled && !turnstileToken) {
+      setEmailError("Please complete the verification challenge");
       return;
     }
     
@@ -62,7 +83,7 @@ export function ForgotPassword() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, turnstileToken }),
       });
 
       const data: ForgotPasswordResponse = await response.json();
@@ -91,25 +112,31 @@ export function ForgotPassword() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Forgot Password</CardTitle>
-        <CardDescription>
-          Enter your email address and we'll send you instructions to reset your password.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-[#121212]">
+      <div className="w-full max-w-md space-y-8">
+        <div className="flex flex-col items-center justify-center">
+          <div className="w-12 h-12 bg-[#88B04B]/10 flex items-center justify-center rounded-full mb-4">
+            <Lock className="text-[#88B04B] w-6 h-6" />
+          </div>
+          <h2 className="text-center text-3xl font-bold tracking-tight text-white">
+            Forgot Password
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-400">
+            Enter your email address and we'll send you instructions to reset your password.
+          </p>
+        </div>
+        
         {isSuccess ? (
-          <div className="space-y-4">
-            <Alert variant="success" className="bg-green-50 border-green-200">
-              <AlertDescription className="text-green-800">
+          <div className="space-y-6 mt-8">
+            <Alert className="bg-[#88B04B]/10 border-[#88B04B]/20">
+              <AlertDescription className="text-white">
                 Password reset instructions have been sent to your email.
                 Please check your inbox and follow the instructions to reset your password.
               </AlertDescription>
             </Alert>
             <div className="flex justify-center">
               <Link to="/login">
-                <Button variant="outline" className="mt-4">
+                <Button variant="outline" className="mt-4 text-white bg-transparent border-white/20 hover:bg-white/5">
                   <ArrowLeftIcon className="mr-2 h-4 w-4" />
                   Back to Login
                 </Button>
@@ -117,14 +144,18 @@ export function ForgotPassword() {
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-white">
+                Email Address
+              </label>
               <Input
+                id="email"
                 type="email"
-                placeholder="Email"
+                placeholder="email@example.com"
                 value={email}
                 onChange={handleEmailChange}
-                className={emailError ? "border-red-500" : ""}
+                className="w-full"
                 required
                 data-testid="email-input"
               />
@@ -133,24 +164,44 @@ export function ForgotPassword() {
               )}
             </div>
             
-            <Alert variant="outline" className="bg-blue-50">
-              <InfoIcon className="h-4 w-4 text-blue-500 mr-2" />
-              <AlertDescription>
+            {/* Turnstile Captcha */}
+            {!turnstileDisabled && (
+              <div className="w-full flex justify-center">
+                <TurnstileCaptcha
+                  onVerify={handleTurnstileVerify}
+                  onError={handleTurnstileError}
+                  action="forgot_password"
+                  theme="dark"
+                />
+              </div>
+            )}
+            
+            <Alert className="bg-white/5 border-white/10">
+              <InfoIcon className="h-4 w-4 text-white mr-2" />
+              <AlertDescription className="text-white">
                 If an account exists with this email, you will receive password reset instructions.
               </AlertDescription>
             </Alert>
             
             <div className="flex flex-col space-y-4">
-              <Button type="submit" className="w-full" disabled={isLoading} data-testid="submit-button">
+              <Button 
+                type="submit"
+                className="w-full bg-[#88B04B] hover:bg-[#88B04B]/90 text-white"
+                disabled={isLoading || (!turnstileDisabled && !turnstileToken)}
+                data-testid="submit-button"
+              >
                 {isLoading ? <LoadingSpinner size="sm" /> : "Reset Password"}
               </Button>
-              <Link to="/login" className="text-center text-sm text-gray-500 hover:text-gray-700">
+              <Link 
+                to="/login" 
+                className="text-center text-sm text-white hover:text-gray-300"
+              >
                 Remember your password? Sign in
               </Link>
             </div>
           </form>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 } 

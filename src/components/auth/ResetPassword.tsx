@@ -4,9 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon, ArrowLeftIcon, CheckCircleIcon } from "lucide-react";
+import { InfoIcon, ArrowLeftIcon, CheckCircleIcon, AlertCircle, Lock, Eye, EyeOff } from "lucide-react";
 
 interface ResetPasswordResponse {
   message?: string;
@@ -23,6 +22,8 @@ export function ResetPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -177,129 +178,189 @@ export function ResetPassword() {
   // Show loading state while validating token
   if (isValidating) {
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Reset Password</CardTitle>
-          <CardDescription>
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-[#121212]">
+        <div className="w-full max-w-md space-y-8 flex flex-col items-center">
+          <div className="w-12 h-12 bg-[#88B04B]/10 flex items-center justify-center rounded-full">
+            <Lock className="text-[#88B04B] w-6 h-6" />
+          </div>
+          <h2 className="text-center text-3xl font-bold tracking-tight text-white">
+            Reset Password
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-400">
             Validating your reset link...
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex justify-center py-6">
-          <LoadingSpinner size="lg" />
-        </CardContent>
-      </Card>
+          </p>
+          <div className="mt-8">
+            <LoadingSpinner size="lg" />
+          </div>
+        </div>
+      </div>
     );
   }
 
   // Show error if token is invalid
   if (!isTokenValid && !isValidating) {
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Invalid Reset Link</CardTitle>
-          <CardDescription>
-            This password reset link is invalid or has expired.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive" className="mb-4">
-            <AlertDescription>
-              The password reset link you clicked is no longer valid. This may be because:
-              <ul className="list-disc pl-5 mt-2">
-                <li>The link has expired (links are valid for 1 hour)</li>
-                <li>The link has already been used</li>
-                <li>The link was modified</li>
-              </ul>
-            </AlertDescription>
-          </Alert>
-          <div className="flex justify-center">
-            <Link to="/forgot-password">
-              <Button>
-                Request a new reset link
-              </Button>
-            </Link>
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-[#121212]">
+        <div className="w-full max-w-md space-y-8">
+          <div className="flex flex-col items-center justify-center">
+            <div className="w-12 h-12 bg-red-900/20 flex items-center justify-center rounded-full mb-4">
+              <AlertCircle className="text-red-500 w-6 h-6" />
+            </div>
+            <h2 className="text-center text-3xl font-bold tracking-tight text-white">
+              Invalid Reset Link
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-400">
+              This password reset link is invalid or has expired.
+            </p>
           </div>
-        </CardContent>
-      </Card>
+          
+          <div className="mt-8">
+            <Alert className="bg-red-900/20 border-red-900/30 mb-6">
+              <AlertDescription className="text-white">
+                The password reset link you clicked is no longer valid. This may be because:
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>The link has expired (links are valid for 1 hour)</li>
+                  <li>The link has already been used</li>
+                  <li>The link was modified</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex justify-center">
+              <Link to="/forgot-password">
+                <Button className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white">
+                  Request a new reset link
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Reset Password</CardTitle>
-        <CardDescription>
-          {isSuccess 
-            ? "Your password has been successfully reset" 
-            : "Create a new password for your account"}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8 bg-[#121212]">
+      <div className="w-full max-w-md space-y-8">
+        <div className="flex flex-col items-center justify-center">
+          <div className="w-12 h-12 bg-[#88B04B]/10 flex items-center justify-center rounded-full mb-4">
+            {isSuccess ? (
+              <CheckCircleIcon className="text-[#88B04B] w-6 h-6" />
+            ) : (
+              <Lock className="text-[#88B04B] w-6 h-6" />
+            )}
+          </div>
+          <h2 className="text-center text-3xl font-bold tracking-tight text-white">
+            {isSuccess ? "Password Reset Complete" : "Create New Password"}
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-400">
+            {isSuccess 
+              ? "Your password has been successfully updated" 
+              : "Create a strong password that you don't use elsewhere"}
+          </p>
+        </div>
+        
         {isSuccess ? (
-          <div className="space-y-4">
-            <div className="flex flex-col items-center justify-center py-4">
-              <CheckCircleIcon className="h-16 w-16 text-green-500 mb-4" />
-              <p className="text-center text-lg font-medium">
-                Password Reset Successful
-              </p>
-              <p className="text-center text-gray-500 mt-2">
+          <div className="mt-8 space-y-6">
+            <Alert className="bg-[#88B04B]/10 border-[#88B04B]/20">
+              <CheckCircleIcon className="h-5 w-5 text-[#88B04B] mr-2" />
+              <AlertDescription className="text-white">
                 Your password has been successfully reset. You can now log in with your new password.
-              </p>
-            </div>
-            <div className="flex justify-center">
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex justify-center mt-4">
               <Link to="/login">
-                <Button className="mt-4">
-                  <ArrowLeftIcon className="mr-2 h-4 w-4" />
+                <Button className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white min-w-32">
                   Go to Login
                 </Button>
               </Link>
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+            {/* Password Field */}
             <div className="space-y-2">
-              <Input
-                type="password"
-                placeholder="New Password"
-                value={password}
-                onChange={handlePasswordChange}
-                className={passwordError ? "border-red-500" : ""}
-                required
-                data-testid="password-input"
-              />
+              <label htmlFor="new-password" className="block text-sm font-medium text-white">
+                New Password
+              </label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={handlePasswordChange}
+                  className="w-full pr-10"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
               {passwordError && (
-                <p className="text-red-500 text-sm mt-1" data-testid="password-error">{passwordError}</p>
+                <p className="text-red-500 text-sm mt-1">{passwordError}</p>
               )}
             </div>
             
+            {/* Confirm Password Field */}
             <div className="space-y-2">
-              <Input
-                type="password"
-                placeholder="Confirm New Password"
-                value={confirmPassword}
-                onChange={handleConfirmPasswordChange}
-                className={confirmPasswordError ? "border-red-500" : ""}
-                required
-                data-testid="confirm-password-input"
-              />
+              <label htmlFor="confirm-password" className="block text-sm font-medium text-white">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={handleConfirmPasswordChange}
+                  className="w-full pr-10"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <Eye className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </div>
               {confirmPasswordError && (
-                <p className="text-red-500 text-sm mt-1" data-testid="confirm-password-error">{confirmPasswordError}</p>
+                <p className="text-red-500 text-sm mt-1">{confirmPasswordError}</p>
               )}
             </div>
             
-            <Alert variant="outline" className="bg-blue-50">
-              <InfoIcon className="h-4 w-4 text-blue-500 mr-2" />
-              <AlertDescription>
-                Your password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, and one number.
+            <Alert className="bg-white/5 border-white/10">
+              <InfoIcon className="h-4 w-4 text-white mr-2" />
+              <AlertDescription className="text-white">
+                Your password must be at least 8 characters long and include at least one uppercase letter, 
+                one lowercase letter, and one number.
               </AlertDescription>
             </Alert>
             
-            <Button type="submit" className="w-full" disabled={isLoading} data-testid="submit-button">
+            <Button 
+              type="submit" 
+              className="w-full bg-[#88B04B] hover:bg-[#88B04B]/90 text-white" 
+              disabled={isLoading}
+            >
               {isLoading ? <LoadingSpinner size="sm" /> : "Reset Password"}
             </Button>
           </form>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 } 

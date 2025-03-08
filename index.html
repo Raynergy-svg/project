@@ -16,7 +16,7 @@
       script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' https://static.cloudflareinsights.com https://js.stripe.com https://cdn.plaid.com https://www.google.com https://www.gstatic.com https://va.vercel-scripts.com https://*.vercel-scripts.com https://*.vercel-analytics.com https://*.vercel.com https://challenges.cloudflare.com;
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      img-src 'self' data: blob: https://*.supabase.co https://raw.githubusercontent.com https://*.cloudflare.com https://images.unsplash.com https://www.gstatic.com;
+      img-src 'self' data: blob: https://*.supabase.co https://raw.githubusercontent.com https://*.cloudflare.com https://images.unsplash.com https://*.unsplash.com https://www.gstatic.com;
       font-src 'self' https://fonts.gstatic.com;
       connect-src 'self' 
         https://*.supabase.co
@@ -210,5 +210,6 @@
     </div>
     
     <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/csp-checker.js"></script>
   </body>
 </html>

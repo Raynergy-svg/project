@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Eye, EyeOff, ArrowRight, Lock, Shield, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Lock, Shield, ArrowLeft, Loader2, AlertCircle, KeyIcon } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { useSecurity } from "@/contexts/SecurityContext";
@@ -598,8 +598,13 @@ export default function SignIn() {
                         Password
                       </label>
                       <div className="text-sm">
-                        <Link to="/forgot-password" className="text-white hover:text-gray-300 hover:underline">
-                          Forgot password?
+                        <Link 
+                          to="/forgot-password" 
+                          className="text-white hover:text-gray-300 hover:underline flex items-center gap-1"
+                          aria-label="Reset your password"
+                        >
+                          <span>Forgot password?</span>
+                          <KeyIcon size={14} />
                         </Link>
                       </div>
                     </div>

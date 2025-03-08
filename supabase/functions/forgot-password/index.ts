@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 import { corsHeaders } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/email.ts";
+import { verifyTurnstileToken } from "../_shared/turnstile.ts";
 
 const REQUIRED_ENV_VARS = {
   SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
@@ -9,7 +10,8 @@ const REQUIRED_ENV_VARS = {
   SMTP_HOST: Deno.env.get('SMTP_HOST'),
   SMTP_PORT: Deno.env.get('SMTP_PORT'),
   SMTP_USER: Deno.env.get('SMTP_USER'),
-  SMTP_PASS: Deno.env.get('SMTP_PASS')
+  SMTP_PASS: Deno.env.get('SMTP_PASS'),
+  TURNSTILE_SECRET_KEY: Deno.env.get('TURNSTILE_SECRET_KEY')
 };
 
 const missingVars = Object.entries(REQUIRED_ENV_VARS)
@@ -47,7 +49,7 @@ serve(async (req) => {
     }
 
     // Parse and validate request body
-    const { email } = await req.json();
+    const { email, turnstileToken } = await req.json();
 
     if (!email) {
       return new Response(
@@ -77,6 +79,24 @@ serve(async (req) => {
       );
     }
 
+    // Verify Turnstile token if provided and in production environment
+    if (turnstileToken && Deno.env.get('ENVIRONMENT') !== 'development') {
+      const turnstileVerification = await verifyTurnstileToken(turnstileToken);
+      
+      if (!turnstileVerification.success) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Invalid verification',
+            details: 'Human verification failed. Please try again.'
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    }
+
     // Check if user exists
     const { data: user, error: userError } = await supabase
       .from('users')
@@ -84,15 +104,19 @@ serve(async (req) => {
       .eq('email', email)
       .single();
 
+    // We'll continue even if the user is not found, to prevent email enumeration attacks
+    // But we'll log the error for our records
     if (userError) {
-      console.error('Error checking user:', userError);
+      console.log('User not found for password reset:', email);
+      
+      // For security, we'll still return a success response
       return new Response(
         JSON.stringify({ 
-          error: 'User not found',
-          details: 'No account found with this email address'
+          message: 'Password reset instructions sent',
+          details: 'If this email is registered, you will receive instructions to reset your password'
         }),
         { 
-          status: 404,
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       );
@@ -134,12 +158,23 @@ serve(async (req) => {
       from: 'no-reply@smartdebtflow.com',
       subject: 'Password Reset Request - Smart Debt Flow',
       html: `
-        <h2>Password Reset Request</h2>
-        <p>We received a request to reset your password. Click the link below to set a new password:</p>
-        <p><a href="${resetUrl}">Reset Password</a></p>
-        <p>This link will expire in 1 hour.</p>
-        <p>If you didn't request this password reset, you can safely ignore this email.</p>
-        <p>Best regards,<br>Smart Debt Flow Team</p>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="${new URL(req.url).origin}/logo.png" alt="Smart Debt Flow Logo" style="max-width: 150px;">
+          </div>
+          <h2 style="color: #333; text-align: center;">Password Reset Request</h2>
+          <p>Hello,</p>
+          <p>We received a request to reset your password. To create a new password, click the button below:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${resetUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Reset Your Password</a>
+          </div>
+          <p>This link will expire in <strong>1 hour</strong>.</p>
+          <p>If you didn't request this password reset, you can safely ignore this email. Your account security is important to us, and your password will remain unchanged.</p>
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #666; font-size: 12px;">
+            <p>© ${new Date().getFullYear()} Smart Debt Flow. All rights reserved.</p>
+            <p>If you have any questions, please contact our support team.</p>
+          </div>
+        </div>
       `
     });
 

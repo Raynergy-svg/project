@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, KeyIcon, UserPlus } from "lucide-react";
 import TurnstileCaptcha from '../TurnstileCaptcha';
 import { isTurnstileDisabled } from '../../utils/turnstile';
 
@@ -172,9 +172,21 @@ export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFor
       </form>
       
       <div className="auth-links">
-        <a href="/forgot-password">Forgot password?</a>
+        <Link 
+          to="/forgot-password" 
+          className="flex items-center gap-1 text-white hover:text-gray-300 hover:underline"
+        >
+          <KeyIcon size={16} />
+          <span>Forgot password?</span>
+        </Link>
         <span className="divider">•</span>
-        <a href="/signup">Need an account? Sign up</a>
+        <Link 
+          to="/signup" 
+          className="flex items-center gap-1 text-white hover:text-gray-300 hover:underline"
+        >
+          <UserPlus size={16} />
+          <span>Need an account? Sign up</span>
+        </Link>
       </div>
     </div>
   );

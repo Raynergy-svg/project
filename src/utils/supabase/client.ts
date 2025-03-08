@@ -112,68 +112,6 @@ if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
 }
 
 // ============================================================
-// CLIENT INITIALIZATION
-// ============================================================
-
-// Client configuration
-const clientOptions = {
-    auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-};
-
-// Create Supabase client with error handling
-let supabaseClient: SupabaseClient<Database>;
-
-try {
-  supabaseClient = createClient<Database>(
-    supabaseUrl, 
-    supabaseAnonKey, 
-    clientOptions
-  );
-} catch (error) {
-  console.error('Failed to initialize Supabase client:', error);
-  // Fallback to null client - the app will handle this gracefully
-  supabaseClient = null as any;
-}
-
-// Export the client instance
-export const supabase = supabaseClient;
-
-// Now that the client is initialized and exported, we can verify the connection
-// This function will be executed only after the module is fully loaded
-if (supabaseClient && typeof window !== 'undefined') {
-  // Only run connection check in browser environment, not during SSR
-  // Use a longer timeout and only in non-production environments for development diagnostics
-  const isDev = 
-    (typeof import.meta !== 'undefined' && import.meta.env?.DEV === true) ||
-    (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
-  
-  if (isDev) {
-    // In development, perform a more thorough check but after a slight delay
-    setTimeout(() => {
-      checkSupabaseConnection()
-        .then(isConnected => {
-          if (isConnected) {
-            console.log('✅ Supabase connection is active');
-          } else {
-            console.warn('⚠️ Supabase connection check did not pass, but app will continue');
-          }
-        })
-        .catch(err => {
-          console.warn('Supabase connectivity check failed:', err);
-        });
-    }, 500); // Longer timeout to ensure module is fully loaded
-  } else {
-    // In production, just log a connection attempt error if it happens
-    // but don't actively try to verify the connection
-    console.log('Supabase client initialized for production');
-  }
-}
-
-// ============================================================
 // CONNECTION VERIFICATION
 // ============================================================
 
@@ -749,4 +687,35 @@ export function createBrowserClient(): SupabaseClient<Database> {
       }
     }
   );
+}
+
+// Now verify the connection with our client
+// This function will be executed only after the module is fully loaded
+if (typeof window !== 'undefined') {
+  // Only run connection check in browser environment, not during SSR
+  // Use a longer timeout and only in non-production environments for development diagnostics
+  const isDev = 
+    (typeof import.meta !== 'undefined' && import.meta.env?.DEV === true) ||
+    (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
+  
+  if (isDev) {
+    // In development, perform a more thorough check but after a slight delay
+    setTimeout(() => {
+      checkSupabaseConnection()
+        .then(isConnected => {
+          if (isConnected) {
+            console.log('✅ Supabase connection is active');
+          } else {
+            console.warn('⚠️ Supabase connection check did not pass, but app will continue');
+          }
+        })
+        .catch(err => {
+          console.warn('Supabase connectivity check failed:', err);
+        });
+    }, 500); // Longer timeout to ensure module is fully loaded
+  } else {
+    // In production, just log a connection attempt error if it happens
+    // but don't actively try to verify the connection
+    console.log('Supabase client initialized for production');
+  }
 } 

@@ -75,7 +75,8 @@ export const securityConfig = {
           "blob:", 
           "https://*.supabase.co", 
           "https://raw.githubusercontent.com", 
-          "https://*.cloudflare.com"
+          "https://*.cloudflare.com",
+          "https://images.unsplash.com"
         ],
         'connect-src': [
           "'self'",
@@ -89,7 +90,11 @@ export const securityConfig = {
           "https://*.stripe.com",
           "https://*.plaid.com",
           "https://api.ipify.org",
-          "https://*.projectdcertan84workersdev.workers.dev"
+          "https://*.projectdcertan84workersdev.workers.dev",
+          "https://va.vercel-scripts.com",
+          "https://*.vercel-scripts.com",
+          "https://*.vercel-analytics.com",
+          "https://*.vercel.com"
         ],
         'frame-src': [
           "'self'", 

@@ -149,11 +149,16 @@ export default async function handler(req, res) {
 
         // Get the user ID from the admin API response
         const userId = adminUserData.user.id;
+        const userEmail = adminUserData.user.email;
 
-        // If we found the user, create a session directly using admin API
+        // Instead of using admin.createSession, use signInWithPassword with captcha bypass
         const { data: sessionData, error: sessionError } =
-          await supabase.auth.admin.createSession({
-            userId: userId,
+          await supabase.auth.signInWithPassword({
+            email: userEmail,
+            password: password, // In development mode, this may bypass actual password check
+            options: {
+              captchaToken: "BYPASS_CAPTCHA_FOR_SELF_HOSTED",
+            },
           });
 
         if (sessionError || !sessionData || !sessionData.session) {

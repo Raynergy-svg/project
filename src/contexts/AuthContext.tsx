@@ -57,6 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [sessionData, setSessionData] = useState<any>(null);
   
   // Session activity tracking
   const activityTimeout = useRef<number | null>(null);
@@ -77,6 +78,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [isAuthenticated]);
   
+  // Helper function to store session data
+  const setSession = useCallback((session: any) => {
+    console.log('Storing session data');
+    setSessionData(session);
+    
+    // Optionally store in localStorage for persistence
+    try {
+      // Store a minimal version of the session to avoid localStorage size limits
+      const minimalSession = {
+        access_token: session.access_token,
+        refresh_token: session.refresh_token,
+        expires_at: session.expires_at
+      };
+      localStorage.setItem('auth_session', JSON.stringify(minimalSession));
+    } catch (error) {
+      console.warn('Failed to store session in localStorage:', error);
+    }
+  }, []);
+  
+  // Helper function to clear session data
+  const clearSession = useCallback(() => {
+    console.log('Clearing session data');
+    setSessionData(null);
+    try {
+      localStorage.removeItem('auth_session');
+    } catch (error) {
+      console.warn('Failed to clear session from localStorage:', error);
+    }
+  }, []);
+  
   // ============================================================
   // UTILITY FUNCTIONS
   // ============================================================
@@ -94,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       return '0.0.0.0';
     }
   };
-  
+
   /**
    * Log security events
    */
@@ -116,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         // Use absolute URL to ensure we hit the right endpoint in production
         const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-          ? '/api/auth/security-log'  // Local development
+          ? 'http://localhost:3000/api/auth/security-log'  // Local development - force HTTP
           : `${window.location.origin}/api/auth/security-log`;  // Production
 
         console.log(`Logging security event to: ${apiUrl}`);
@@ -188,7 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Non-critical function, so we don't rethrow to avoid breaking auth flows
     }
   };
-  
+
   /**
    * Fetch user data from Supabase
    */
@@ -201,7 +232,98 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching user data:', error);
+        
+        // If the profile doesn't exist, try to create it
+        if (error.code === 'PGRST116' || error.message.includes('rows returned')) {
+          console.log('Profile not found, attempting to create one...');
+          
+          // Get user info from auth
+          const { data: userData } = await supabase.auth.getUser();
+          
+          if (!userData || !userData.user) {
+            console.error('Failed to get user data from auth, will try session data');
+            
+            // Try to get from session as a last resort
+            const { data: sessionData } = await supabase.auth.getSession();
+            
+            if (sessionData?.session?.user) {
+              console.log('Found user data in session');
+              return {
+                id: userId,
+                email: sessionData.session.user.email || 'unknown@example.com',
+                name: sessionData.session.user.user_metadata?.name || sessionData.session.user.email?.split('@')[0] || 'User',
+                isPremium: false,
+                trialEndsAt: null,
+                createdAt: sessionData.session.user.created_at || new Date().toISOString(),
+                subscription: {
+                  status: 'free',
+                  currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+                }
+              };
+            }
+            
+            console.error('Could not retrieve user data from auth or session');
+            throw new Error('Could not retrieve user data');
+          }
+          
+          // Get current time for timestamps
+          const now = new Date().toISOString();
+          
+          // Set trial end date to 7 days from now
+          const trialEndsAt = new Date();
+          trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+          const trialEndsAtISO = trialEndsAt.toISOString();
+          
+          // Create a profile entry with all required fields
+          const { error: createError } = await supabase.from('profiles').insert({
+            id: userId,
+            name: userData.user.user_metadata?.name || userData.user.email?.split('@')[0] || 'User',
+            is_premium: true,
+            trial_ends_at: trialEndsAtISO,
+            subscription: {
+              status: 'trialing',
+              plan_name: 'Basic',
+              current_period_end: trialEndsAtISO
+            },
+            created_at: now,
+            updated_at: now,
+            last_sign_in_at: null,
+            raw_app_meta_data: null,
+            raw_user_meta_data: null
+          });
+          
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            throw new Error('Failed to create user profile');
+          }
+          
+          // Fetch the newly created profile
+          const { data: newProfile, error: fetchError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+            
+          if (fetchError || !newProfile) {
+            throw new Error('Created profile but failed to fetch it');
+          }
+          
+          console.log('Profile created successfully');
+          return {
+            id: userId,
+            email: userData.user.email || 'unknown@example.com',
+            name: newProfile.name,
+            isPremium: !!newProfile.is_premium,
+            trialEndsAt: newProfile.trial_ends_at,
+            createdAt: newProfile.created_at,
+            subscription: newProfile.subscription
+          };
+        }
+        
+        throw error;
+      }
       
       if (!data) {
         throw new Error('User profile not found');
@@ -249,6 +371,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const { data: userData } = await supabase.auth.getUser();
       
       if (!userData || !userData.user) {
+        console.error('Failed to get user data from auth, will try session data');
+        
+        // Try to get from session as a last resort
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        if (sessionData?.session?.user) {
+          console.log('Found user data in session');
+          return {
+            id: userId,
+            email: sessionData.session.user.email || 'unknown@example.com',
+            name: sessionData.session.user.user_metadata?.name || sessionData.session.user.email?.split('@')[0] || 'User',
+            isPremium: false,
+            trialEndsAt: null,
+            createdAt: sessionData.session.user.created_at || new Date().toISOString(),
+            subscription: {
+              status: 'free',
+              currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+            }
+          };
+        }
+        
+        console.error('Could not retrieve user data from auth or session');
         throw new Error('Could not retrieve user data');
       }
       
@@ -329,155 +473,114 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoading(true);
       
-      // First try with direct Supabase client
-      const { data, error } = await authService.signIn(email, password);
+      // Normalize email format
+      const sanitizedEmail = email.trim().toLowerCase();
       
-      // If direct client auth fails with a captcha error, try server-side auth
-      if (error && (error.message.includes('captcha') || error.message.includes('429') || error.message.includes('rate limit'))) {
-        console.log('Direct auth failed with captcha/rate limit, trying server API...');
-        
-        try {
-          // Use absolute URL to ensure we hit the right endpoint in production
-          const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-            ? '/api/auth/login'  // Local development
-            : `${window.location.origin}/api/auth/login`;  // Production
-
-          console.log(`Attempting server login via: ${apiUrl}`);
-
-          // Use edge function as fallback
-          const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email, password }),
-          });
-          
-          // First check if response is ok before trying to parse JSON
-          if (!response.ok) {
-            let errorMessage = 'Server authentication failed';
-            try {
-              const errorData = await response.json();
-              errorMessage = errorData.error || errorMessage;
-            } catch (jsonError) {
-              console.error('Failed to parse error response:', jsonError);
-              // If we can't parse the JSON, use the status text
-              errorMessage = `Server error: ${response.status} ${response.statusText}`;
-            }
-            throw new Error(errorMessage);
-          }
-          
-          // Now safely parse the JSON
-          let serverAuthData;
-          try {
-            serverAuthData = await response.json();
-          } catch (jsonError) {
-            console.error('Failed to parse success response:', jsonError);
-            throw new Error('Invalid response from authentication server');
-          }
-          
-          if (!serverAuthData.session || !serverAuthData.user) {
-            throw new Error('Server authentication successful but response data is invalid');
-          }
-          
-          // Fetch complete user data
-          const userData = await fetchUserData(serverAuthData.user.id);
-          setUser(userData);
-          setIsAuthenticated(true);
-          
-          // Set the user session manually
-          await supabase.auth.setSession({
-            access_token: serverAuthData.session.access_token,
-            refresh_token: serverAuthData.session.refresh_token,
-          });
-          
-          // Log successful login (won't fail auth flow if it errors)
-          try {
-            await logSecurityEvent({
-              user_id: serverAuthData.user.id,
-              event_type: 'login_success',
-              details: 'User logged in successfully via server API',
-              email: email,
-            });
-          } catch (logError) {
-            console.warn('Failed to log security event:', logError);
-          }
-          
-          return { user: userData };
-        } catch (serverError) {
-          console.error('Server-side authentication failed:', serverError);
-          
-          // Log failed login attempt (won't fail auth flow if it errors)
-          try {
-            await logSecurityEvent({
-              event_type: 'login_failed',
-              details: `Login failed (server): ${serverError.message}`,
-              email: email,
-            });
-          } catch (logError) {
-            console.warn('Failed to log security event:', logError);
-          }
-          
-          throw serverError;
-        }
-      }
+      console.log(`Attempting login for ${sanitizedEmail}...`);
       
+      // First try with direct client
+      const { data: authData, error } = await authService.signIn(sanitizedEmail, password);
+      
+      // Check for auth error
       if (error) {
-        // Log failed login attempt
-        await logSecurityEvent({
-          event_type: 'login_failed',
-          details: `Login failed: ${error.message}`,
-          email: email,
-        });
+        console.error('Authentication error:', error);
         
-        throw new Error(error.message);
+        // Log failed login attempt (won't fail auth flow if logging fails)
+        try {
+          await logSecurityEvent({
+            event_type: 'login_failed',
+            details: `Login failed: ${error.message}`,
+            email: sanitizedEmail
+          });
+        } catch (logError) {
+          console.warn('Failed to log security event:', logError);
+        }
+        
+        throw error;
       }
       
-      if (!data?.session || !data?.user) {
-        throw new Error('Authentication successful but session data is missing');
+      if (!authData || !authData.session) {
+        console.error('Missing session data after authentication');
+        throw new Error('Authentication succeeded but no session was returned');
       }
       
-      // Fetch complete user data
+      console.log('Authentication successful, session obtained');
+      
+      // Store session in localStorage
+      setSession(authData.session);
+      
+      // Try to get user data
       try {
-        const userData = await fetchUserData(data.user.id);
+        console.log('Fetching user data...');
+        const userData = await fetchUserData(authData.session.user.id);
+        
+        // Set user state
         setUser(userData);
         setIsAuthenticated(true);
         
-        // Log successful login
-        await logSecurityEvent({
-          user_id: data.user.id,
-          event_type: 'login_success',
-          details: 'User logged in successfully',
-          email: email,
-        });
+        // Log successful login (won't fail auth flow if logging fails)
+        try {
+          await logSecurityEvent({
+            user_id: userData.id,
+            event_type: 'login_success',
+            details: 'User logged in successfully',
+            email: sanitizedEmail
+          });
+        } catch (logError) {
+          console.warn('Failed to log security event:', logError);
+        }
         
-        return { user: userData };
+        console.log('Login process completed successfully');
+        return { success: true, user: userData };
       } catch (userDataError) {
-        console.error('Failed to fetch user data after login:', userDataError);
+        console.error('Error fetching user data after login:', userDataError);
         
-        // Fall back to basic user info
-        const basicUser = {
-          id: data.user.id,
-          email: data.user.email || email,
+        // Create a minimal user from session data as fallback
+        console.log('Creating minimal user object from session data');
+        const minimalUser: User = {
+          id: authData.session.user.id,
+          email: authData.session.user.email || sanitizedEmail,
+          name: authData.session.user.user_metadata?.name || sanitizedEmail.split('@')[0] || 'User',
           isPremium: false,
           trialEndsAt: null,
-          createdAt: data.user.created_at || new Date().toISOString(),
+          createdAt: authData.session.user.created_at || new Date().toISOString(),
+          subscription: {
+            status: 'free',
+            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+          }
         };
         
-        setUser(basicUser);
+        setUser(minimalUser);
         setIsAuthenticated(true);
         
-        return { user: basicUser };
+        // Log warning about user data
+        try {
+          await logSecurityEvent({
+            user_id: minimalUser.id,
+            event_type: 'login_partial',
+            details: 'User logged in but profile data could not be retrieved',
+            email: sanitizedEmail
+          });
+        } catch (logError) {
+          console.warn('Failed to log security event:', logError);
+        }
+        
+        console.log('Login completed with minimal user data');
+        return { success: true, user: minimalUser, warning: 'Using minimal user data' };
       }
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
-      throw error;
+      return { 
+        success: false, 
+        error: error.message || 'Failed to authenticate',
+        originalError: error 
+      };
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   /**
    * Logout function
    */
@@ -505,6 +608,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // Clear auth state
       setUser(null);
       setIsAuthenticated(false);
+      clearSession(); // Clear the session data
       
       // Clear any activity timers
       if (activityTimeout.current) {
@@ -539,7 +643,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         try {
           // Use absolute URL to ensure we hit the right endpoint in production
           const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
-            ? '/api/auth/signup'  // Local development
+            ? 'http://localhost:3000/api/auth/signup'  // Local development - force HTTP
             : `${window.location.origin}/api/auth/signup`;  // Production
 
           console.log(`Attempting server signup via: ${apiUrl}`);
@@ -671,7 +775,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       
       if (error) throw error;
-      
+
       // Log the event
       await logSecurityEvent({
         event_type: 'confirmation_email_sent',
@@ -685,7 +789,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoading(false);
     }
   };
-  
+
   /**
    * Update user data
    */
@@ -696,16 +800,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoading(true);
       
       // Update in database
-      const { error } = await supabase
-        .from('profiles')
+        const { error } = await supabase
+          .from('profiles')
         .update({
           name: data.name,
           // Add other fields as needed
         })
-        .eq('id', user.id);
-      
+          .eq('id', user.id);
+
       if (error) throw error;
-      
+
       // Update local state
       setUser({ ...user, ...data });
       
@@ -782,13 +886,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   
   // Provide context
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        login, 
+        logout, 
         signup,
-        resendConfirmationEmail,
+        resendConfirmationEmail, 
         isLoading,
         isAuthenticated,
         isSubscribed,

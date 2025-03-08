@@ -60,12 +60,10 @@ export default async function handler(req, res) {
         "body is:",
         typeof req.body
       );
-      return res
-        .status(400)
-        .json({
-          error: "Invalid request body format",
-          details: `Body type: ${typeof req.body}`,
-        });
+      return res.status(400).json({
+        error: "Invalid request body format",
+        details: `Body type: ${typeof req.body}`,
+      });
     }
 
     if (!email || !password) {
@@ -143,15 +141,41 @@ export default async function handler(req, res) {
 
     // Try to create a profile entry
     try {
-      await supabase
-        .from("profiles")
-        .insert({
-          id: data.user.id,
-          email: email.trim().toLowerCase(),
-          name: metadata.name || "",
-          created_at: new Date().toISOString(),
-        })
-        .throwOnError(false);
+      // Set current time for timestamps
+      const now = new Date().toISOString();
+
+      // Set trial end date to 7 days from now
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 7);
+      const trialEndsAtISO = trialEndsAt.toISOString();
+
+      console.log("[Server] Creating profile for new user", data.user.id);
+
+      // Create a profile with all required fields
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: data.user.id,
+        email: email.trim().toLowerCase(),
+        name: metadata.name || email.split("@")[0] || "User",
+        is_premium: true,
+        trial_ends_at: trialEndsAtISO,
+        subscription: {
+          status: "trialing",
+          plan_name: "Basic",
+          current_period_end: trialEndsAtISO,
+        },
+        created_at: now,
+        updated_at: now,
+        last_sign_in_at: null,
+        raw_app_meta_data: null,
+        raw_user_meta_data: null,
+      });
+
+      if (profileError) {
+        console.warn("[Server] Failed to create profile entry:", profileError);
+        // Non-critical error, continue
+      } else {
+        console.log("[Server] Successfully created profile for new user");
+      }
     } catch (profileError) {
       console.warn("[Server] Failed to create profile entry:", profileError);
       // Non-critical error, continue

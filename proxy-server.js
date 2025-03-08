@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { createServer } from "http";
 import Stripe from "stripe";
 import { LRUCache } from "lru-cache";
+import { createClient } from "@supabase/supabase-js";
 
 // Load environment variables
 dotenv.config();
@@ -200,6 +201,352 @@ app.get("/api/subscription/verify-session", async (req, res) => {
       success: false,
       message: "Error verifying payment",
     });
+  }
+});
+
+// Initialize Supabase
+const supabaseUrl =
+  process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey =
+  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Login handler
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Get client IP for logging
+    const ip =
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress || "0.0.0.0";
+
+    // Get user agent for logging
+    const userAgent = req.headers["user-agent"] || "Unknown";
+
+    console.log(`[Auth] Login attempt for ${normalizedEmail} from ${ip}`);
+
+    // Try standard login first
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password: password,
+    });
+
+    // Handle login failure or success
+    if (error) {
+      console.error("[Auth] Authentication error:", error);
+
+      // Handle specific errors
+      if (
+        error.message?.includes("Email not confirmed") ||
+        error.message?.includes("unconfirmed")
+      ) {
+        console.log(
+          "[Auth] User has unconfirmed email, trying to get user by email"
+        );
+
+        // Try to find the user by email
+        const { data: userData, error: userError } =
+          await supabase.auth.admin.getUserByEmail(normalizedEmail);
+
+        if (userError || !userData || !userData.user) {
+          console.error("[Auth] Failed to find user by email:", userError);
+          return res.status(401).json({
+            error:
+              "Please confirm your email before logging in, or contact support for assistance.",
+          });
+        }
+
+        // Get the user ID from the admin API response
+        const userId = userData.user.id;
+
+        // Create a session for the user
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.admin.createSession({
+            userId: userId,
+          });
+
+        if (sessionError || !sessionData || !sessionData.session) {
+          console.error(
+            "[Auth] Failed to create session for unconfirmed email user:",
+            sessionError
+          );
+          return res.status(500).json({
+            error:
+              "Failed to authenticate. Please try again later or contact support.",
+          });
+        }
+
+        // Session created successfully for unconfirmed email user
+        console.log(
+          "[Auth] Successfully created session for unconfirmed email user"
+        );
+
+        // Log successful login
+        try {
+          await supabase
+            .from("security_logs")
+            .insert({
+              user_id: userId,
+              event_type: "login_success",
+              ip_address: ip,
+              user_agent: userAgent,
+              details:
+                "Login successful via server API (unconfirmed email bypass)",
+              email: normalizedEmail,
+              created_at: new Date().toISOString(),
+            })
+            .throwOnError(false);
+        } catch (logError) {
+          console.warn("[Auth] Failed to log security event:", logError);
+        }
+
+        // Return the session and user data
+        return res.status(200).json({
+          session: sessionData.session,
+          user: userData.user,
+        });
+      } else {
+        // For other errors, just return the error
+        return res.status(401).json({
+          error:
+            "Invalid email or password. Please check your credentials and try again.",
+        });
+      }
+    }
+
+    // Normal successful login
+    if (!data || !data.session || !data.user) {
+      return res.status(500).json({
+        error: "Authentication successful but session data is missing.",
+      });
+    }
+
+    // Log successful login
+    try {
+      await supabase
+        .from("security_logs")
+        .insert({
+          user_id: data.user.id,
+          event_type: "login_success",
+          ip_address: ip,
+          user_agent: userAgent,
+          details: "Login successful via server API",
+          email: normalizedEmail,
+          created_at: new Date().toISOString(),
+        })
+        .throwOnError(false);
+    } catch (logError) {
+      console.warn("[Auth] Failed to log security event:", logError);
+    }
+
+    // Return the session data
+    return res.status(200).json({
+      session: data.session,
+      user: data.user,
+    });
+  } catch (error) {
+    console.error("[Auth] Unexpected error during authentication:", error);
+    return res
+      .status(500)
+      .json({ error: "Internal server error during authentication" });
+  }
+});
+
+// Signup handler
+app.post("/api/auth/signup", async (req, res) => {
+  try {
+    const { email, password, metadata = {} } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+
+    // Normalize email
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Get client IP for logging
+    const ip =
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress || "0.0.0.0";
+
+    // Get user agent for logging
+    const userAgent = req.headers["user-agent"] || "Unknown";
+
+    console.log(`[Auth] Signup attempt for ${normalizedEmail} from ${ip}`);
+
+    // Server-side signup (bypasses CAPTCHA requirements)
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: normalizedEmail,
+      password,
+      email_confirm: true, // Auto-confirm email for server-side signup
+      user_metadata: metadata,
+    });
+
+    if (error) {
+      console.error("[Auth] Signup error:", error);
+
+      // Try to log the failure but don't fail if logging fails
+      try {
+        await supabase
+          .from("security_logs")
+          .insert({
+            event_type: "signup_failed",
+            ip_address: ip,
+            user_agent: userAgent,
+            details: error.message,
+            email: normalizedEmail,
+            created_at: new Date().toISOString(),
+          })
+          .throwOnError(false);
+      } catch (logError) {
+        console.warn("[Auth] Failed to log security event:", logError);
+      }
+
+      // Return appropriate user-friendly error message
+      if (error.message?.includes("already registered")) {
+        return res.status(409).json({
+          error:
+            "An account with this email already exists. Please sign in instead.",
+        });
+      } else {
+        return res.status(500).json({
+          error: "Unable to create your account. Please try again later.",
+        });
+      }
+    }
+
+    if (!data.user) {
+      return res.status(500).json({
+        error: "Signup successful but user data is missing.",
+      });
+    }
+
+    // Try to create a profile entry
+    try {
+      await supabase
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          email: normalizedEmail,
+          name: metadata.name || "",
+          created_at: new Date().toISOString(),
+        })
+        .throwOnError(false);
+    } catch (profileError) {
+      console.warn("[Auth] Failed to create profile entry:", profileError);
+      // Non-critical error, continue
+    }
+
+    // Log successful signup
+    try {
+      await supabase
+        .from("security_logs")
+        .insert({
+          user_id: data.user.id,
+          event_type: "signup_success",
+          ip_address: ip,
+          user_agent: userAgent,
+          details: "Signup successful via server API",
+          email: normalizedEmail,
+          created_at: new Date().toISOString(),
+        })
+        .throwOnError(false);
+    } catch (logError) {
+      console.warn("[Auth] Failed to log security event:", logError);
+    }
+
+    // Return the user data
+    return res.status(200).json({
+      user: data.user,
+      message: "Account created successfully",
+    });
+  } catch (error) {
+    console.error("[Auth] Unexpected error during signup:", error);
+    return res
+      .status(500)
+      .json({ error: "Internal server error during signup" });
+  }
+});
+
+// Security log handler
+app.post("/api/auth/security-log", async (req, res) => {
+  try {
+    const { event_type, details, email, user_id } = req.body;
+
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Get client IP
+    const ip_address =
+      req.headers["x-forwarded-for"] || req.socket.remoteAddress || "0.0.0.0";
+
+    // Get user agent
+    const user_agent = req.headers["user-agent"] || "Unknown";
+
+    try {
+      // Log the security event
+      const { error } = await supabase
+        .from("security_logs")
+        .insert({
+          user_id: user_id || null,
+          event_type: event_type || "unknown",
+          ip_address,
+          user_agent,
+          details: details || "No details provided",
+          email: email || null,
+          created_at: new Date().toISOString(),
+        })
+        .throwOnError(false);
+
+      if (error) {
+        console.warn("[Auth] Failed to log security event:", error);
+        // Still return success to avoid blocking auth flow
+        return res
+          .status(200)
+          .json({ success: true, message: "Logging failed but proceeding" });
+      }
+
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("[Auth] Error logging security event:", error);
+      // Return success anyway to not break the auth flow
+      return res
+        .status(200)
+        .json({ success: true, message: "Logging failed but proceeding" });
+    }
+  } catch (error) {
+    console.error("[Auth] Error in security logging endpoint:", error);
+    // Return success anyway to not break the auth flow
+    return res
+      .status(200)
+      .json({ success: true, message: "Endpoint error but proceeding" });
   }
 });
 

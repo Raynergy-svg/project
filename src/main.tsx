@@ -1,8 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
+import Router from "./router";
 import "./index.css";
-import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { registerSW } from "virtual:pwa-register";
 import { initSecurityAuditService } from './services/securityAuditService';
@@ -118,10 +117,8 @@ async function initializeApp() {
     safeLog("Rendering React application");
     root.render(
       <React.StrictMode>
-        <BrowserRouter>
-          <App />
-          <Toaster position="top-right" />
-        </BrowserRouter>
+        <Router />
+        <Toaster position="top-right" />
       </React.StrictMode>
     );
     

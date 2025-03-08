@@ -26,6 +26,15 @@ const SecurityContext = createContext<SecurityContextType | undefined>(undefined
 const DEFAULT_SESSION_TIMEOUT = 120 * 60 * 1000;
 const WARNING_BEFORE_TIMEOUT = 10 * 60 * 1000; // 10 minutes before timeout
 
+// Hook to use Security Context - Define this at the top level, not inside another function
+function useSecurity(): SecurityContextType {
+  const context = useContext(SecurityContext);
+  if (context === undefined) {
+    throw new Error('useSecurity must be used within a SecurityProvider');
+  }
+  return context;
+}
+
 export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [csrfToken, setCsrfToken] = useState<string>(() => {
     const storedToken = sessionStorage.getItem('csrfToken');
@@ -214,11 +223,5 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   );
 };
 
-// Hook to use Security Context
-export const useSecurity = (): SecurityContextType => {
-  const context = useContext(SecurityContext);
-  if (context === undefined) {
-    throw new Error('useSecurity must be used within a SecurityProvider');
-  }
-  return context;
-}; 
+// Export the hook
+export { useSecurity }; 

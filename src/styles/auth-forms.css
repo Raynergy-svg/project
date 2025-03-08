@@ -1,0 +1,292 @@
+/* Auth Forms CSS - Dark theme with green accents */
+
+/* Container styles */
+.signup-container,
+.signin-container {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  background-color: rgba(30, 30, 30, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(136, 176, 75, 0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* Neon container styles */
+.neon-container {
+  position: relative;
+  width: 100%;
+  border: 2px solid #88B04B;
+  border-radius: 0.75rem;
+  box-shadow: 0 0 15px rgba(136, 176, 75, 0.5);
+  overflow: hidden;
+  animation: pulse 3s infinite;
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+/* Enhanced form success animation for the container */
+.form-success-animation {
+  animation: form-success 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards !important;
+}
+
+@keyframes form-success {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(136, 176, 75, 0.5);
+  }
+  20% {
+    transform: scale(1.02);
+    box-shadow: 0 0 25px rgba(136, 176, 75, 0.7);
+  }
+  40% {
+    transform: scale(0.98);
+    box-shadow: 0 0 20px rgba(136, 176, 75, 0.6);
+  }
+  60% {
+    transform: scale(1.01);
+    box-shadow: 0 0 30px rgba(136, 176, 75, 0.8);
+  }
+  80% {
+    transform: scale(0.99);
+    box-shadow: 0 0 25px rgba(136, 176, 75, 0.7);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(136, 176, 75, 0.5);
+  }
+}
+
+/* Pulsing animation for neon effect */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 10px rgba(136, 176, 75, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(136, 176, 75, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(136, 176, 75, 0.5);
+  }
+}
+
+/* Form layout and spacing */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Input fields */
+.auth-form input[type="text"],
+.auth-form input[type="email"],
+.auth-form input[type="password"] {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.375rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.auth-form input[type="text"]:focus,
+.auth-form input[type="email"]:focus,
+.auth-form input[type="password"]:focus {
+  outline: none;
+  border-color: #88B04B;
+  box-shadow: 0 0 0 2px rgba(136, 176, 75, 0.25);
+}
+
+.auth-form input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Form group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Checkbox styles */
+.auth-form input[type="checkbox"] {
+  margin-right: 0.5rem;
+  accent-color: #88B04B;
+}
+
+.checkbox-wrapper {
+  display: flex;
+  align-items: flex-start;
+  margin: 0.5rem 0;
+}
+
+.checkbox-wrapper label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.checkbox-wrapper a {
+  color: #88B04B;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.checkbox-wrapper a:hover {
+  text-decoration: underline;
+  color: #9bca56;
+}
+
+/* Button styles */
+.auth-button {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  background-color: #88B04B;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out, transform 0.1s ease, box-shadow 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-button:hover {
+  background-color: #7A9C44;
+  transform: translateY(-1px);
+  box-shadow: 0 0 10px rgba(136, 176, 75, 0.5);
+}
+
+.auth-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 0 5px rgba(136, 176, 75, 0.3);
+}
+
+/* Button press ripple effect */
+.auth-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1) translate(-50%, -50%);
+  transform-origin: 50% 50%;
+}
+
+.auth-button:focus:not(:active)::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0) translate(-50%, -50%);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(25) translate(-50%, -50%);
+    opacity: 0;
+  }
+}
+
+.auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Error message */
+.error-message {
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background-color: rgba(220, 38, 38, 0.1);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  border-radius: 0.375rem;
+  color: #ef4444;
+  font-size: 0.8125rem;
+}
+
+/* Form titles */
+.auth-title {
+  color: white;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+/* Links section */
+.auth-links {
+  margin-top: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.auth-links a {
+  color: #88B04B;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.auth-links a:hover {
+  text-decoration: underline;
+  color: #9bca56;
+}
+
+/* Turnstile container */
+.captcha-container {
+  margin: 0.5rem 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .signup-container,
+  .signin-container {
+    max-width: 100%;
+    border-radius: 0;
+    padding: 1rem;
+  }
+}
+
+/* Compact design for dense screens */
+@media (max-height: 700px) {
+  .signup-container,
+  .signin-container {
+    padding: 0.75rem;
+  }
+  
+  .form-group {
+    margin-bottom: 0.25rem;
+  }
+  
+  .auth-form input[type="text"],
+  .auth-form input[type="email"],
+  .auth-form input[type="password"] {
+    padding: 0.375rem 0.75rem;
+  }
+  
+  .form-group label {
+    font-size: 0.75rem;
+    margin-bottom: 0.125rem;
+  }
+} 

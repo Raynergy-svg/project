@@ -1,0 +1,137 @@
+/* Animation Effects CSS */
+
+/* Success celebration container */
+.celebration-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+/* Confetti particles */
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 0;
+  opacity: 0;
+}
+
+.confetti-animation {
+  animation: confetti-fall 2.5s linear forwards;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    top: -10px;
+    transform: translateX(0) rotate(0deg);
+  }
+  
+  100% {
+    opacity: 0;
+    top: 100%;
+    transform: translateX(calc(var(--random-x) * 200px)) rotate(calc(var(--random-rotate) * 360deg));
+  }
+}
+
+/* Success flash effect */
+.success-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(136, 176, 75, 0.3);
+  opacity: 0;
+  z-index: 9998;
+  pointer-events: none;
+}
+
+.flash-animation {
+  animation: flash 0.5s ease-out forwards;
+}
+
+@keyframes flash {
+  0% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Success icon animation */
+.success-icon {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 120px;
+  height: 120px;
+  background-color: #1A1A1A;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  box-shadow: 0 0 30px rgba(136, 176, 75, 0.8);
+  pointer-events: none;
+}
+
+.success-icon svg {
+  width: 60px;
+  height: 60px;
+  color: #88B04B;
+}
+
+.success-icon-animation {
+  animation: success-pop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes success-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  40% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 1;
+  }
+  80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Form success animation */
+.form-success-animation {
+  animation: form-success 0.5s ease forwards;
+}
+
+@keyframes form-success {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(136, 176, 75, 0.5);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 0 30px rgba(136, 176, 75, 0.8);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 15px rgba(136, 176, 75, 0.5);
+  }
+} 

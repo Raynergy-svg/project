@@ -139,7 +139,7 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     console.log("[Auth] Login request received");
 
-    const { email, password } = req.body;
+    const { email, password, captchaToken } = req.body;
     const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
     const userAgent = req.headers["user-agent"] || "unknown";
 
@@ -153,10 +153,62 @@ app.post("/api/auth/login", async (req, res) => {
 
     console.log(`[Auth] Login attempt for ${normalizedEmail} from ${ip}`);
 
-    // Initialize Supabase client with additional options and better error handling
-    console.log(
-      `[Auth] Initializing Supabase client for ${normalizedEmail} with service role key`
-    );
+    // Verify turnstile token if needed
+    const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY;
+    const skipCaptcha =
+      process.env.VITE_SKIP_AUTH_CAPTCHA === "true" ||
+      process.env.NEXT_PUBLIC_SKIP_AUTH_CAPTCHA === "true";
+
+    if (!skipCaptcha && captchaToken) {
+      try {
+        // Verify the token with Cloudflare
+        const formData = new URLSearchParams();
+        formData.append("secret", turnstileSecretKey);
+        formData.append("response", captchaToken);
+        formData.append("remoteip", ip);
+
+        const verificationResponse = await fetch(
+          "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+          {
+            method: "POST",
+            body: formData,
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          }
+        );
+
+        const verificationResult = await verificationResponse.json();
+
+        if (!verificationResult.success) {
+          console.error(
+            "[Auth] Turnstile verification failed:",
+            verificationResult
+          );
+          return res.status(400).json({
+            error: "Captcha verification failed",
+            details: verificationResult["error-codes"] || [],
+          });
+        }
+      } catch (captchaError) {
+        console.error("[Auth] Turnstile verification error:", captchaError);
+        return res.status(500).json({
+          error: "Error verifying captcha",
+          details: captchaError.message,
+        });
+      }
+    } else if (!skipCaptcha && !captchaToken) {
+      if (process.env.NODE_ENV !== "development") {
+        return res.status(400).json({ error: "Captcha verification required" });
+      } else {
+        console.log("[Auth] Continuing without captcha in development mode");
+      }
+    } else {
+      console.log("[Auth] Skipping captcha verification (development mode)");
+    }
+
+    // Initialize Supabase client
+    console.log("[Auth] Initializing Supabase client with service role key");
 
     try {
       const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -166,255 +218,105 @@ app.post("/api/auth/login", async (req, res) => {
         },
       });
 
-      // Test the client with a simple query
-      console.log("[Auth] Testing Supabase connection");
-      const { data: testData, error: testError } = await supabase
-        .from("profiles")
-        .select("id")
-        .limit(1);
-      if (testError) {
-        console.error("[Auth] Supabase client test error:", testError);
-        return res.status(500).json({
-          error:
-            "Authentication service connection error. Please contact support.",
-          details: testError.message,
+      console.log("[Auth] Attempting signInWithPassword");
+      const { data: signInData, error: signInError } =
+        await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password: password,
         });
-      } else {
-        console.log("[Auth] Supabase client test successful");
-      }
 
-      // DEVELOPMENT MODE: Sign in directly with admin rights
-      console.log("[Auth] Using admin auth in development mode");
+      if (signInError) {
+        console.log("[Auth] Sign in attempt failed, error:", signInError);
 
-      try {
-        // Use admin signIn function - this bypasses password verification in development
-        // This approach is only for DEVELOPMENT and should NEVER be used in production
-        console.log("[Auth] Attempting signInWithPassword");
-        const { data: signInData, error: signInError } =
-          await supabase.auth.signInWithPassword({
-            email: normalizedEmail,
-            password: password,
+        // Try to log the failure but don't fail if logging fails
+        try {
+          await supabase
+            .from("security_logs")
+            .insert({
+              event_type: "login_failed",
+              ip_address: ip,
+              user_agent: userAgent,
+              details: signInError.message,
+              email: normalizedEmail,
+              created_at: new Date().toISOString(),
+            })
+            .throwOnError(false);
+        } catch (logError) {
+          console.warn("[Auth] Failed to log security event:", logError);
+        }
+
+        // Return appropriate user-friendly error messages
+        if (
+          signInError.message?.includes("Invalid login credentials") ||
+          signInError.message?.includes("Invalid email or password")
+        ) {
+          return res.status(401).json({
+            error: "Invalid email or password",
           });
-
-        if (signInError) {
-          console.log("[Auth] Sign in attempt failed, error:", signInError);
-          console.log("[Auth] Trying to get user directly");
-
-          // If direct sign-in fails, try to get user directly from auth
-          console.log("[Auth] Listing users");
-          const { data: usersData, error: usersError } =
-            await supabase.auth.admin.listUsers({
-              perPage: 100,
-            });
-
-          if (usersError) {
-            console.error("[Auth] Failed to list users:", usersError);
-            return res
-              .status(500)
-              .json({ error: "Failed to authenticate: " + usersError.message });
-          }
-
-          if (!usersData?.users?.length) {
-            console.log("[Auth] No users found in system");
-            return res.status(401).json({ error: "Invalid email or password" });
-          }
-
-          console.log(
-            `[Auth] Found ${usersData.users.length} users, searching for match...`
-          );
-
-          // Find the user by email
-          const matchingUser = usersData.users.find(
-            (u) =>
-              u.email && u.email.toLowerCase() === normalizedEmail.toLowerCase()
-          );
-
-          if (!matchingUser) {
-            console.log(`[Auth] No user found with email: ${normalizedEmail}`);
-            return res.status(401).json({ error: "Invalid email or password" });
-          }
-
-          console.log(`[Auth] Found user ${matchingUser.id}`);
-
-          // Generate a session for the user with admin API
-          console.log("[Auth] Creating user directly with admin API");
-
-          // In development mode, create a session directly without password verification
-          // WARNING: This should NEVER be used in production
-          const { data, error } = await supabase.auth.admin.createUser({
-            email: normalizedEmail,
-            email_confirm: true,
-            user_metadata: {
-              name:
-                matchingUser.user_metadata?.name ||
-                normalizedEmail.split("@")[0],
-            },
-          });
-
-          if (error) {
-            console.error("[Auth] Failed to create user:", error);
-            return res
-              .status(500)
-              .json({ error: "Failed to authenticate: " + error.message });
-          }
-
-          if (!data || !data.user) {
-            console.error("[Auth] No user data returned");
-            return res.status(500).json({ error: "Authentication failed" });
-          }
-
-          // Create a session object for client
-          const sessionObj = {
-            access_token: "dev_mode_access_token_" + Date.now(),
-            refresh_token: "dev_mode_refresh_token_" + Date.now(),
-            expires_in: 3600,
-            expires_at: Math.floor((Date.now() + 3600000) / 1000),
-          };
-
-          console.log("[Auth] Successfully created dev session");
-
-          // Check if user has a profile and create one if not
-          console.log("[Auth] Checking if user has a profile");
-          await ensureUserProfile(
-            supabase,
-            data.user.id,
-            normalizedEmail,
-            data.user.user_metadata?.name
-          );
-
-          // Return session and user data
-          console.log("[Auth] Returning session and user data");
-          return res.status(200).json({
-            session: sessionObj,
-            user: data.user,
-            message: "Successfully authenticated",
+        } else if (signInError.message?.includes("Email not confirmed")) {
+          return res.status(401).json({
+            error: "Please verify your email address before signing in",
           });
         } else {
-          // Regular sign-in was successful
-          console.log("[Auth] Sign in successful with password");
-
-          if (!signInData?.session || !signInData?.user) {
-            console.error(
-              "[Auth] Sign in succeeded but no session/user returned"
-            );
-            console.log("[Auth] Sign in data:", JSON.stringify(signInData));
-            return res
-              .status(500)
-              .json({ error: "Authentication service error" });
-          }
-
-          // Check if user has a profile
-          await ensureUserProfile(
-            supabase,
-            signInData.user.id,
-            normalizedEmail,
-            signInData.user.user_metadata?.name
-          );
-
-          // Return the session
-          console.log("[Auth] Returning session and user data");
-          return res.status(200).json({
-            session: signInData.session,
-            user: signInData.user,
-            message: "Successfully authenticated",
+          return res.status(500).json({
+            error: "Unable to sign in. Please try again later.",
+            details: signInError.message,
           });
         }
-      } catch (authError) {
-        console.error("[Auth] Unexpected auth error:", authError);
-        return res
-          .status(500)
-          .json({ error: "Authentication failed: " + authError.message });
       }
-    } catch (clientError) {
-      console.error("[Auth] Error creating Supabase client:", clientError);
+
+      // Try to log successful login
+      try {
+        await supabase
+          .from("security_logs")
+          .insert({
+            user_id: signInData.user.id,
+            event_type: "login_success",
+            ip_address: ip,
+            user_agent: userAgent,
+            details: "Login successful via server API",
+            email: normalizedEmail,
+            created_at: new Date().toISOString(),
+          })
+          .throwOnError(false);
+      } catch (logError) {
+        console.warn("[Auth] Failed to log security event:", logError);
+      }
+
+      // Return the user data and session
+      return res.status(200).json({
+        user: signInData.user,
+        session: signInData.session,
+      });
+    } catch (error) {
+      console.error("[Auth] Unexpected error during login:", error);
       return res.status(500).json({
-        error:
-          "Failed to initialize authentication service: " + clientError.message,
+        error: "Internal server error during login",
+        details: error.message,
       });
     }
   } catch (error) {
-    console.error("[Auth] Unexpected error:", error);
-    return res
-      .status(500)
-      .json({ error: "An unexpected error occurred: " + error.message });
+    console.error("[Auth] Unexpected error in login handler:", error);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
   }
 });
-
-// Helper function to ensure a user has a profile
-async function ensureUserProfile(supabase, userId, email, name) {
-  console.log(`[Auth] Ensuring profile exists for user ${userId}`);
-
-  try {
-    // Check if profile exists
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (profileData) {
-      console.log("[Auth] User profile already exists");
-      return true;
-    }
-
-    // Create a profile if it doesn't exist
-    console.log("[Auth] No profile found, creating one");
-
-    // Create a profile
-    const now = new Date().toISOString();
-    const trialEndsAt = new Date();
-    trialEndsAt.setDate(trialEndsAt.getDate() + 7);
-
-    const { error: createError } = await supabase.from("profiles").insert({
-      id: userId,
-      name: name || email.split("@")[0] || "User",
-      email: email,
-      is_premium: true,
-      trial_ends_at: trialEndsAt.toISOString(),
-      subscription: {
-        status: "trialing",
-        plan_name: "Basic",
-        current_period_end: trialEndsAt.toISOString(),
-      },
-      created_at: now,
-      updated_at: now,
-      last_sign_in_at: now,
-      raw_app_meta_data: null,
-      raw_user_meta_data: null,
-    });
-
-    if (createError) {
-      console.error("[Auth] Failed to create profile:", createError);
-      return false;
-    }
-
-    console.log("[Auth] Profile created successfully");
-    return true;
-  } catch (error) {
-    console.error("[Auth] Error ensuring profile:", error);
-    return false;
-  }
-}
 
 // Signup handler
 app.post("/api/auth/signup", async (req, res) => {
   try {
-    const { email, password, metadata = {} } = req.body;
+    console.log("[Auth] Signup request received", req.body);
+    const { email, password, metadata = {}, turnstileToken } = req.body;
 
     if (!email || !password) {
+      console.log("[Auth] Missing email or password");
       return res.status(400).json({ error: "Email and password are required" });
     }
 
     // Normalize email
     const normalizedEmail = email.trim().toLowerCase();
-
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
 
     // Get client IP for logging
     const ip =
@@ -425,26 +327,201 @@ app.post("/api/auth/signup", async (req, res) => {
 
     console.log(`[Auth] Signup attempt for ${normalizedEmail} from ${ip}`);
 
-    // Server-side signup (bypasses CAPTCHA requirements)
-    const { data, error } = await supabase.auth.admin.createUser({
-      email: normalizedEmail,
-      password,
-      email_confirm: true, // Auto-confirm email for server-side signup
-      user_metadata: metadata,
+    // Verify Turnstile token if provided and if we're not in dev mode that skips this
+    const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY;
+    const skipCaptcha =
+      process.env.VITE_SKIP_AUTH_CAPTCHA === "true" ||
+      process.env.NEXT_PUBLIC_SKIP_AUTH_CAPTCHA === "true";
+
+    if (!skipCaptcha && turnstileToken) {
+      console.log("[Auth] Verifying Turnstile token");
+
+      if (!turnstileSecretKey) {
+        console.error("[Auth] Missing Turnstile secret key");
+        return res.status(500).json({
+          error: "Server configuration error: Missing Turnstile secret key",
+        });
+      }
+
+      try {
+        // Verify the token with Cloudflare
+        const formData = new URLSearchParams();
+        formData.append("secret", turnstileSecretKey);
+        formData.append("response", turnstileToken);
+        formData.append("remoteip", ip);
+
+        const verificationResponse = await fetch(
+          "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+          {
+            method: "POST",
+            body: formData,
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          }
+        );
+
+        const verificationResult = await verificationResponse.json();
+        console.log(
+          "[Auth] Turnstile verification result:",
+          verificationResult
+        );
+
+        if (!verificationResult.success) {
+          return res.status(400).json({
+            error: "Captcha verification failed",
+            details: verificationResult["error-codes"] || [],
+          });
+        }
+      } catch (captchaError) {
+        console.error("[Auth] Turnstile verification error:", captchaError);
+        return res.status(500).json({
+          error: "Error verifying captcha",
+          details: captchaError.message,
+        });
+      }
+    } else if (!skipCaptcha && !turnstileToken) {
+      console.log("[Auth] No Turnstile token provided and CAPTCHA not skipped");
+      // If we're not in dev mode and no token is provided, reject
+      if (process.env.NODE_ENV !== "development") {
+        return res.status(400).json({ error: "Captcha verification required" });
+      } else {
+        console.log("[Auth] Continuing without captcha in development mode");
+      }
+    } else {
+      console.log("[Auth] Skipping captcha verification (development mode)");
+    }
+
+    // Initialize Supabase client
+    console.log("[Auth] Initializing Supabase client", {
+      url: supabaseUrl ? "✓ Set" : "✗ Missing",
+      serviceKey: supabaseServiceKey ? "✓ Set" : "✗ Missing",
     });
 
-    if (error) {
-      console.error("[Auth] Signup error:", error);
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("[Auth] Missing Supabase credentials");
+      return res.status(500).json({
+        error: "Server configuration error: Missing Supabase credentials",
+      });
+    }
 
-      // Try to log the failure but don't fail if logging fails
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Two-step signup process: 1) Create user, 2) Create profile if needed
+    console.log("[Auth] Creating user with admin API");
+
+    try {
+      // Step 1: Create the user in auth.users
+      const { data, error } = await supabase.auth.admin.createUser({
+        email: normalizedEmail,
+        password,
+        email_confirm: true, // Auto-confirm email for server-side signup
+        user_metadata: metadata,
+      });
+
+      if (error) {
+        console.error("[Auth] Signup error:", error);
+
+        // Try to log the failure but don't fail if logging fails
+        try {
+          await supabase
+            .from("security_logs")
+            .insert({
+              event_type: "signup_failed",
+              ip_address: ip,
+              user_agent: userAgent,
+              details: error.message,
+              email: normalizedEmail,
+              created_at: new Date().toISOString(),
+            })
+            .throwOnError(false);
+        } catch (logError) {
+          console.warn("[Auth] Failed to log security event:", logError);
+        }
+
+        // Return appropriate user-friendly error message
+        if (error.message?.includes("already registered")) {
+          return res.status(409).json({
+            error:
+              "An account with this email already exists. Please sign in instead.",
+          });
+        } else {
+          return res.status(500).json({
+            error: "Unable to create your account. Please try again later.",
+            details: error.message,
+          });
+        }
+      }
+
+      if (!data.user) {
+        return res.status(500).json({
+          error: "Signup successful but user data is missing.",
+        });
+      }
+
+      // Step 2: Check if a profile exists, create it if not
+      console.log(
+        "[Auth] Checking if profile exists for new user:",
+        data.user.id
+      );
+      const { data: existingProfile, error: profileCheckError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profileCheckError) {
+        console.warn(
+          "[Auth] Error checking if profile exists:",
+          profileCheckError
+        );
+      }
+
+      // If profile doesn't exist, create it
+      if (!existingProfile) {
+        console.log("[Auth] Creating profile for new user:", data.user.id);
+        try {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .insert({
+              id: data.user.id,
+              email: normalizedEmail,
+              name: metadata.name || "",
+              created_at: new Date().toISOString(),
+            });
+
+          if (profileError) {
+            console.warn("[Auth] Error creating profile:", profileError);
+            // Continue anyway - the user was created successfully
+          } else {
+            console.log("[Auth] Profile created successfully");
+          }
+        } catch (profileInsertError) {
+          console.warn(
+            "[Auth] Exception creating profile:",
+            profileInsertError
+          );
+          // Continue anyway - the user was created successfully
+        }
+      } else {
+        console.log("[Auth] Profile already exists for user");
+      }
+
+      // Log successful signup
       try {
         await supabase
           .from("security_logs")
           .insert({
-            event_type: "signup_failed",
+            user_id: data.user.id,
+            event_type: "signup_success",
             ip_address: ip,
             user_agent: userAgent,
-            details: error.message,
+            details: "Signup successful via server API",
             email: normalizedEmail,
             created_at: new Date().toISOString(),
           })
@@ -453,69 +530,25 @@ app.post("/api/auth/signup", async (req, res) => {
         console.warn("[Auth] Failed to log security event:", logError);
       }
 
-      // Return appropriate user-friendly error message
-      if (error.message?.includes("already registered")) {
-        return res.status(409).json({
-          error:
-            "An account with this email already exists. Please sign in instead.",
-        });
-      } else {
-        return res.status(500).json({
-          error: "Unable to create your account. Please try again later.",
-        });
-      }
-    }
-
-    if (!data.user) {
+      // Return the user data
+      console.log("[Auth] Signup successful for", normalizedEmail);
+      return res.status(200).json({
+        user: data.user,
+        message: "Account created successfully",
+      });
+    } catch (dbError) {
+      console.error("[Auth] Database exception during signup:", dbError);
       return res.status(500).json({
-        error: "Signup successful but user data is missing.",
+        error: "Database error during account creation",
+        details: dbError.message || "Unknown database error",
       });
     }
-
-    // Try to create a profile entry
-    try {
-      await supabase
-        .from("profiles")
-        .insert({
-          id: data.user.id,
-          email: normalizedEmail,
-          name: metadata.name || "",
-          created_at: new Date().toISOString(),
-        })
-        .throwOnError(false);
-    } catch (profileError) {
-      console.warn("[Auth] Failed to create profile entry:", profileError);
-      // Non-critical error, continue
-    }
-
-    // Log successful signup
-    try {
-      await supabase
-        .from("security_logs")
-        .insert({
-          user_id: data.user.id,
-          event_type: "signup_success",
-          ip_address: ip,
-          user_agent: userAgent,
-          details: "Signup successful via server API",
-          email: normalizedEmail,
-          created_at: new Date().toISOString(),
-        })
-        .throwOnError(false);
-    } catch (logError) {
-      console.warn("[Auth] Failed to log security event:", logError);
-    }
-
-    // Return the user data
-    return res.status(200).json({
-      user: data.user,
-      message: "Account created successfully",
-    });
   } catch (error) {
     console.error("[Auth] Unexpected error during signup:", error);
-    return res
-      .status(500)
-      .json({ error: "Internal server error during signup" });
+    return res.status(500).json({
+      error: "Internal server error during signup",
+      details: error.message,
+    });
   }
 });
 
@@ -599,14 +632,9 @@ app.post("/api/auth/dev-login", async (req, res) => {
     // Create a fake user ID based on email (deterministic)
     const userId = "dev-" + Buffer.from(normalizedEmail).toString("hex");
 
-    // Create a mock session
-    const mockSession = {
-      access_token: `dev_token_${Date.now()}`,
-      refresh_token: `dev_refresh_${Date.now()}`,
-      expires_in: 3600,
-      expires_at: Math.floor((Date.now() + 3600000) / 1000),
-      token_type: "bearer",
-    };
+    // Current timestamp
+    const now = new Date().toISOString();
+    const expiresAt = Math.floor((Date.now() + 3600000) / 1000);
 
     // Create a mock user
     const mockUser = {
@@ -614,10 +642,10 @@ app.post("/api/auth/dev-login", async (req, res) => {
       aud: "authenticated",
       role: "authenticated",
       email: normalizedEmail,
-      email_confirmed_at: new Date().toISOString(),
+      email_confirmed_at: now,
       phone: "",
-      confirmed_at: new Date().toISOString(),
-      last_sign_in_at: new Date().toISOString(),
+      confirmed_at: now,
+      last_sign_in_at: now,
       app_metadata: {
         provider: "email",
         providers: ["email"],
@@ -626,8 +654,18 @@ app.post("/api/auth/dev-login", async (req, res) => {
         name: normalizedEmail.split("@")[0] || "Dev User",
       },
       identities: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now,
+    };
+
+    // Create a mock session
+    const mockSession = {
+      access_token: `dev_token_${Date.now()}`,
+      refresh_token: `dev_refresh_${Date.now()}`,
+      expires_in: 3600,
+      expires_at: expiresAt,
+      token_type: "bearer",
+      user: mockUser, // Include user in session for standard Supabase structure
     };
 
     // Initialize a Supabase client for profile creation
@@ -656,7 +694,7 @@ app.post("/api/auth/dev-login", async (req, res) => {
 
     return res.status(200).json({
       session: mockSession,
-      user: mockUser,
+      user: mockUser, // Include user separately for our custom structure
       message: "Development mode authentication successful",
       dev: true,
     });
@@ -665,6 +703,71 @@ app.post("/api/auth/dev-login", async (req, res) => {
     return res
       .status(500)
       .json({ error: "Development authentication error: " + error.message });
+  }
+});
+
+// Turnstile verification endpoint
+app.post("/api/auth/verify-turnstile", async (req, res) => {
+  try {
+    console.log("[Turnstile] Verification request received");
+
+    const { token } = req.body;
+
+    if (!token) {
+      console.log("[Turnstile] Missing token");
+      return res.status(400).json({ error: "Token is required" });
+    }
+
+    // The secret key from your Cloudflare Turnstile settings
+    const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY;
+
+    if (!turnstileSecretKey) {
+      console.error("[Turnstile] Missing secret key in environment variables");
+      return res.status(500).json({ error: "Server configuration error" });
+    }
+
+    // Verify the token with Cloudflare
+    console.log("[Turnstile] Sending verification request to Cloudflare");
+    const formData = new URLSearchParams();
+    formData.append("secret", turnstileSecretKey);
+    formData.append("response", token);
+    formData.append(
+      "remoteip",
+      req.ip || req.headers["x-forwarded-for"] || "unknown"
+    );
+
+    const verificationResponse = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    const verificationResult = await verificationResponse.json();
+
+    console.log("[Turnstile] Verification result:", verificationResult);
+
+    if (verificationResult.success) {
+      return res.status(200).json({
+        success: true,
+        message: "Token verified successfully",
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid token",
+        details: verificationResult["error-codes"] || [],
+      });
+    }
+  } catch (error) {
+    console.error("[Turnstile] Verification error:", error);
+    return res
+      .status(500)
+      .json({ error: "Verification failed: " + error.message });
   }
 });
 

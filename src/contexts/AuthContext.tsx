@@ -92,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         expires_at: session.expires_at
       };
       localStorage.setItem('auth_session', JSON.stringify(minimalSession));
-    } catch (error) {
+      } catch (error) {
       console.warn('Failed to store session in localStorage:', error);
     }
   }, []);
@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setSessionData(null);
     try {
       localStorage.removeItem('auth_session');
-    } catch (error) {
+        } catch (error) {
       console.warn('Failed to clear session from localStorage:', error);
     }
   }, []);
@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // ============================================================
   // UTILITY FUNCTIONS
   // ============================================================
-  
+
   /**
    * Gets client's IP address for security logging
    */
@@ -138,9 +138,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       // Always log to console as a reliable backup
       console.log('[Security Event]:', {
-        ...eventData,
-        timestamp: new Date().toISOString()
-      });
+          ...eventData,
+          timestamp: new Date().toISOString()
+        });
 
       // First try to use the server API endpoint with more robust error handling
       let serverApiSuccess = false;
@@ -153,12 +153,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log(`Logging security event to: ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(eventData),
-        });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      });
 
         // Always treat as success for security logs to avoid interrupting auth
         serverApiSuccess = true;
@@ -499,20 +499,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         throw error;
       }
       
-      if (!authData || !authData.session) {
-        console.error('Missing session data after authentication');
-        throw new Error('Authentication succeeded but no session was returned');
+      if (!authData) {
+        console.error('Missing auth data after authentication');
+        throw new Error('Authentication succeeded but no data was returned');
       }
       
-      console.log('Authentication successful, session obtained');
+      console.log('Authentication successful, checking session data');
+      
+      // Check if we have a valid session
+      if (!authData.session) {
+        console.error('Missing session data in authData:', authData);
+        throw new Error('Authentication succeeded but no session was returned');
+      }
       
       // Store session in localStorage
       setSession(authData.session);
       
+      // Safely get user ID - handle both standard and dev authentication structures
+      let userId;
+      
+      if (authData.session.user?.id) {
+        // Standard Supabase auth structure
+        userId = authData.session.user.id;
+      } else if (authData.user?.id) {
+        // Alternative structure (from our dev endpoint)
+        userId = authData.user.id;
+      } else {
+        console.error('Cannot find user ID in authentication data:', authData);
+        throw new Error('Authentication succeeded but user ID is missing');
+      }
+      
+      console.log(`Got user ID: ${userId}`);
+      
       // Try to get user data
       try {
         console.log('Fetching user data...');
-        const userData = await fetchUserData(authData.session.user.id);
+        const userData = await fetchUserData(userId);
         
         // Set user state
         setUser(userData);
@@ -535,15 +557,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } catch (userDataError) {
         console.error('Error fetching user data after login:', userDataError);
         
-        // Create a minimal user from session data as fallback
-        console.log('Creating minimal user object from session data');
+        // Create a minimal user from session/user data as fallback
+        console.log('Creating minimal user object from available data');
+        
+        // Get email from wherever it's available
+        const userEmail = authData.user?.email || 
+                        authData.session.user?.email || 
+                        sanitizedEmail;
+        
+        // Get name from metadata or generate from email
+        const userName = (authData.user?.user_metadata?.name || 
+                         authData.session.user?.user_metadata?.name || 
+                         userEmail.split('@')[0] || 
+                         'User');
+                         
         const minimalUser: User = {
-          id: authData.session.user.id,
-          email: authData.session.user.email || sanitizedEmail,
-          name: authData.session.user.user_metadata?.name || sanitizedEmail.split('@')[0] || 'User',
+          id: userId,
+          email: userEmail,
+          name: userName,
           isPremium: false,
           trialEndsAt: null,
-          createdAt: authData.session.user.created_at || new Date().toISOString(),
+          createdAt: new Date().toISOString(),
           subscription: {
             status: 'free',
             currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
@@ -559,7 +593,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             user_id: minimalUser.id,
             event_type: 'login_partial',
             details: 'User logged in but profile data could not be retrieved',
-            email: sanitizedEmail
+            email: userEmail
           });
         } catch (logError) {
           console.warn('Failed to log security event:', logError);
@@ -606,8 +640,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
       
       // Clear auth state
-      setUser(null);
-      setIsAuthenticated(false);
+        setUser(null);
+        setIsAuthenticated(false);
       clearSession(); // Clear the session data
       
       // Clear any activity timers
@@ -641,6 +675,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         console.log('Direct signup failed with captcha/rate limit, trying server API...');
         
         try {
+          // Try to get a Turnstile token for server-side verification
+          let turnstileToken = null;
+          try {
+            // Import the getTurnstileToken function dynamically to avoid circular dependencies
+            const { getTurnstileToken } = await import('@/utils/supabase/client');
+            turnstileToken = await getTurnstileToken();
+            console.log('Got Turnstile token for server-side signup');
+          } catch (tokenError) {
+            console.warn('Failed to get Turnstile token for server signup:', tokenError);
+            // Continue without token - server will decide if it's necessary
+          }
+          
           // Use absolute URL to ensure we hit the right endpoint in production
           const apiUrl = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
             ? 'http://localhost:3000/api/auth/signup'  // Local development - force HTTP
@@ -657,7 +703,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             body: JSON.stringify({ 
               email, 
               password,
-              metadata: { name: name || '' }
+              metadata: { name: name || '' },
+              turnstileToken // Add the Turnstile token to the request
             }),
           });
           
@@ -667,6 +714,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             try {
               const errorData = await response.json();
               errorMessage = errorData.error || errorMessage;
+              
+              // For debugging - log detailed error if available
+              if (errorData.details) {
+                console.error('Error details:', errorData.details);
+              }
             } catch (jsonError) {
               console.error('Failed to parse error response:', jsonError);
               // If we can't parse the JSON, use the status text
@@ -719,7 +771,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           throw serverError;
         }
       }
-      
+        
       if (error) {
         await logSecurityEvent({
           event_type: 'signup_failed',
@@ -763,7 +815,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setIsLoading(false);
     }
   };
-  
+
   /**
    * Resend confirmation email
    */

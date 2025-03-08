@@ -77,7 +77,7 @@ const Careers = lazy(() => import("@/pages/Careers"));
 const JobApplication = lazy(() => import('@/pages/JobApplication'));
 const Compliance = lazy(() => import("@/pages/Compliance"));
 const AdminTools = lazy(() => import("@/pages/AdminTools"));
-const SignUp = lazy(() => import("@/pages/SignUp"));
+const SignUp = lazy(() => import("@/pages/SignUpPage"));
 const SignIn = lazy(() => import("@/pages/SignIn"));
 const AuthDemo = lazy(() => import("@/pages/AuthDemo"));
 const PaymentSuccess = lazy(() => import("@/pages/PaymentSuccess"));

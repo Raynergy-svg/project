@@ -544,233 +544,235 @@ export default function SignIn() {
           </div>
         )}
         
-        <div className="bg-white/5 p-6 rounded-xl border border-white/10 shadow-lg">
-          <div className="flex justify-center mb-6">
-            <div className="w-12 h-12 bg-[#88B04B]/10 flex items-center justify-center rounded-full">
-              <Lock className="text-[#88B04B] w-6 h-6" />
-            </div>
-          </div>
-
-          {!useMagicLink ? (
-            <form 
-              id="signin-form"
-              onSubmit={handleSubmit} 
-              className="space-y-6 w-full max-w-sm mx-auto"
-            >
-              <div className="hidden">
-                <input 
-                  type="text" 
-                  name="honeypot" 
-                  id="honeypot"
-                  tabIndex={-1} 
-                  autoComplete="off" 
-                />
+        <div className="neon-container">
+          <div className="relative px-4 py-6 bg-[#1A1A1A] sm:rounded-xl">
+            <div className="flex justify-center mb-6">
+              <div className="w-12 h-12 bg-[#88B04B]/10 flex items-center justify-center rounded-full">
+                <Lock className="text-[#88B04B] w-6 h-6" />
               </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label 
-                    htmlFor="email"
-                    className="block text-sm font-medium mb-1.5"
-                  >
-                    Email Address
-                  </label>
-                  <Input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    autoComplete="email"
-                    className="w-full"
-                    placeholder="email@example.com"
-                    required
+            </div>
+
+            {!useMagicLink ? (
+              <form 
+                id="signin-form"
+                onSubmit={handleSubmit} 
+                className="space-y-6 w-full max-w-sm mx-auto"
+              >
+                <div className="hidden">
+                  <input 
+                    type="text" 
+                    name="honeypot" 
+                    id="honeypot"
+                    tabIndex={-1} 
+                    autoComplete="off" 
                   />
-                  {formErrors.email && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
-                  )}
                 </div>
                 
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label htmlFor="password" className="block text-sm font-medium">
-                      Password
+                <div className="space-y-4">
+                  <div>
+                    <label 
+                      htmlFor="email"
+                      className="block text-sm font-medium mb-1.5"
+                    >
+                      Email Address
                     </label>
-                    <div className="text-sm">
-                      <Link to="/forgot-password" className="text-white hover:text-gray-300 hover:underline">
-                        Forgot password?
-                      </Link>
-                    </div>
-                  </div>
-                  <div className="relative">
                     <Input
-                      type={showPassword ? "text" : "password"}
-                      id="password"
-                      name="password"
-                      value={formData.password}
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
                       onChange={handleInputChange}
-                      autoComplete="current-password"
-                      className="w-full pr-10"
-                      placeholder="••••••••"
+                      autoComplete="email"
+                      className="w-full"
+                      placeholder="email@example.com"
                       required
                     />
-                    <button
-                      type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
+                    {formErrors.email && (
+                      <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
+                    )}
                   </div>
-                  {formErrors.password && (
-                    <p className="text-red-500 text-sm mt-1">{formErrors.password}</p>
-                  )}
-                </div>
-                
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="remember-me"
-                    name="remember-me"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 text-sm text-gray-300">
-                    Remember me
-                  </label>
-                </div>
-                
-                <Button
-                  type="submit"
-                  id="sign-in-button"
-                  name="sign-in-button"
-                  className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-                  disabled={isButtonDisabled}
-                >
-                  {isSubmitting || authLoading || devSignInLoading ? (
-                    <>
-                      <Loader2 size={20} className="animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      Sign In
-                      <ArrowRight size={20} />
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => setUseMagicLink(true)}
-                  className="text-white hover:text-gray-300 text-sm font-medium hover:underline"
-                >
-                  Or sign in with a magic link instead
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="space-y-6">
-              {magicLinkSent ? (
-                <div className="bg-green-50 border border-green-400 p-4 rounded-md">
-                  <h3 className="font-medium text-green-800">Magic Link Sent!</h3>
-                  <p className="text-green-700 mt-1">
-                    We've sent a sign-in link to <span className="font-medium">{formData.email}</span>. 
-                    Please check your email to continue.
-                  </p>
-                  <p className="text-green-700 mt-3 text-sm">
-                    Don't see it? Check your spam folder or 
-                    <button 
-                      type="button"
-                      onClick={handleMagicLinkButtonClick}
-                      className="text-green-800 font-medium hover:underline ml-1"
-                    >
-                      try again
-                    </button>.
-                  </p>
-                </div>
-              ) : (
-                <form 
-                  id="signin-form"
-                  onSubmit={handleMagicLinkSubmit}
-                >
-                  <div className="space-y-4">
-                    <div>
-                      <label 
-                        htmlFor="email-magic"
-                        className="block text-sm font-medium mb-1.5"
-                      >
-                        Email Address
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label htmlFor="password" className="block text-sm font-medium">
+                        Password
                       </label>
+                      <div className="text-sm">
+                        <Link to="/forgot-password" className="text-white hover:text-gray-300 hover:underline">
+                          Forgot password?
+                        </Link>
+                      </div>
+                    </div>
+                    <div className="relative">
                       <Input
-                        type="email"
-                        id="email-magic"
-                        name="email"
-                        value={formData.email}
+                        type={showPassword ? "text" : "password"}
+                        id="password"
+                        name="password"
+                        value={formData.password}
                         onChange={handleInputChange}
-                        autoComplete="email"
-                        className="w-full"
-                        placeholder="email@example.com"
+                        autoComplete="current-password"
+                        className="w-full pr-10"
+                        placeholder="••••••••"
                         required
                       />
-                      {formErrors.email && (
-                        <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
-                      )}
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <Eye className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
                     </div>
-                    
-                    <p className="text-gray-400 text-sm">
-                      We'll email you a magic link that will sign you in instantly. No password needed!
-                    </p>
-                    
-                    <Button
-                      type="submit"
-                      className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <Loader2 size={20} className="animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        <>
-                          Send Magic Link
-                          <ArrowRight size={20} />
-                        </>
-                      )}
-                    </Button>
+                    {formErrors.password && (
+                      <p className="text-red-500 text-sm mt-1">{formErrors.password}</p>
+                    )}
                   </div>
-                </form>
-              )}
-              
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUseMagicLink(false);
-                    setMagicLinkSent(false);
-                  }}
-                  className="text-white hover:text-gray-300 text-sm font-medium hover:underline"
-                >
-                  Or sign in with password instead
-                </button>
-              </div>
-            </div>
-          )}
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="remember-me"
+                      name="remember-me"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                    />
+                    <label htmlFor="remember-me" className="ml-2 text-sm text-gray-300">
+                      Remember me
+                    </label>
+                  </div>
+                  
+                  <Button
+                    type="submit"
+                    id="sign-in-button"
+                    name="sign-in-button"
+                    className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                    disabled={isButtonDisabled}
+                  >
+                    {isSubmitting || authLoading || devSignInLoading ? (
+                      <>
+                        <Loader2 size={20} className="animate-spin" />
+                        Signing in...
+                      </>
+                    ) : (
+                      <>
+                        Sign In
+                        <ArrowRight size={20} />
+                      </>
+                    )}
+                  </Button>
+                </div>
 
-          <p className="text-center text-gray-300 mt-6">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-[#88B04B] hover:text-[#7a9d43] transition-colors">
-              Sign Up
-            </Link>
-          </p>
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setUseMagicLink(true)}
+                    className="text-white hover:text-gray-300 text-sm font-medium hover:underline"
+                  >
+                    Or sign in with a magic link instead
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="space-y-6">
+                {magicLinkSent ? (
+                  <div className="bg-green-50 border border-green-400 p-4 rounded-md">
+                    <h3 className="font-medium text-green-800">Magic Link Sent!</h3>
+                    <p className="text-green-700 mt-1">
+                      We've sent a sign-in link to <span className="font-medium">{formData.email}</span>. 
+                      Please check your email to continue.
+                    </p>
+                    <p className="text-green-700 mt-3 text-sm">
+                      Don't see it? Check your spam folder or 
+                      <button 
+                        type="button"
+                        onClick={handleMagicLinkButtonClick}
+                        className="text-green-800 font-medium hover:underline ml-1"
+                      >
+                        try again
+                      </button>.
+                    </p>
+                  </div>
+                ) : (
+                  <form 
+                    id="signin-form"
+                    onSubmit={handleMagicLinkSubmit}
+                  >
+                    <div className="space-y-4">
+                      <div>
+                        <label 
+                          htmlFor="email-magic"
+                          className="block text-sm font-medium mb-1.5"
+                        >
+                          Email Address
+                        </label>
+                        <Input
+                          type="email"
+                          id="email-magic"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          autoComplete="email"
+                          className="w-full"
+                          placeholder="email@example.com"
+                          required
+                        />
+                        {formErrors.email && (
+                          <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
+                        )}
+                      </div>
+                      
+                      <p className="text-gray-400 text-sm">
+                        We'll email you a magic link that will sign you in instantly. No password needed!
+                      </p>
+                      
+                      <Button
+                        type="submit"
+                        className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 size={20} className="animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            Send Magic Link
+                            <ArrowRight size={20} />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+                
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseMagicLink(false);
+                      setMagicLinkSent(false);
+                    }}
+                    className="text-white hover:text-gray-300 text-sm font-medium hover:underline"
+                  >
+                    Or sign in with password instead
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <p className="text-center text-gray-300 mt-6">
+              Don't have an account?{' '}
+              <Link to="/signup" className="text-[#88B04B] hover:text-[#7a9d43] transition-colors">
+                Sign Up
+              </Link>
+            </p>
+          </div>
         </div>
 
         {/* Footer with security info and links */}

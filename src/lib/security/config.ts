@@ -62,6 +62,9 @@ export const securityConfig = {
           "https://js.stripe.com", 
           "https://cdn.plaid.com",
           "https://static.cloudflareinsights.com",
+          "https://challenges.cloudflare.com",
+          "https://www.google.com", 
+          "https://www.gstatic.com",
           "https://va.vercel-scripts.com",
           "https://*.vercel-scripts.com",
           "https://*.vercel-analytics.com",
@@ -75,8 +78,7 @@ export const securityConfig = {
           "blob:", 
           "https://*.supabase.co", 
           "https://raw.githubusercontent.com", 
-          "https://*.cloudflare.com",
-          "https://images.unsplash.com"
+          "https://*.cloudflare.com"
         ],
         'connect-src': [
           "'self'",
@@ -91,6 +93,7 @@ export const securityConfig = {
           "https://*.plaid.com",
           "https://api.ipify.org",
           "https://*.projectdcertan84workersdev.workers.dev",
+          "https://challenges.cloudflare.com",
           "https://va.vercel-scripts.com",
           "https://*.vercel-scripts.com",
           "https://*.vercel-analytics.com",
@@ -101,7 +104,8 @@ export const securityConfig = {
           "https://js.stripe.com", 
           "https://hooks.stripe.com", 
           "https://checkout.stripe.com", 
-          "https://cdn.plaid.com"
+          "https://cdn.plaid.com",
+          "https://challenges.cloudflare.com"
         ],
         'object-src': ["'none'"],
         'base-uri': ["'self'"]

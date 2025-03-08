@@ -7,18 +7,28 @@ import { useToast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon } from "lucide-react";
+import TurnstileCaptcha from '../TurnstileCaptcha';
+import { isTurnstileDisabled } from '../../utils/turnstile';
 
-export function SignInForm() {
+interface SignInFormProps {
+  redirectPath?: string;
+  onSuccess?: () => void;
+}
+
+export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
   const from = (location.state as any)?.from?.pathname || "/dashboard";
+
+  const turnstileDisabled = isTurnstileDisabled();
 
   // Validate email format to match what Supabase accepts
   const validateEmail = (email: string): boolean => {
@@ -45,78 +55,127 @@ export function SignInForm() {
     if (newEmail) validateEmail(newEmail);
   };
 
-  async function handleSubmit(e: React.FormEvent) {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailError("");
     
-    // Validate email before submitting
-    if (!validateEmail(email)) {
+    // Validate form
+    if (!email) {
+      setEmailError("Email is required");
       return;
     }
     
-    setIsLoading(true);
-
+    if (!password) {
+      setEmailError("Password is required");
+      return;
+    }
+    
+    // In production, verify that Turnstile token exists
+    if (!turnstileDisabled && !turnstileToken) {
+      setEmailError("Please complete the verification challenge");
+      return;
+    }
+    
     try {
-      await login(email, password);
-      navigate(from, { replace: true });
+      setIsLoading(true);
+      
+      const result = await login(email, password);
+      
+      if (result?.error) {
+        console.error('Login error:', result.error);
+        setEmailError(typeof result.error === 'string' 
+          ? result.error 
+          : result.error.message || 'Failed to sign in');
+        return;
+      }
+      
+      // Success!
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate(redirectPath);
+      }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error 
-          ? error.message 
-          : "Invalid credentials. Please try again.",
-      });
+      console.error('Error during sign in:', error);
+      setEmailError("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
-  }
+  };
+
+  const handleTurnstileVerify = (token: string) => {
+    setTurnstileToken(token);
+    setEmailError("");
+  };
+
+  const handleTurnstileError = () => {
+    setTurnstileToken(null);
+    setEmailError("Verification failed. Please try again.");
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={handleEmailChange}
-          className={emailError ? "border-red-500" : ""}
-          required
-          aria-label="Email"
-        />
-        {emailError && (
-          <p className="text-red-500 text-sm mt-1" role="error-message">{emailError}</p>
-        )}
-        <Input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          aria-label="Password"
-        />
-        <div className="flex justify-end">
-          <Link to="/forgot-password" className="text-sm text-blue-500 hover:text-blue-700">
-            Forgot password?
-          </Link>
+    <div className="auth-form-container">
+      <h2 className="form-title">Sign In</h2>
+      
+      {emailError && (
+        <div className="error-message" role="alert">
+          {emailError}
         </div>
-      </div>
+      )}
       
-      <Alert variant="outline" className="bg-blue-50">
-        <InfoIcon className="h-4 w-4 text-blue-500 mr-2" />
-        <AlertDescription>
-          Use an email format like: user@domain-name.com
-        </AlertDescription>
-      </Alert>
-      
-      <Button type="submit" className="w-full" disabled={isLoading}>
-        {isLoading ? (
-          <div data-testid="loading-spinner">
-            <LoadingSpinner className="w-4 h-4" />
+      <form onSubmit={handleSubmit} className="auth-form">
+        <div className="form-group">
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={handleEmailChange}
+            disabled={isLoading}
+            placeholder="your@email.com"
+            required
+          />
+        </div>
+        
+        <div className="form-group">
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            placeholder="••••••••"
+            required
+          />
+        </div>
+        
+        {/* Turnstile Captcha */}
+        {!turnstileDisabled && (
+          <div className="form-group captcha-container">
+            <TurnstileCaptcha
+              onVerify={handleTurnstileVerify}
+              onError={handleTurnstileError}
+              action="login"
+              theme="auto"
+            />
           </div>
-        ) : (
-          "Sign In"
         )}
-      </Button>
-    </form>
+        
+        <button 
+          type="submit" 
+          className="submit-button" 
+          disabled={isLoading || (!turnstileDisabled && !turnstileToken)}
+        >
+          {isLoading ? 'Signing In...' : 'Sign In'}
+        </button>
+      </form>
+      
+      <div className="auth-links">
+        <a href="/forgot-password">Forgot password?</a>
+        <span className="divider">•</span>
+        <a href="/signup">Need an account? Sign up</a>
+      </div>
+    </div>
   );
 }

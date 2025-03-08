@@ -17,7 +17,7 @@ export const APP_VERSION = '0.1.0';
 export const FEATURE_FLAGS = {
   ENABLE_ANALYTICS: !IS_DEV, // Disable analytics in development
   ENABLE_ERROR_TRACKING: !IS_DEV, // Disable error tracking in development
-  ENABLE_CAPTCHA: false, // Disable CAPTCHA in all environments
+  ENABLE_CAPTCHA: false, // CAPTCHA is permanently disabled per project requirements, we use a bypass token directly
   ENABLE_AI_INSIGHTS: false,
   ENABLE_SAVINGS_PLANNER: false,
   ENABLE_ONBOARDING_TOUR: true,

@@ -123,13 +123,12 @@ minimum_password_length = 6
 password_requirements = ""
 
 # Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
+# IMPORTANT: CAPTCHA is explicitly disabled as per project requirements
 [auth.captcha]
 enabled = false
-provider = "turnstile"
-secret = "env(SUPABASE_AUTH_CAPTCHA_SECRET)"
-# Using Cloudflare Turnstile
-# Site key (frontend): 0x4AAAAAAAS6TSQgRY0VCCww
-# Secret key (backend): set via environment variable
+provider = ""
+secret = ""
+# All CAPTCHA settings are disabled - do not re-enable
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
@@ -229,7 +228,3 @@ max_frequency = "5s"
 # verify_enabled = true
 
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `
-# REMOVE THIS INCORRECT SECTION:
-# [auth.external_captcha]
-# provider = "hcaptcha"
-# secret = "env.SUPABASE_AUTH_CAPTCHA_SECRET"

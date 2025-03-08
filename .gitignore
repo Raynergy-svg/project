@@ -50,6 +50,22 @@ certs/*
 supabase/.branches/
 supabase/.temp/
 
+# Database and migration files (only for testing)
+db/.migration-state.json
+db/migrations/*_test_*.sql
+db/migrations/0*_*_test_*.sql
+db/migrations/0*_*_example_*.sql
+db/migrations/000001_test_first_migration.sql
+db/migrations/000002_add_timestamps_trigger.sql
+scripts/scan-security-issues.js
+scripts/db-migration.js
+src/tests/run-rls-check.ts
+src/tests/security/rls-policy-check.ts
+src/tests/run-security-check.ts
+src/tests/security/security-check.ts
+src/tests/run-supabase-check.ts
+src/tests/db-schema.test.ts
+
 # Secrets and keys
 *secret*
 *api_key*

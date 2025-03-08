@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { Eye, EyeOff, ArrowRight, Shield, Lock, ArrowLeft, Loader2 } from 'lucide-react';
+import { useState, useCallback, useEffect, useRef, Component, ErrorInfo, ReactNode } from 'react';
+import { Eye, EyeOff, ArrowRight, Shield, Lock, ArrowLeft, Loader2, Check } from 'lucide-react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +8,38 @@ import { validatePasswordStrength } from '@/utils/validation';
 import { z } from 'zod';
 import { useSecurity } from '@/contexts/SecurityContext';
 import type { SignUpData } from '@/types';
+
+// Error boundary component to catch rendering errors
+class ErrorBoundary extends Component<{ children: ReactNode, fallback?: ReactNode }> {
+  state = { hasError: false, error: null };
+  
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Error in SignUp component:", error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || (
+        <div className="p-4 bg-red-900/20 border border-red-500 rounded-lg text-white">
+          <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+          <p className="mb-4">We encountered an error while loading this page. Please try refreshing.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-md"
+          >
+            Refresh Page
+          </button>
+        </div>
+      );
+    }
+    
+    return this.props.children;
+  }
+}
 
 interface SubscriptionTier {
   id: string;
@@ -88,6 +120,14 @@ const subscriptionTiers: SubscriptionTier[] = [
 ];
 
 export default function SignUp() {
+  return (
+    <ErrorBoundary>
+      <SignUpContent />
+    </ErrorBoundary>
+  );
+}
+
+function SignUpContent() {
   const { sensitiveDataHandler } = useSecurity();
   const location = useLocation();
   const navigate = useNavigate();
@@ -114,6 +154,12 @@ export default function SignUp() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
   const [confirmedEmail, setConfirmedEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
+  const [confirmationResent, setConfirmationResent] = useState(false);
+  
+  // Add states to track payment failure and resuming registration
+  const [paymentFailed, setPaymentFailed] = useState(false);
+  const [continueRegistration, setContinueRegistration] = useState(false);
 
   const { signup, resendConfirmationEmail } = useAuth();
 
@@ -121,6 +167,234 @@ export default function SignUp() {
   useEffect(() => {
     setFormErrors({});
   }, [formData]);
+
+  // Extended version of generateTempAuthToken that accepts an existing timestamp
+  const generateTempAuthToken = async (password: string, existingTimestamp?: string): Promise<string> => {
+    try {
+      // Use provided timestamp or generate a new one
+      const timestamp = existingTimestamp || Date.now().toString();
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password + timestamp);
+      
+      // Use SubtleCrypto to create a hash if available
+      if (window.crypto && window.crypto.subtle) {
+        try {
+          const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+          const hashArray = Array.from(new Uint8Array(hashBuffer));
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          
+          // Store the timestamp only if we're generating a new one
+          if (!existingTimestamp) {
+            localStorage.setItem('authTimestamp', timestamp);
+          }
+          
+          return hashHex;
+        } catch (e) {
+          console.warn('Secure hashing unavailable, using fallback method');
+        }
+      }
+      
+      // Fallback to a less secure method if SubtleCrypto is not available
+      let hash = 0;
+      for (let i = 0; i < (password + timestamp).length; i++) {
+        const char = (password + timestamp).charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      
+      // Store the timestamp only if we're generating a new one
+      if (!existingTimestamp) {
+        localStorage.setItem('authTimestamp', timestamp);
+      }
+      
+      return hash.toString(16);
+    } catch (error) {
+      console.error('Error generating auth token:', error);
+      // Return a fallback hash in case of error
+      return `fallback-${Date.now()}-${Math.random().toString(36).substring(2)}`;
+    }
+  };
+
+  // Define handlePaymentComplete before using it in useEffect
+  const handlePaymentComplete = useCallback(async (paymentResult: PaymentResult) => {
+    setIsSubmitting(true);
+    try {
+      // Get stored registration data
+      const storedData = localStorage.getItem('pendingSignup');
+      if (!storedData) {
+        throw new Error('Registration data not found. Please try again.');
+      }
+
+      // Parse stored data
+      const pendingSignup = JSON.parse(storedData);
+      
+      // Decrypt sensitive data if it was encrypted
+      let email = pendingSignup.email;
+      let name = pendingSignup.name;
+      
+      if (sensitiveDataHandler && pendingSignup.emailIv) {
+        try {
+          // Decrypt email if it was encrypted
+          const decryptedEmail = await sensitiveDataHandler.decryptData(
+            pendingSignup.email,
+            pendingSignup.emailIv
+          );
+          if (decryptedEmail) {
+            email = decryptedEmail;
+          }
+          
+          // Decrypt name if it was encrypted
+          if (pendingSignup.nameIv) {
+            const decryptedName = await sensitiveDataHandler.decryptData(
+              pendingSignup.name,
+              pendingSignup.nameIv
+            );
+            if (decryptedName) {
+              name = decryptedName;
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to decrypt user data:', error);
+          // Continue with the encrypted data - we'll handle this server-side
+        }
+      }
+
+      // Check if we have the required auth token
+      const authVerification = localStorage.getItem('authVerification');
+      const authTimestamp = localStorage.getItem('authTimestamp');
+      if (!authVerification || !authTimestamp) {
+        throw new Error('Authentication information missing. Please try signing up again.');
+      }
+
+      // Check the session ID to make sure this is the same signup attempt
+      const storedSessionId = localStorage.getItem('signupSessionId');
+      const sessionIdFromUrl = new URLSearchParams(window.location.search).get('session_id');
+      
+      if (storedSessionId && sessionIdFromUrl && storedSessionId !== sessionIdFromUrl) {
+        console.warn('Session ID mismatch - possible security issue');
+        // We'll continue but log the issue for security monitoring
+      }
+
+      // For security, we'll ask the user to confirm their password again
+      // Ideally this would be a modal or inline form
+      // For now, we'll assume we have a password field in the form
+      // that the user can reenter their password into
+      
+      // Verify the password matches the stored verification token
+      let passwordValid = false;
+      if (formData.password) {
+        // Re-generate the token with the same method but using the stored timestamp
+        const verificationToken = await generateTempAuthToken(formData.password, authTimestamp);
+        passwordValid = verificationToken === authVerification;
+        
+        if (!passwordValid) {
+          setFormErrors({
+            password: 'The password does not match. Please enter the same password you used initially.'
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      } else {
+        // We need the password - show UI to request it
+        // For simplicity in this implementation, we assume the user has provided it already
+        throw new Error('Please enter your password to complete registration.');
+      }
+
+      // Prepare consent data from the stored signup
+      const consentRecord = pendingSignup.consentRecord || {
+        termsAccepted: true, // Default to true since we require this for signup
+        privacyAccepted: true,
+        marketingConsent: false,
+        dataProcessingConsent: false,
+        ageVerified: true
+      };
+      
+      // Get the selected tier and other required data
+      const registrationData: SignUpData = {
+        email: email,
+        password: formData.password,
+        name: name,
+        subscriptionId: paymentResult.subscriptionId,  // Include the subscription ID from Stripe
+        consentRecord: consentRecord
+      };
+
+      // Attempt to create the account
+      const result = await signup(registrationData);
+
+      // Clear sensitive data from localStorage
+      localStorage.removeItem('pendingSignup');
+      localStorage.removeItem('requirePasswordConfirmation');
+      localStorage.removeItem('authVerification');
+      localStorage.removeItem('authTimestamp');
+      localStorage.removeItem('signupSessionId');
+
+      // Set email confirmation state if needed
+      if (result.needsEmailConfirmation) {
+        setEmailConfirmationSent(true);
+        setConfirmedEmail(email);
+      } else {
+        // If email confirmation not needed, redirect to dashboard
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error completing registration:', error);
+      
+      setFormErrors({
+        general: error instanceof Error ? error.message : "An error occurred. Please try again."
+      });
+      
+      // If we get a specific error about account already existing, suggest sign in
+      if (error instanceof Error && 
+          (error.message.includes('already exists') || 
+           error.message.includes('already registered'))) {
+        setFormErrors({
+          general: `This email is already registered. Please sign in instead.`,
+          email: 'Account already exists'
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [formData, navigate, sensitiveDataHandler, signup]);
+
+  // Check URL parameters for payment status on component mount
+  useEffect(() => {
+    try {
+      const searchParams = new URLSearchParams(location.search);
+      const paymentSuccess = searchParams.get('payment_success');
+      const subscriptionId = searchParams.get('subscription_id');
+      const oneTimePaymentId = searchParams.get('payment_intent_id');
+      const errorParam = searchParams.get('error');
+      
+      // If we have payment success and subscription info, process the payment completion
+      if (paymentSuccess === 'true' && (subscriptionId || oneTimePaymentId)) {
+        const paymentResult: PaymentResult = {
+          subscriptionId: subscriptionId || '',
+          oneTimePaymentIntentId: oneTimePaymentId || undefined
+        };
+        
+        handlePaymentComplete(paymentResult);
+      } 
+      // If we have a payment failure, show appropriate error message
+      else if (paymentSuccess === 'false' || errorParam) {
+        setFormErrors({
+          general: `Your payment was not completed. ${errorParam ? `Error: ${errorParam}` : 'Please try again or contact support.'}`
+        });
+        
+        // Set flag to show retry UI
+        setPaymentFailed(true);
+      }
+      // Check if we have a saved registration in progress but no payment confirmation yet
+      else if (localStorage.getItem('pendingSignup')) {
+        // Handle case where user may have abandoned the payment flow or opened in a new tab
+        // Show UI to continue the previous registration attempt
+        setContinueRegistration(true);
+      }
+    } catch (error) {
+      console.error('Error processing URL parameters:', error);
+      // Don't set form errors here to avoid confusing the user on initial load
+    }
+  }, [location.search, handlePaymentComplete]);
 
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
@@ -184,192 +458,286 @@ export default function SignUp() {
         }
       }
 
+      // Generate a session ID to track this signup attempt across redirects
+      const sessionId = `signup_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      
+      // Create a more comprehensive data object
+      const signupData = {
+        email: formData.email,
+        name: formData.name,
+        selectedTier: formData.selectedTier,
+        sessionId: sessionId,
+        timestamp: Date.now(),
+        // Store consent data
+        consentRecord: {
+          termsAccepted: formData.acceptTerms,
+          privacyAccepted: formData.acceptTerms, // Privacy is typically accepted with terms
+          marketingConsent: formData.marketingConsent,
+          dataProcessingConsent: formData.dataProcessingConsent,
+          ageVerified: formData.ageVerification,
+        }
+      };
+
       // Use direct Stripe payment link based on selected tier
       const paymentLink = formData.selectedTier === 'basic'
         ? 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ'  // Basic plan link
         : 'https://buy.stripe.com/6oE7tnbPrfDecogfYY'; // Pro plan link
 
-      // Store minimal form data in localStorage for retrieval after payment
-      // Avoid storing sensitive data like password
-      localStorage.setItem('pendingSignup', JSON.stringify({
-        email: formData.email,
-        name: formData.name,
-        selectedTier: formData.selectedTier
-        // Don't store password in localStorage
-      }));
+      try {
+        // Encrypt sensitive data before storing in localStorage
+        let encryptedData = { ...signupData };
+        
+        if (sensitiveDataHandler) {
+          try {
+            // Encrypt email
+            const encryptedEmail = await sensitiveDataHandler.encryptData(signupData.email);
+            if (encryptedEmail) {
+              encryptedData.email = encryptedEmail.encrypted;
+              encryptedData.emailIv = encryptedEmail.iv;
+            }
+            
+            // Encrypt name
+            const encryptedName = await sensitiveDataHandler.encryptData(signupData.name);
+            if (encryptedName) {
+              encryptedData.name = encryptedName.encrypted;
+              encryptedData.nameIv = encryptedName.iv;
+            }
+          } catch (err) {
+            console.warn('Failed to encrypt user data:', err);
+            // Continue with unencrypted data
+          }
+        }
+        
+        // Store data in localStorage with the session ID
+        localStorage.setItem('pendingSignup', JSON.stringify(encryptedData));
+      } catch (storageError) {
+        console.error('Failed to store signup data:', storageError);
+        // If we can't store data, we should not proceed with payment
+        throw new Error('Failed to prepare for payment process. Please try again.');
+      }
 
-      // Set a flag to indicate we need to collect the password again
+      // Create a secure way to handle the password across redirects
+      // IMPORTANT: Never store raw passwords in localStorage
+      
+      // Instead, we'll hash the password and store a temporary verification token
+      // that we can use to verify the password when the user returns
+      const tempAuthToken = await generateTempAuthToken(formData.password);
+      
+      // Store additional data for verification
+      localStorage.setItem('authVerification', tempAuthToken);
       localStorage.setItem('requirePasswordConfirmation', 'true');
+      localStorage.setItem('signupSessionId', sessionId);
+
+      // Add session ID as a query param to help with tracking
+      const paymentLinkWithParams = new URL(paymentLink);
+      paymentLinkWithParams.searchParams.append('session_id', sessionId);
 
       // Redirect to Stripe payment page
-      window.location.href = paymentLink;
+      window.location.href = paymentLinkWithParams.toString();
     } catch (error) {
       setFormErrors({
         general: error instanceof Error ? error.message : "An error occurred. Please try again."
       });
+      
+      // Log the error for debugging
+      console.error('Signup error:', error);
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, validateForm, sensitiveDataHandler]);
-
-  const handlePaymentComplete = useCallback(async (paymentResult: PaymentResult) => {
-    setIsSubmitting(true);
-    try {
-      // Get stored registration data
-      const storedData = localStorage.getItem('pendingSignup');
-      if (!storedData) {
-        throw new Error('Registration data not found. Please try again.');
-      }
-
-      const pendingSignup = JSON.parse(storedData);
-
-      // Check if we need to collect password again (it wasn't stored in localStorage for security)
-      const needPasswordConfirmation = localStorage.getItem('requirePasswordConfirmation') === 'true';
-      if (needPasswordConfirmation) {
-        // Here you would typically show a password input dialog
-        // For now, we'll use the password from the form state (which is still in memory)
-        // In a real app, you would prompt the user again for their password
-        console.log('Using password from current form state since we avoided storing it in localStorage');
-      }
-
-      // Get the selected tier and other required data
-      const registrationData = {
-        email: pendingSignup.email,
-        password: formData.password,
-        name: pendingSignup.name,
-        selectedTier: pendingSignup.selectedTier,
-        // Include consent data
-        acceptTerms: formData.acceptTerms,
-        marketingConsent: formData.marketingConsent,
-        dataProcessingConsent: formData.dataProcessingConsent,
-        ageVerification: formData.ageVerification,
-      };
-
-      // Try to use the security handler for encryption if available
-      let encryptedData = { ...registrationData };
-
-      try {
-        // Only attempt encryption if the handler is properly initialized
-        if (sensitiveDataHandler &&
-          typeof sensitiveDataHandler.sanitizeSensitiveData === 'function' &&
-          typeof sensitiveDataHandler.encryptSensitiveData === 'function') {
-
-          // Initialize if not already done
-          await sensitiveDataHandler.initializeKey();
-
-          // Sanitize and encrypt sensitive data
-          const sanitizedEmail = sensitiveDataHandler.sanitizeSensitiveData(registrationData.email);
-          const sanitizedName = sensitiveDataHandler.sanitizeSensitiveData(registrationData.name);
-          const sanitizedPassword = sensitiveDataHandler.sanitizeSensitiveData(registrationData.password);
-
-          // Encrypt the data - with error handling for each field
-          try {
-            const encryptedEmail = await sensitiveDataHandler.encryptSensitiveData(sanitizedEmail);
-            encryptedData.email = encryptedEmail.encryptedData;
-          } catch (err) {
-            console.warn('Failed to encrypt email:', err);
-            // Continue with unencrypted email
-          }
-
-          try {
-            const encryptedName = await sensitiveDataHandler.encryptSensitiveData(sanitizedName);
-            encryptedData.name = encryptedName.encryptedData;
-          } catch (err) {
-            console.warn('Failed to encrypt name:', err);
-            // Continue with unencrypted name
-          }
-
-          try {
-            const encryptedPassword = await sensitiveDataHandler.encryptSensitiveData(sanitizedPassword);
-            encryptedData.password = encryptedPassword.encryptedData;
-          } catch (err) {
-            console.warn('Failed to encrypt password:', err);
-            // Continue with unencrypted password
-          }
-        } else {
-          console.warn('Sensitive data handler not fully initialized, proceeding with unencrypted signup');
-        }
-      } catch (encryptionError) {
-        console.error('Encryption failed:', encryptionError);
-        // Continue with unencrypted data as fallback
-      }
-
-      // Record consent information
-      const consentRecord = {
-        userId: null, // Will be filled in by backend
-        consentDate: new Date().toISOString(),
-        consentVersion: "1.0", // Current version of Terms/Privacy
-        termsAccepted: formData.acceptTerms,
-        privacyAccepted: formData.acceptTerms,
-        marketingConsent: formData.marketingConsent,
-        dataProcessingConsent: formData.dataProcessingConsent,
-        ageVerified: formData.ageVerification,
-        ipAddress: "{{client_ip}}", // Placeholder - would be captured by backend
-        userAgent: navigator.userAgent,
-        consentMethod: "signup_form",
-      };
-
-      // Include the consent record with the encrypted data
-      encryptedData.consentRecord = consentRecord;
-
-      // Register user with subscription and encrypted data
-      const result = await signup(encryptedData);
-
-      // Check if email confirmation is needed
-      if (result.needsEmailConfirmation) {
-        setEmailConfirmationSent(true);
-        setConfirmedEmail(registrationData.email);
-        return;
-      }
-
-      const returnUrl = new URLSearchParams(location.search).get('returnUrl');
-
-      // Clean up sensitive data from localStorage
-      localStorage.removeItem('pendingSignup');
-      localStorage.removeItem('requirePasswordConfirmation');
-
-      // Navigate to dashboard or return URL
-      navigate(returnUrl || '/dashboard');
-
-    } catch (error) {
-      setFormErrors({
-        general: error instanceof Error ? error.message : "An error occurred during registration. Please try again."
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [formData, location.search, navigate, sensitiveDataHandler, signup]);
+  }, [formData, validateForm, sensitiveDataHandler, generateTempAuthToken]);
 
   const handleResendConfirmation = async () => {
-    if (!confirmedEmail) return;
-
-    setIsSubmitting(true);
+    if (isResending || !confirmedEmail) return;
+    
+    setIsResending(true);
+    
     try {
       await resendConfirmationEmail(confirmedEmail);
-      setFormErrors({});
-      // Show success message
-      setFormErrors({ general: "Confirmation email has been resent. Please check your inbox." });
+      setConfirmationResent(true);
     } catch (error) {
       setFormErrors({
         general: error instanceof Error ? error.message : "Failed to resend confirmation email. Please try again."
       });
     } finally {
-      setIsSubmitting(false);
+      setIsResending(false);
     }
   };
 
+  // Helper function to get password strength
+  const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
+    if (!password) {
+      return { score: 0, label: 'None', color: 'gray' };
+    }
+    
+    // Calculate password strength based on criteria
+    let score = 0;
+    
+    // Length check
+    if (password.length >= 10) score += 1;
+    if (password.length >= 12) score += 1;
+    
+    // Character variety checks
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[a-z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    
+    // Determine label and color based on score
+    let label = '';
+    let color = '';
+    
+    switch (true) {
+      case (score <= 2):
+        label = 'Weak';
+        color = 'red';
+        break;
+      case (score <= 4):
+        label = 'Fair';
+        color = 'orange';
+        break;
+      case (score <= 5):
+        label = 'Good';
+        color = 'yellow';
+        break;
+      default:
+        label = 'Strong';
+        color = 'green';
+    }
+    
+    return { score, label, color };
+  };
+
+  // Calculate password strength for the current password
   const passwordStrength = getPasswordStrength(formData.password);
 
-  // Add this function to render error messages
   const renderErrorMessage = (fieldName: keyof FormErrors) => {
-    if (formErrors[fieldName]) {
+    if (!formErrors[fieldName]) return null;
+    
+    return (
+      <p className="text-red-400 text-sm mt-1">{formErrors[fieldName]}</p>
+    );
+  };
+
+  // Handler for retrying payment after failure
+  const handleRetryPayment = useCallback(() => {
+    const storedData = localStorage.getItem('pendingSignup');
+    if (!storedData) {
+      setFormErrors({
+        general: 'Your previous signup information was lost. Please fill out the form again.'
+      });
+      // Reset payment failed state so user can try again with form
+      setPaymentFailed(false);
+        return;
+      }
+
+    try {
+      // Parse the stored data
+      const pendingSignup = JSON.parse(storedData);
+      
+      // Use the stored tier to determine payment link
+      const paymentLink = pendingSignup.selectedTier === 'basic'
+        ? 'https://buy.stripe.com/3csbJDf1D9eQ0FybIJ'  // Basic plan link
+        : 'https://buy.stripe.com/6oE7tnbPrfDecogfYY'; // Pro plan link
+      
+      // Add session ID as a query param if available
+      const sessionId = pendingSignup.sessionId || localStorage.getItem('signupSessionId');
+      const paymentLinkWithParams = new URL(paymentLink);
+      if (sessionId) {
+        paymentLinkWithParams.searchParams.append('session_id', sessionId);
+      }
+      
+      // Redirect to Stripe payment page again
+      window.location.href = paymentLinkWithParams.toString();
+    } catch (error) {
+      setFormErrors({
+        general: 'Failed to process your request. Please try signing up again.'
+      });
+      // Clear any potentially corrupted data
+      localStorage.removeItem('pendingSignup');
+      localStorage.removeItem('requirePasswordConfirmation');
+      localStorage.removeItem('authVerification');
+      localStorage.removeItem('authTimestamp');
+      localStorage.removeItem('signupSessionId');
+      // Reset payment failed state to show normal signup form
+      setPaymentFailed(false);
+    }
+  }, []);
+
+  // Handler for continuing registration after abandoning payment flow
+  const handleContinueRegistration = useCallback(() => {
+    handleRetryPayment();
+  }, [handleRetryPayment]);
+
+  // Render payment failure UI
+  const renderPaymentFailureUI = () => {
+    if (!paymentFailed) return null;
+    
+    return (
+      <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-2 text-red-300">Payment Not Completed</h2>
+        <p className="text-gray-300 mb-4">
+          Your payment was not completed successfully. You can try again or choose a different payment method.
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={handleRetryPayment}
+            className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-4 rounded-md flex items-center"
+          >
+            Try again
+          </button>
+          <button
+            onClick={() => {
+              // Clear saved data and start fresh
+              localStorage.removeItem('pendingSignup');
+              localStorage.removeItem('requirePasswordConfirmation');
+              localStorage.removeItem('authVerification');
+              localStorage.removeItem('authTimestamp');
+              localStorage.removeItem('signupSessionId');
+              setPaymentFailed(false);
+            }}
+            className="bg-transparent border border-white/20 hover:border-white/40 text-white font-medium py-2 px-4 rounded-md"
+          >
+            Start over
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Render continue registration UI
+  const renderContinueRegistrationUI = () => {
+    if (!continueRegistration) return null;
+    
       return (
-        <div className="text-red-500 text-sm mt-1">
-          {formErrors[fieldName]}
+      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-2 text-yellow-300">Registration in Progress</h2>
+        <p className="text-gray-300 mb-4">
+          You have a registration in progress. Would you like to continue where you left off?
+        </p>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={handleContinueRegistration}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-md flex items-center"
+          >
+            Continue registration
+          </button>
+          <button
+            onClick={() => {
+              // Clear saved data and start fresh
+              localStorage.removeItem('pendingSignup');
+              localStorage.removeItem('requirePasswordConfirmation');
+              localStorage.removeItem('authVerification');
+              localStorage.removeItem('authTimestamp');
+              localStorage.removeItem('signupSessionId');
+              setContinueRegistration(false);
+            }}
+            className="bg-transparent border border-white/20 hover:border-white/40 text-white font-medium py-2 px-4 rounded-md"
+          >
+            Start over
+          </button>
+        </div>
         </div>
       );
-    }
-    return null;
   };
 
   return (
@@ -395,297 +763,302 @@ export default function SignUp() {
           </p>
         </div>
 
+        {/* Display payment failure UI */}
+        {renderPaymentFailureUI()}
+        
+        {/* Display continue registration UI */}
+        {renderContinueRegistrationUI()}
+
         {emailConfirmationSent ? (
-          <div className="bg-[#1E1E1E] p-8 rounded-lg shadow-xl border border-[#333]">
-            <div className="flex flex-col items-center text-center">
-              <Shield className="w-16 h-16 text-[#88B04B] mb-4" />
-              <h1 className="text-2xl font-bold mb-3">Verify Your Email</h1>
-              <p className="mb-6 text-gray-300">
-                We've sent a confirmation email to <strong>{confirmedEmail}</strong>.
-                Please check your inbox and click the verification link to activate your account.
-              </p>
-              <div className="bg-[#111] p-4 rounded-md text-left w-full mb-6">
-                <h3 className="font-medium mb-2 text-[#88B04B]">Next steps:</h3>
-                <ol className="list-decimal list-inside text-gray-300 space-y-2">
-                  <li>Check your email inbox (and spam folder)</li>
-                  <li>Click the verification link in the email</li>
-                  <li>After verification, you can sign in to your account</li>
-                </ol>
+          <div className="bg-[#1e1e1e]/50 backdrop-blur-sm border border-[#88B04B]/20 rounded-lg p-8 max-w-md mx-auto">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#88B04B]/20 mb-4">
+                <Shield className="w-8 h-8 text-[#88B04B]" />
               </div>
-              <div className="space-y-4 w-full">
+              <h2 className="text-xl font-bold mb-2">Check Your Email</h2>
+              <p className="text-gray-300 mb-6">
+                Please check your email to verify your account. We've sent a verification link to <span className="font-semibold">{confirmedEmail}</span>.
+              </p>
                 <button
-                  type="button"
                   onClick={handleResendConfirmation}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-2 bg-[#333] hover:bg-[#444] text-white py-3 px-6 rounded-md transition-colors"
+                className="inline-flex items-center justify-center px-5 py-2 border border-transparent text-base font-medium rounded-md text-white bg-[#88B04B] hover:bg-[#6A9A2D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#88B04B] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
-                    <Loader2 className="animate-spin h-5 w-5 mr-2" />
+                  <>
+                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                    Sending...
+                  </>
                   ) : (
-                    <>Resend confirmation email</>
+                  'Resend confirmation email'
                   )}
                 </button>
-                <Link
-                  to="/signin"
-                  className="block w-full text-center py-3 px-6 rounded-md border border-[#444] hover:bg-[#222] transition-colors"
-                >
-                  Return to Sign In
-                </Link>
-              </div>
               {formErrors.general && (
-                <div className="mt-4 p-3 bg-opacity-20 rounded-md text-center w-full bg-blue-500 text-blue-100">
-                  {formErrors.general}
-                </div>
+                <p className="mt-4 text-red-500">{formErrors.general}</p>
               )}
             </div>
           </div>
         ) : (
-          <div className="bg-white/5 p-4 sm:p-6 rounded-xl border border-white/10">
+          <div className="bg-[#1e1e1e]/50 backdrop-blur-sm border border-[#88B04B]/20 rounded-lg p-8">
             {formErrors.general && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg" role="alert">
-                <p className="text-red-400 text-sm">{formErrors.general}</p>
+              <div className="p-4 mb-6 bg-red-900/20 border border-red-500/30 rounded-md">
+                <p className="text-red-400">{formErrors.general}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {(!paymentFailed && !continueRegistration) && (
+              <>
+                <div className="flex flex-col md:flex-row gap-8 mb-8">
+                  {/* Subscription tiers */}
+                  <div className="md:w-1/2 space-y-4">
+                    <h2 className="text-lg font-semibold mb-2">Choose Your Plan</h2>
+                    {subscriptionTiers.map((tier) => (
+                      <div
+                        key={tier.id}
+                        onClick={() => setFormData({ ...formData, selectedTier: tier.id })}
+                        className={`relative cursor-pointer rounded-lg p-4 border transition-all ${
+                          formData.selectedTier === tier.id
+                            ? 'border-[#88B04B] bg-[#88B04B]/10'
+                            : 'border-gray-700 hover:border-gray-500 bg-gray-800/20'
+                        }`}
+                      >
+                        {tier.recommended && (
+                          <span className="absolute -top-3 right-4 bg-[#88B04B] text-black text-xs px-2 py-1 rounded-full font-medium">
+                            Recommended
+                          </span>
+                        )}
+                        <div className="flex justify-between items-start mb-2">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium mb-1.5">
-                  Full Name
+                            <h3 className="font-bold">{tier.name}</h3>
+                            <p className="text-sm text-gray-300">{tier.price}</p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border flex-shrink-0 flex items-center justify-center ${
+                            formData.selectedTier === tier.id
+                              ? 'border-[#88B04B] bg-[#88B04B]'
+                              : 'border-gray-500'
+                          }`}>
+                            {formData.selectedTier === tier.id && (
+                              <Check className="w-3 h-3 text-black" />
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-400 mb-3">{tier.description}</p>
+                        <ul className="space-y-2">
+                          {tier.features.map((feature, index) => (
+                            <li key={index} className="flex text-sm items-start gap-2">
+                              <Check className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
+                              <span className="text-gray-300">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Signup form */}
+                  <form className="md:w-1/2" onSubmit={handleSubmit}>
+                    <h2 className="text-lg font-semibold mb-4">Your Details</h2>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-1">
+                          Name
                 </label>
                 <input
-                  type="text"
                   id="name"
-                  name="name"
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${formErrors.name ? "border-red-500" : "border-white/10"
-                    } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                          type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="John Doe"
-                  autoComplete="name"
-                  aria-invalid={Boolean(formErrors.name)}
-                  aria-describedby={formErrors.name ? "name-error" : undefined}
-                  disabled={isSubmitting}
+                          className={`w-full px-3 py-2 bg-gray-800/50 border ${
+                            formErrors.name ? 'border-red-500' : 'border-gray-700'
+                          } rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#88B04B] focus:border-[#88B04B]`}
+                          placeholder="Your name"
+                          aria-label="Name"
                 />
                 {formErrors.name && (
-                  <p id="name-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                    {formErrors.name}
-                  </p>
+                          <p className="mt-1 text-sm text-red-400">{formErrors.name}</p>
                 )}
               </div>
 
               <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-1.5">
-                  Email Address
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+                          Email
                 </label>
                 <input
-                  type="email"
                   id="email"
-                  name="email"
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${formErrors.email ? "border-red-500" : "border-white/10"
-                    } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                          type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                  aria-invalid={Boolean(formErrors.email)}
-                  aria-describedby={formErrors.email ? "email-error" : undefined}
-                  disabled={isSubmitting}
-                  required
+                          className={`w-full px-3 py-2 bg-gray-800/50 border ${
+                            formErrors.email ? 'border-red-500' : 'border-gray-700'
+                          } rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#88B04B] focus:border-[#88B04B]`}
+                          placeholder="Your email"
+                          aria-label="Email"
                 />
                 {formErrors.email && (
-                  <p id="email-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                    {formErrors.email}
-                  </p>
+                          <p className="mt-1 text-sm text-red-400">{formErrors.email}</p>
                 )}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <label htmlFor="password" className="block text-sm font-medium mb-1.5">
+                      <div>
+                        <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
                     Password
                   </label>
                   <div className="relative">
                     <input
-                      type={showPassword ? "text" : "password"}
                       id="password"
-                      name="password"
-                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${formErrors.password ? "border-red-500" : "border-white/10"
-                        } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                            type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      autoComplete="new-password"
-                      aria-invalid={Boolean(formErrors.password)}
-                      aria-describedby={formErrors.password ? "password-error" : undefined}
-                      disabled={isSubmitting}
-                      required
+                            className={`w-full px-3 py-2 pr-10 bg-gray-800/50 border ${
+                              formErrors.password ? 'border-red-500' : 'border-gray-700'
+                            } rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#88B04B] focus:border-[#88B04B]`}
+                            placeholder="Create a strong password"
+                            aria-label="Password"
                     />
                     <button
                       type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
-                    >
-                      {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
                     </button>
                   </div>
                   {formErrors.password && (
-                    <p id="password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                      {formErrors.password}
-                    </p>
+                          <p className="mt-1 text-sm text-red-400">{formErrors.password}</p>
                   )}
                 </div>
 
-                <div className="flex-1">
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1.5">
+                      <div>
+                        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-1">
                     Confirm Password
                   </label>
                   <div className="relative">
                     <input
-                      type={showConfirmPassword ? "text" : "password"}
                       id="confirmPassword"
-                      name="confirmPassword"
-                      className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg bg-white/5 border ${formErrors.confirmPassword ? "border-red-500" : "border-white/10"
-                        } focus:outline-none focus:border-[#88B04B] text-white transition-colors text-sm sm:text-base`}
+                            type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      autoComplete="new-password"
-                      aria-invalid={Boolean(formErrors.confirmPassword)}
-                      aria-describedby={formErrors.confirmPassword ? "confirm-password-error" : undefined}
-                      disabled={isSubmitting}
-                      required
+                            className={`w-full px-3 py-2 pr-10 bg-gray-800/50 border ${
+                              formErrors.confirmPassword ? 'border-red-500' : 'border-gray-700'
+                            } rounded-md text-white focus:outline-none focus:ring-1 focus:ring-[#88B04B] focus:border-[#88B04B]`}
+                            placeholder="Confirm your password"
+                            aria-label="Confirm Password"
                     />
                     <button
                       type="button"
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
-                    >
-                      {showConfirmPassword ? <Eye size={18} /> : <EyeOff size={18} />}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-5 w-5" aria-hidden="true" />
+                            )}
                     </button>
                   </div>
                   {formErrors.confirmPassword && (
-                    <p id="confirm-password-error" className="mt-1.5 text-red-400 text-xs sm:text-sm" role="alert">
-                      {formErrors.confirmPassword}
-                    </p>
+                          <p className="mt-1 text-sm text-red-400">{formErrors.confirmPassword}</p>
                   )}
-                </div>
               </div>
 
-              <div className="flex flex-col gap-3 mt-4 border border-gray-700/50 p-4 rounded-lg bg-gray-900/30">
-                <h3 className="text-sm font-medium text-white">Consent Options</h3>
-
-                {/* Terms and Privacy Policy Consent - Required */}
-                <div className="flex items-start gap-2">
+                      <div className="space-y-3 pt-2">
+                        <div className="flex items-start">
                   <input
-                    type="checkbox"
                     id="acceptTerms"
-                    name="acceptTerms"
+                            type="checkbox"
                     checked={formData.acceptTerms}
                     onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
-                  />
-                  <label htmlFor="acceptTerms" className="text-xs sm:text-sm text-gray-300">
-                    I accept the <Link to="/terms" className="text-[#88B04B] hover:text-[#7a9d43]">Terms of Service</Link> and{' '}
-                    <Link to="/privacy" className="text-[#88B04B] hover:text-[#7a9d43]">Privacy Policy</Link>
-                    <span className="ml-1 text-xs text-red-400">*</span>
+                            className="h-4 w-4 mt-1 rounded border-gray-600 bg-gray-800 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                          />
+                          <label htmlFor="acceptTerms" className="ml-2 block text-sm text-gray-300">
+                            I accept the <a href="/terms" className="text-[#88B04B] hover:underline">terms and conditions</a> and <a href="/privacy" className="text-[#88B04B] hover:underline">privacy policy</a>
                   </label>
                 </div>
                 {formErrors.acceptTerms && (
-                  <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">{formErrors.acceptTerms}</p>
+                          <p className="text-sm text-red-400">{formErrors.acceptTerms}</p>
                 )}
 
-                {/* Marketing Communications Consent - Optional */}
-                <div className="flex items-start gap-2">
+                        <div className="flex items-start">
                   <input
+                            id="ageVerification"
                     type="checkbox"
-                    id="marketingConsent"
-                    name="marketingConsent"
-                    checked={formData.marketingConsent || false}
-                    onChange={(e) => setFormData({ ...formData, marketingConsent: e.target.checked })}
-                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
-                  />
-                  <label htmlFor="marketingConsent" className="text-xs sm:text-sm text-gray-300">
-                    I agree to receive marketing communications about products, services, and promotions.
+                            checked={formData.ageVerification}
+                            onChange={(e) => setFormData({ ...formData, ageVerification: e.target.checked })}
+                            className="h-4 w-4 mt-1 rounded border-gray-600 bg-gray-800 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                          />
+                          <label htmlFor="ageVerification" className="ml-2 block text-sm text-gray-300">
+                            I am at least 18 years old
+                  </label>
+                </div>
+                        {formErrors.ageVerification && (
+                          <p className="text-sm text-red-400">{formErrors.ageVerification}</p>
+                        )}
+
+                        <div className="flex items-start">
+                  <input
+                            id="marketingConsent"
+                    type="checkbox"
+                            checked={formData.marketingConsent}
+                            onChange={(e) => setFormData({ ...formData, marketingConsent: e.target.checked })}
+                            className="h-4 w-4 mt-1 rounded border-gray-600 bg-gray-800 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                          />
+                          <label htmlFor="marketingConsent" className="ml-2 block text-sm text-gray-300">
+                            I would like to receive news, tips and updates (optional)
                   </label>
                 </div>
 
-                {/* Data Processing Consent - Optional */}
-                <div className="flex items-start gap-2">
+                        <div className="flex items-start">
                   <input
+                            id="dataProcessingConsent"
                     type="checkbox"
-                    id="dataProcessingConsent"
-                    name="dataProcessingConsent"
-                    checked={formData.dataProcessingConsent || false}
-                    onChange={(e) => setFormData({ ...formData, dataProcessingConsent: e.target.checked })}
-                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
-                  />
-                  <label htmlFor="dataProcessingConsent" className="text-xs sm:text-sm text-gray-300">
-                    I consent to the processing of my data for service improvement and personalization purposes.
+                            checked={formData.dataProcessingConsent}
+                            onChange={(e) => setFormData({ ...formData, dataProcessingConsent: e.target.checked })}
+                            className="h-4 w-4 mt-1 rounded border-gray-600 bg-gray-800 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
+                          />
+                          <label htmlFor="dataProcessingConsent" className="ml-2 block text-sm text-gray-300">
+                            I consent to the processing of my financial data to receive personalized recommendations (optional)
                   </label>
                 </div>
-
-                {/* Age Verification - Required */}
-                <div className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    id="ageVerification"
-                    name="ageVerification"
-                    checked={formData.ageVerification || false}
-                    onChange={(e) => setFormData({ ...formData, ageVerification: e.target.checked })}
-                    className="mt-1 w-4 h-4 rounded border-white/10 bg-white/5 text-[#88B04B] focus:ring-[#88B04B] focus:ring-offset-0"
-                  />
-                  <label htmlFor="ageVerification" className="text-xs sm:text-sm text-gray-300">
-                    I confirm that I am at least 18 years old or the age of majority in my jurisdiction.
-                    <span className="ml-1 text-xs text-red-400">*</span>
-                  </label>
-                </div>
-                {formData.ageVerification === false && formSubmitted && (
-                  <p className="text-red-400 text-xs sm:text-sm mt-1" role="alert">You must confirm that you are of legal age to continue.</p>
-                )}
-
-                <p className="text-xs text-gray-500 mt-1">
-                  Fields marked with <span className="text-red-400">*</span> are required.
-                </p>
+                      </div>
               </div>
 
-              <div className="flex gap-4 mt-6">
+                    <div className="mt-8">
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-2.5 sm:py-3 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm sm:text-base"
+                        className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-base font-medium text-black bg-[#88B04B] hover:bg-[#6A9A2D] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#88B04B] disabled:opacity-70 disabled:cursor-not-allowed transition-colors"
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 size={16} className="animate-spin" />
+                            <Loader2 className="animate-spin mr-2 h-5 w-5" />
                       Processing...
                     </>
                   ) : (
                     <>
-                      Become Debt Free
-                      <ArrowRight size={16} />
+                            Create Account
+                            <ArrowRight className="ml-2 h-5 w-5" />
                     </>
                   )}
                 </button>
               </div>
+                    
+                    <div className="mt-6 text-center text-sm text-gray-400">
+                      Already have an account?{' '}
+                      <Link to="/signin" className="text-[#88B04B] hover:underline">
+                        Sign in
+                      </Link>
+              </div>
             </form>
           </div>
-        )}
-
-        <div className="mt-6 sm:mt-8 pt-6 sm:pt-8 border-t border-white/10">
-          <div className="flex items-start gap-3 text-gray-300">
-            <Shield className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-1" />
-            <div className="space-y-2">
-              <span className="text-xs sm:text-sm block">Your information is secured with:</span>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-[#88B04B]" />
-                  <span>256-bit SSL encryption</span>
+              </>
+            )}
                 </div>
-              </div>
-              <span className="text-xs block text-gray-400">
-                All sensitive data is encrypted end-to-end using AES-256-GCM encryption
-              </span>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

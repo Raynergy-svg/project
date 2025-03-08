@@ -207,13 +207,11 @@ export default function Terms() {
               </p>
               <ul className="space-y-3 text-gray-300">
                 <li>• Strong password policies enforced for all accounts</li>
-                <li>• Human verification with CAPTCHA to prevent automated attacks</li>
                 <li>• Field-level encryption for sensitive user data</li>
                 <li>• Advanced security headers to protect against XSS attacks</li>
                 <li>• CSRF protection for secure state-changing operations</li>
                 <li>• Session management with automatic timeouts</li>
                 <li>• Security audit logging of authentication events</li>
-                <li>• Rate limiting to prevent brute force attacks</li>
               </ul>
               <p className="text-gray-300 mt-4">
                 While we implement these security measures, no method of electronic transmission or storage is 100% secure. We cannot guarantee absolute security of your information.

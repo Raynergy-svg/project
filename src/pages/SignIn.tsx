@@ -9,7 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IS_DEV } from '@/utils/environment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { checkSupabaseConnection, supabase, createDirectAuthClient } from '@/utils/supabase/client';
+import { checkSupabaseConnection, supabase } from '@/utils/supabase/client';
 
 interface FormData {
   email: string;
@@ -20,7 +20,6 @@ interface FormErrors {
   email?: string;
   password?: string;
   general?: string;
-  captcha?: string;
 }
 
 export default function SignIn() {
@@ -124,7 +123,7 @@ export default function SignIn() {
     }
   }, [location]);
 
-  // Reset captcha when component is mounted or errors occur
+  // Check for session expiration
   useEffect(() => {
     if (sessionExpired) {
       setSecurityMessage('Your session has expired due to inactivity. Please sign in again.');
@@ -193,6 +192,44 @@ export default function SignIn() {
     }
   };
 
+  // Helper function to handle sign in errors
+  const handleSignInError = (error: unknown) => {
+    console.error('Processing sign-in error:', error);
+    
+    // Special handling for network errors which might indicate server issues
+    if (error instanceof Error && error.message.includes('network') && !navigator.onLine) {
+      setFormErrors({
+        general: 'Please check your internet connection and try again.'
+      });
+      return;
+    }
+    
+    // Handle different error types
+    if (error instanceof Error && error.message.includes('servers are experiencing issues')) {
+      setFormErrors({
+        general: 'Our servers are experiencing issues. The team has been notified and we\'re working on a fix.'
+      });
+    } else if (error instanceof Error && error.message.includes('temporarily unavailable')) {
+      setFormErrors({
+        general: 'The sign-in service is temporarily unavailable. Please try again in a few minutes.'
+      });
+    } else if (error instanceof Error && error.message.includes('Invalid')) {
+      // For credential errors, show a clear message
+      setFormErrors({
+        general: error.message
+      });
+    } else {
+      // Generic error handling
+      setFormErrors({
+        general: error instanceof Error 
+          ? error.message 
+          : 'An unknown error occurred. Please try again later.'
+      });
+    }
+    
+    setFailedAttempts(prev => prev + 1);
+  };
+
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -214,12 +251,7 @@ export default function SignIn() {
         const sanitizedEmail = email.trim().toLowerCase();
         const sanitizedPassword = password;
         
-        console.log('Attempting to sign in:', sanitizedEmail);
-        
-        // Check if login function is available from AuthContext
-        if (!auth || !login) {
-          throw new Error('Authentication service is not available');
-        }
+        console.log('Attempting to sign in with standard auth flow:', sanitizedEmail);
         
         // For development, we use the special dev account flow
         if (IS_DEV && sanitizedEmail === 'dev@example.com') {
@@ -239,55 +271,29 @@ export default function SignIn() {
             throw devError; // Re-throw to handle in the catch block
           }
         } else {
-          // Standard authentication flow for regular users
-          try {
-            // USE DIRECT AUTH: Instead of calling the normal login function
-            const directAuth = createDirectAuthClient();
-            
-            // Auth options without captcha token
-            const authOptions: any = {
-              email: sanitizedEmail,
-              password: sanitizedPassword,
-              options: {
-                redirectTo: window.location.origin
-              }
-            };
-            
-            const result = await directAuth.signInWithPassword(authOptions);
-            
-            if (result.error) {
-              throw result.error;
-            }
-            
-            // If we get here, login was successful
-            handleSuccessfulLogin(sanitizedEmail);
-            console.log('Login successful, redirecting...');
-          } catch (loginError) {
-            console.error('Login failed:', loginError);
-            
-            // Special handling for 500 error messages about missing database fields
-            if (loginError instanceof Error && loginError.message.includes('Database error')) {
-              setSecurityMessage('We are experiencing database issues. This might be due to missing fields in our database schema. Please try again later or contact support.');
-            } else {
-              // Handle other login errors
-              setFormErrors({
-                general: loginError instanceof Error ? loginError.message : 'An unknown error occurred during login'
-              });
-            }
-            
-            setFailedAttempts(prev => prev + 1);
+          // Standard authentication flow using Supabase client
+          console.log('Using standard Supabase auth');
+          
+          // Check if login function is available from AuthContext
+          if (!auth || !login) {
+            throw new Error('Authentication service is not available');
           }
+          
+          // Use the standard login function
+          await login(sanitizedEmail, sanitizedPassword);
+          
+          // Handle successful login
+          handleSuccessfulLogin(sanitizedEmail);
+          console.log('Login successful');
         }
-        
       } catch (error) {
-        console.error('Submission error:', error);
-        setFormErrors({ general: 'An error occurred. Please try again later.' });
-        setFailedAttempts(prev => prev + 1);
+        console.error('Sign-in error:', error);
+        handleSignInError(error);
       } finally {
         setIsSubmitting(false);
       }
     },
-    [formData, validateForm, auth, login, handleDevSignIn, IS_DEV]
+    [formData, validateForm, formErrors, auth, login, handleDevSignIn, handleSignInError]
   );
   
   // Function to handle successful login actions
@@ -320,51 +326,67 @@ export default function SignIn() {
   // Calculate if button should be disabled
   const isButtonDisabled = isSubmitting || authLoading || devSignInLoading || failedAttempts >= 3;
 
-  const handleMagicLinkRequest = async (e: React.MouseEvent) => {
+  // Function to handle magic link button click
+  const handleMagicLinkButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
-    if (!formData.email || !validateEmail(formData.email)) {
+    if (!formData.email) {
       setFormErrors({
-        ...formErrors,
-        email: 'Please enter a valid email address'
+        email: "Email is required for magic link sign in"
       });
       return;
     }
     
+    // Find the form and submit it
+    const form = document.getElementById('signin-form') as HTMLFormElement;
+    if (form) {
+      form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+    }
+  };
+
+  // Function to handle magic link form submission
+  const handleMagicLinkSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!formData.email) {
+      setFormErrors({
+        email: "Email is required for magic link sign in"
+      });
+      return;
+    }
+    
+    const sanitizedEmail = formData.email.trim().toLowerCase();
     setIsSubmitting(true);
-    setFormErrors({});
     
     try {
-      // Use direct auth client for magic link
-      const directAuth = createDirectAuthClient();
-      const { error } = await directAuth.signInWithOtp({
-        email: formData.email.trim().toLowerCase(),
+      console.log('Sending magic link to:', sanitizedEmail);
+      
+      // Use standard Supabase auth for magic link
+      const { error } = await supabase.auth.signInWithOtp({
+        email: sanitizedEmail,
         options: {
-          emailRedirectTo: window.location.origin,
-        }
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
       
       if (error) {
-        console.error('Magic link error:', error);
-        setFormErrors({
-          general: 'Could not send magic link: ' + error.message
-        });
-      } else {
-        setMagicLinkSent(true);
+        throw error;
       }
-    } catch (err) {
-      console.error('Magic link exception:', err);
+      
+      // If no error, magic link was sent successfully
+      setMagicLinkSent(true);
+      console.log('Magic link sent successfully');
+    } catch (error) {
+      console.error('Error sending magic link:', error);
+      
       setFormErrors({
-        general: 'An error occurred while sending the magic link. Please try again.'
+        general: error instanceof Error 
+          ? error.message 
+          : 'Failed to send magic link. Please try again later.',
       });
     } finally {
       setIsSubmitting(false);
     }
-  };
-  
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
   };
 
   // If already authenticated, don't render the form
@@ -436,13 +458,20 @@ export default function SignIn() {
         )}
         
         {formErrors.general && (
-          <Alert className="mb-6 bg-red-900/20 border-red-700">
-            <AlertCircle className="h-4 w-4 text-red-500" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription className="text-red-300">
-              {formErrors.general}
-            </AlertDescription>
-          </Alert>
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-4">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+              <div>
+                <p className="text-sm font-medium">{formErrors.general}</p>
+                {formErrors.general.includes('servers are experiencing issues') && (
+                  <p className="text-xs mt-1">We're working on fixing this. Please try again in a few moments.</p>
+                )}
+                {formErrors.general.includes('temporarily unavailable') && (
+                  <p className="text-xs mt-1">Our authentication service is being updated. Please try again soon.</p>
+                )}
+              </div>
+            </div>
+          </div>
         )}
         
         <div className="bg-white/5 p-6 rounded-xl border border-white/10 shadow-lg">
@@ -453,7 +482,11 @@ export default function SignIn() {
           </div>
 
           {!useMagicLink ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form 
+              id="signin-form"
+              onSubmit={handleSubmit} 
+              className="space-y-6 w-full max-w-sm mx-auto"
+            >
               <div className="hidden">
                 <input 
                   type="text" 
@@ -586,7 +619,7 @@ export default function SignIn() {
                     Don't see it? Check your spam folder or 
                     <button 
                       type="button"
-                      onClick={handleMagicLinkRequest}
+                      onClick={handleMagicLinkButtonClick}
                       className="text-green-800 font-medium hover:underline ml-1"
                     >
                       try again
@@ -594,11 +627,10 @@ export default function SignIn() {
                   </p>
                 </div>
               ) : (
-                <form onSubmit={(e) => { 
-                  e.preventDefault(); 
-                  // Create a synthetic mouse event to pass to handleMagicLinkRequest
-                  handleMagicLinkRequest(e as unknown as React.MouseEvent);
-                }}>
+                <form 
+                  id="signin-form"
+                  onSubmit={handleMagicLinkSubmit}
+                >
                   <div className="space-y-4">
                     <div>
                       <label 

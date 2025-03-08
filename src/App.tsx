@@ -1,6 +1,8 @@
 import React, { useEffect, Suspense, lazy, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Shield } from 'lucide-react';
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import LoadingScreen from '@/components/ui/loading-screen';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import AdminAuthCheck from '@/components/admin/AdminAuthCheck';
@@ -422,6 +424,8 @@ function App() {
       </DeviceProvider>
       {/* Add the dev mode indicator only in development */}
       {IS_DEV && <div className="fixed bottom-1 left-1 text-xs bg-yellow-100 px-2 py-1 rounded-md">DEV MODE</div>}
+      <Analytics />
+      <SpeedInsights />
     </ErrorBoundary>
   );
 }

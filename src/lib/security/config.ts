@@ -49,5 +49,69 @@ export const securityConfig = {
   rateLimit: {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100 // limit each IP to 100 requests per windowMs
+  },
+  csp: {
+    // Function to generate CSP for different environments
+    generate: (env: 'development' | 'production' = 'production') => {
+      const directives = {
+        'default-src': ["'self'"],
+        'script-src': [
+          "'self'", 
+          "'unsafe-inline'", 
+          "'unsafe-eval'", 
+          "https://js.stripe.com", 
+          "https://cdn.plaid.com",
+          "https://static.cloudflareinsights.com"
+        ],
+        'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        'font-src': ["'self'", "https://fonts.gstatic.com"],
+        'img-src': [
+          "'self'", 
+          "data:", 
+          "blob:", 
+          "https://*.supabase.co", 
+          "https://raw.githubusercontent.com", 
+          "https://*.cloudflare.com"
+        ],
+        'connect-src': [
+          "'self'",
+          "https://*.supabase.co",
+          "wss://*.supabase.co",
+          "https://api.supabase.com",
+          "https://fonts.googleapis.com",
+          "https://fonts.gstatic.com",
+          "https://*.cloudflareinsights.com",
+          "https://api.stripe.com",
+          "https://*.stripe.com",
+          "https://*.plaid.com",
+          "https://api.ipify.org",
+          "https://*.projectdcertan84workersdev.workers.dev"
+        ],
+        'frame-src': [
+          "'self'", 
+          "https://js.stripe.com", 
+          "https://hooks.stripe.com", 
+          "https://checkout.stripe.com", 
+          "https://cdn.plaid.com"
+        ],
+        'object-src': ["'none'"],
+        'base-uri': ["'self'"]
+      };
+      
+      // Add localhost entries in development
+      if (env === 'development') {
+        directives['connect-src'].push(
+          "http://localhost:*",
+          "https://localhost:*",
+          "ws://localhost:*",
+          "wss://localhost:*"
+        );
+      }
+      
+      // Convert directives to string format
+      return Object.entries(directives)
+        .map(([key, values]) => `${key} ${values.join(' ')}`)
+        .join('; ');
+    }
   }
 }; 

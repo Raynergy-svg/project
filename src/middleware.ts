@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from 'uuid';
+import { securityConfig } from './lib/security/config';
 
 /**
  * CSRF Protection: Generate and validate CSRF tokens
@@ -93,15 +94,10 @@ export async function middleware(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   
-  // Set Content-Security-Policy header
-  const cspHeader = 
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' https://js.stripe.com; " + 
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: blob: https://*.stripe.com; " +
-    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.ipify.org https://*.projectdcertan84workersdev.workers.dev; " +
-    "frame-src 'self' https://js.stripe.com; " +
-    "object-src 'none';";
+  // Set Content-Security-Policy header using our centralized config
+  const cspHeader = securityConfig.csp.generate(
+    process.env.NODE_ENV === 'production' ? 'production' : 'development'
+  );
   
   response.headers.set('Content-Security-Policy', cspHeader);
   

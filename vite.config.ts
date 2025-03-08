@@ -5,6 +5,9 @@ import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import path from 'path';
 import fs from 'fs';
 
+// Import our security config
+import { securityConfig } from './src/lib/security/config';
+
 // Helper function to safely load SSL certificates
 const loadSSLCertificates = () => {
   try {
@@ -21,45 +24,9 @@ const loadSSLCertificates = () => {
 
 const sslCertificates = loadSSLCertificates();
 
-// Generate CSP
+// Generate CSP using our centralized security config
 const generateCSP = (mode: string) => {
-  const directives = {
-    'default-src': ["'self'"],
-    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com", "https://cdn.plaid.com"],
-    'style-src': ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-    'img-src': ["'self'", 'data:', 'blob:', 'https://*.supabase.co', 'https://raw.githubusercontent.com', 'https://*.cloudflare.com', 'https://images.unsplash.com'],
-    'font-src': ["'self'", 'https://fonts.gstatic.com'],
-    'connect-src': [
-      "'self'",
-      'https://*.supabase.co',
-      'wss://*.supabase.co',
-      'https://api.supabase.com',
-      'https://fonts.googleapis.com',
-      'https://fonts.gstatic.com',
-      'https://*.cloudflareinsights.com',
-      'http://localhost:*',
-      'https://localhost:*',
-      'ws://localhost:*',
-      'wss://localhost:*',
-      'https://api.stripe.com',
-      'https://*.plaid.com',
-      'https://api.ipify.org',
-      'https://*.projectdcertan84workersdev.workers.dev'
-    ],
-    'frame-src': ["'self'", "https://js.stripe.com", "https://hooks.stripe.com", "https://cdn.plaid.com"],
-    'media-src': ["'self'"],
-    'object-src': ["'none'"],
-    'base-uri': ["'self'"]
-  };
-
-  if (mode === 'development') {
-    directives['connect-src'].push('ws://localhost:*', 'wss://localhost:*');
-    directives['script-src'].push('https://localhost:*', 'http://localhost:*');
-  }
-
-  return Object.entries(directives)
-    .map(([key, values]) => `${key} ${values.join(' ')}`)
-    .join('; ');
+  return securityConfig.csp.generate(mode === 'production' ? 'production' : 'development');
 };
 
 // https://vitejs.dev/config/

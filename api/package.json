@@ -1,0 +1,8 @@
+{
+  "name": "vercel-api-functions",
+  "version": "1.0.0",
+  "description": "Vercel Serverless API Functions",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0"
+  }
+}

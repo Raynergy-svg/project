@@ -61,6 +61,12 @@
     { "source": "/assets/(.*)", "destination": "/assets/$1" },
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/workbox-(.*).js", "destination": "/workbox-$1.js" },
+    { "source": "/api/auth/login", "destination": "/api/auth/login.js" },
+    { "source": "/api/auth/signup", "destination": "/api/auth/signup.js" },
+    {
+      "source": "/api/auth/security-log",
+      "destination": "/api/auth/security-log.js"
+    },
     {
       "source": "/(.*)\\.(js|css|png|jpg|svg|ico|json|webmanifest)",
       "destination": "/$1.$2"

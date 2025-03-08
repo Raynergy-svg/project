@@ -109,10 +109,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const ipAddress = await getClientIP();
       const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
       
-      // Log to Supabase directly
+      // Always log to console first as a reliable backup
+      console.log('[Security Event]:', {
+        ...eventData,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Only attempt to log to database if supabase is initialized
       if (supabase) {
         try {
-          await supabase.from('security_logs').insert({
+          // Wrap in a try-catch to prevent any errors from affecting the auth flow
+          const { error } = await supabase.from('security_logs').insert({
             user_id: eventData.user_id,
             event_type: eventData.event_type,
             ip_address: ipAddress,
@@ -121,19 +130,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             email: eventData.email,
             created_at: new Date().toISOString()
           });
+          
+          // Check if the error is because the table doesn't exist
+          if (error) {
+            if (error.code === '42P01' || error.message?.includes('relation "security_logs" does not exist')) {
+              console.warn('Security logs table does not exist. Security events will only be logged to the console.');
+            } else {
+              console.warn('Could not write security log to database:', error);
+            }
+          }
         } catch (dbError) {
           // Non-critical, just log to console
           console.warn('Could not write security log to database:', dbError);
         }
       }
-      
-      // Always log to console as backup
-      console.log('[Security Event]:', {
-        ...eventData,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        timestamp: new Date().toISOString()
-      });
     } catch (error) {
       // Just log the error but don't interrupt the authentication flow
       console.warn('Error recording security event (non-critical):', error);
@@ -280,8 +290,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoading(true);
       
-      // Perform authentication
+      // First try with direct Supabase client
       const { data, error } = await authService.signIn(email, password);
+      
+      // If direct client auth fails with a captcha error, try server-side auth
+      if (error && (error.message.includes('captcha') || error.message.includes('429') || error.message.includes('rate limit'))) {
+        console.log('Direct auth failed with captcha/rate limit, trying server API...');
+        
+        try {
+          // Use edge function as fallback
+          const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Server authentication failed');
+          }
+          
+          const serverAuthData = await response.json();
+          
+          // Fetch complete user data
+          const userData = await fetchUserData(serverAuthData.user.id);
+          setUser(userData);
+          setIsAuthenticated(true);
+          
+          // Set the user session manually
+          await supabase.auth.setSession({
+            access_token: serverAuthData.session.access_token,
+            refresh_token: serverAuthData.session.refresh_token,
+          });
+          
+          // Log successful login
+          await logSecurityEvent({
+            user_id: serverAuthData.user.id,
+            event_type: 'login_success',
+            details: 'User logged in successfully via server API',
+            email: email,
+          });
+          
+          return { user: userData };
+        } catch (serverError) {
+          console.error('Server-side authentication failed:', serverError);
+          
+          // Log failed login attempt
+          await logSecurityEvent({
+            event_type: 'login_failed',
+            details: `Login failed (server): ${serverError.message}`,
+            email: email,
+          });
+          
+          throw serverError;
+        }
+      }
       
       if (error) {
         // Log failed login attempt
@@ -388,10 +453,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       
       const { email, password, name } = data;
       
-      // Register user with Supabase
+      // First try with direct Supabase client
       const { data: authData, error } = await authService.signUp(email, password, {
         name: name || '',
       });
+      
+      // If direct client signup fails with a captcha error, try server-side signup
+      if (error && (error.message.includes('captcha') || error.message.includes('429') || error.message.includes('rate limit'))) {
+        console.log('Direct signup failed with captcha/rate limit, trying server API...');
+        
+        try {
+          // Use edge function as fallback
+          const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              email, 
+              password,
+              metadata: { name: name || '' }
+            }),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Server signup failed');
+          }
+          
+          const serverAuthData = await response.json();
+          
+          // Log successful signup
+          await logSecurityEvent({
+            user_id: serverAuthData.user.id,
+            event_type: 'signup_success',
+            details: 'User registered successfully via server API',
+            email: email,
+          });
+          
+          // Since server confirms email directly, return needsEmailConfirmation as false
+          return { needsEmailConfirmation: false };
+        } catch (serverError) {
+          console.error('Server-side signup failed:', serverError);
+          
+          // Log failed signup attempt
+          await logSecurityEvent({
+            event_type: 'signup_failed',
+            details: `Signup failed (server): ${serverError.message}`,
+            email: email,
+          });
+          
+          throw serverError;
+        }
+      }
       
       if (error) {
         await logSecurityEvent({

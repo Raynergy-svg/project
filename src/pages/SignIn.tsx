@@ -31,7 +31,7 @@ export default function SignIn() {
     email: "",
     password: ""
   });
-  
+
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,24 +49,24 @@ export default function SignIn() {
 
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   // Parse the redirect URL from search params
   const searchParams = new URLSearchParams(location.search);
   const redirectTo = searchParams.get('from') || '/dashboard';
   const sessionExpired = searchParams.get('session') === 'expired';
-  
+
   // Check Supabase connection to help diagnose auth issues
   useEffect(() => {
     const verifyConnection = async () => {
       try {
         // Local development detection without relying on environment flags
-        const isLocalDevelopment = typeof window !== 'undefined' && 
-            (window.location.hostname === 'localhost' || 
-             window.location.hostname === '127.0.0.1');
-        
+        const isLocalDevelopment = typeof window !== 'undefined' &&
+          (window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1');
+
         // Use our connection check method
         const connectionCheck = await checkSupabaseConnection();
-        
+
         // Special handling for local development
         if (isLocalDevelopment) {
           console.log('Local development: Connection check simplified');
@@ -76,13 +76,13 @@ export default function SignIn() {
           });
           return;
         }
-        
+
         // For production, properly handle the connection status
         setConnectionStatus({
           isConnected: connectionCheck.success,
           error: connectionCheck.message || null
         });
-        
+
         if (!connectionCheck.success) {
           console.error('Supabase connection failed:', connectionCheck.message);
           setSecurityMessage('We\'re having trouble connecting to our servers. Please try again later.');
@@ -91,12 +91,12 @@ export default function SignIn() {
         }
       } catch (err) {
         console.error('Error checking Supabase connection:', err);
-        
+
         // In local development, don't show connection errors
-        const isLocalDevelopment = typeof window !== 'undefined' && 
-            (window.location.hostname === 'localhost' || 
-             window.location.hostname === '127.0.0.1');
-        
+        const isLocalDevelopment = typeof window !== 'undefined' &&
+          (window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1');
+
         if (isLocalDevelopment) {
           setConnectionStatus({
             isConnected: true,
@@ -104,7 +104,7 @@ export default function SignIn() {
           });
           return;
         }
-        
+
         // In production, show connection errors
         setConnectionStatus({
           isConnected: false,
@@ -113,20 +113,20 @@ export default function SignIn() {
         setSecurityMessage('We\'re having trouble connecting to our servers. Please try again later.');
       }
     };
-    
+
     verifyConnection();
   }, []);
-  
+
   useEffect(() => {
     // Try to get saved email from localStorage if exists
     const getSavedEmail = async () => {
       try {
         const savedEmail = localStorage.getItem('lastUsedEmail');
         const emailIv = localStorage.getItem('lastUsedEmail_iv');
-        
-        if (savedEmail && emailIv && 
-            sensitiveDataHandler && 
-            typeof sensitiveDataHandler.decryptSensitiveData === 'function') {
+
+        if (savedEmail && emailIv &&
+          sensitiveDataHandler &&
+          typeof sensitiveDataHandler.decryptSensitiveData === 'function') {
           try {
             const decryptedEmail = await sensitiveDataHandler.decryptSensitiveData(
               savedEmail,
@@ -148,7 +148,7 @@ export default function SignIn() {
         localStorage.removeItem('lastUsedEmail_iv');
       }
     };
-    
+
     getSavedEmail();
   }, [sensitiveDataHandler]);
 
@@ -179,14 +179,14 @@ export default function SignIn() {
       setSecurityMessage('Your session has expired due to inactivity. Please sign in again.');
     }
   }, [sessionExpired]);
-  
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && !authLoading) {
       navigate(redirectTo);
     }
   }, [isAuthenticated, authLoading, navigate, redirectTo]);
-  
+
   useEffect(() => {
     // Check if we have cached login validation errors
     const errors = sessionStorage.getItem('login_errors');
@@ -204,7 +204,7 @@ export default function SignIn() {
 
   const validateForm = useCallback((): boolean => {
     const newErrors: FormErrors = {};
-    
+
     if (!formData.email) {
       newErrors.email = "Email is required";
     } else if (sensitiveDataHandler && typeof sensitiveDataHandler.validateSensitiveData === 'function') {
@@ -217,7 +217,7 @@ export default function SignIn() {
         newErrors.email = "Please enter a valid email address";
       }
     }
-    
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     } else if (formData.password.length < 8) {
@@ -231,7 +231,7 @@ export default function SignIn() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
+
     // Clear specific error when field is edited
     if (formErrors[name as keyof FormErrors]) {
       setFormErrors(prev => {
@@ -246,9 +246,9 @@ export default function SignIn() {
   const handleSignInError = (error: unknown) => {
     // Reset submitting state
     setIsSubmitting(false);
-    
+
     console.log('Processing sign-in error:', error);
-    
+
     // Check for network connectivity issues first
     if (!navigator.onLine) {
       setFormErrors({
@@ -256,14 +256,14 @@ export default function SignIn() {
       });
       return;
     }
-    
+
     // Format the error message based on the type of error
     if (error instanceof Error) {
       // Handle specific error messages with user-friendly text
       const errorMessage = error.message.toLowerCase();
-      
-      if (errorMessage.includes('invalid') && 
-          (errorMessage.includes('email') || errorMessage.includes('password') || errorMessage.includes('credentials'))) {
+
+      if (errorMessage.includes('invalid') &&
+        (errorMessage.includes('email') || errorMessage.includes('password') || errorMessage.includes('credentials'))) {
         // Invalid credentials
         setFormErrors({
           general: 'Invalid email or password. Please check your credentials and try again.'
@@ -295,7 +295,7 @@ export default function SignIn() {
         general: 'An unexpected error occurred during sign-in. Please try again.'
       });
     }
-    
+
     // When there's an error, make sure the form doesn't stay in loading state
     setIsSubmitting(false);
   };
@@ -303,36 +303,36 @@ export default function SignIn() {
   const handleSubmit = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      
+
       // Validate form data
       const validationResult = validateForm();
       if (!validationResult) {
         setFormErrors(formErrors);
         return;
       }
-      
+
       // Clear previous errors
       setFormErrors({});
       setIsSubmitting(true);
-      
+
       try {
         const { email, password } = formData;
         // Sanitize inputs for extra security
         const sanitizedEmail = email.trim().toLowerCase();
         const sanitizedPassword = password;
-        
+
         console.log('Attempting to sign in with standard auth flow:', sanitizedEmail);
-        
+
         // For development, we use the special dev account flow
         if (IS_DEV && sanitizedEmail === 'dev@example.com') {
           try {
             // Call the development sign-in function
             const devResult = await handleDevSignIn(sanitizedEmail, sanitizedPassword);
-            
+
             if (!devResult.success) {
               throw new Error(devResult.message || 'Development authentication failed');
             }
-            
+
             // If no error is thrown, login was successful
             handleSuccessfulLogin(sanitizedEmail);
             console.log('Development login successful');
@@ -343,15 +343,15 @@ export default function SignIn() {
         } else {
           // Standard authentication flow using Supabase client
           console.log('Using standard Supabase auth');
-          
+
           // Check if login function is available from AuthContext
           if (!auth || !login) {
             throw new Error('Authentication service is not available');
           }
-          
+
           // Use the standard login function
           await login(sanitizedEmail, sanitizedPassword);
-          
+
           // Handle successful login
           handleSuccessfulLogin(sanitizedEmail);
           console.log('Login successful');
@@ -365,7 +365,7 @@ export default function SignIn() {
     },
     [formData, validateForm, formErrors, auth, login, handleDevSignIn, handleSignInError]
   );
-  
+
   // Function to handle successful login actions
   const handleSuccessfulLogin = async (email: string) => {
     // Save email if remember me is checked
@@ -382,7 +382,7 @@ export default function SignIn() {
       localStorage.removeItem('lastUsedEmail');
       localStorage.removeItem('lastUsedEmail_iv');
     }
-    
+
     // The useEffect hook will handle navigation if isAuthenticated becomes true
   };
 
@@ -399,14 +399,14 @@ export default function SignIn() {
   // Function to handle magic link button click
   const handleMagicLinkButtonClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    
+
     if (!formData.email) {
       setFormErrors({
         email: "Email is required for magic link sign in"
       });
       return;
     }
-    
+
     // Find the form and submit it
     const form = document.getElementById('signin-form') as HTMLFormElement;
     if (form) {
@@ -417,20 +417,20 @@ export default function SignIn() {
   // Function to handle magic link form submission
   const handleMagicLinkSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
+
     if (!formData.email) {
       setFormErrors({
         email: "Email is required for magic link sign in"
       });
       return;
     }
-    
+
     const sanitizedEmail = formData.email.trim().toLowerCase();
     setIsSubmitting(true);
-    
+
     try {
       console.log('Sending magic link to:', sanitizedEmail);
-      
+
       // Use standard Supabase auth for magic link
       const { error } = await supabase.auth.signInWithOtp({
         email: sanitizedEmail,
@@ -438,20 +438,20 @@ export default function SignIn() {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
-      
+
       if (error) {
         throw error;
       }
-      
+
       // If no error, magic link was sent successfully
       setMagicLinkSent(true);
       console.log('Magic link sent successfully');
     } catch (error) {
       console.error('Error sending magic link:', error);
-      
+
       setFormErrors({
-        general: error instanceof Error 
-          ? error.message 
+        general: error instanceof Error
+          ? error.message
           : 'Failed to send magic link. Please try again later.',
       });
     } finally {
@@ -476,37 +476,37 @@ export default function SignIn() {
           <Logo size="sm" showText={false} isLink={false} />
         </Link>
       </div>
-        
+
       <div className="max-w-md mx-auto pt-20">
         <div className="text-center mb-8">
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#88B04B]">Welcome Back</h1>
           <p className="text-gray-400 mt-2">Sign in to continue your debt-free journey</p>
         </div>
-        
+
         {showConfirmationAlert && (
-         <Alert variant="warning" className="mb-6 bg-yellow-900/20 border-yellow-700">
-           <AlertCircle className="h-4 w-4 text-yellow-500" />
-           <AlertTitle>Email Confirmation Required</AlertTitle>
-           <AlertDescription>
-             Please check your email inbox for a confirmation link. You need to verify your email before signing in.
-             <button 
-               onClick={() => navigate('/signup')} 
-               className="text-yellow-400 hover:text-yellow-300 underline mt-1 block"
-             >
-               Need to resend the confirmation email?
-             </button>
-           </AlertDescription>
+          <Alert variant="warning" className="mb-6 bg-yellow-900/20 border-yellow-700">
+            <AlertCircle className="h-4 w-4 text-yellow-500" />
+            <AlertTitle>Email Confirmation Required</AlertTitle>
+            <AlertDescription>
+              Please check your email inbox for a confirmation link. You need to verify your email before signing in.
+              <button
+                onClick={() => navigate('/signup')}
+                className="text-yellow-400 hover:text-yellow-300 underline mt-1 block"
+              >
+                Need to resend the confirmation email?
+              </button>
+            </AlertDescription>
           </Alert>
         )}
-        
+
         {securityMessage && (
           <Alert className="mb-6 bg-blue-900/20 border-blue-700">
             <Shield className="h-4 w-4 text-blue-500" />
             <AlertTitle>Security Notice</AlertTitle>
             <AlertDescription className="text-blue-300">
               {securityMessage}
-              <Button 
-                variant="link" 
+              <Button
+                variant="link"
                 className="pl-0 text-blue-400 hover:text-blue-300"
                 onClick={() => setSecurityMessage(null)}
               >
@@ -515,18 +515,18 @@ export default function SignIn() {
             </AlertDescription>
           </Alert>
         )}
-        
+
         {connectionStatus && !connectionStatus.isConnected && (
           <Alert className="mb-6 bg-red-900/20 border-red-700">
             <AlertCircle className="h-4 w-4 text-red-500" />
             <AlertTitle>Connection Error</AlertTitle>
             <AlertDescription className="text-red-300">
-              We're having trouble connecting to our authentication servers. 
+              We're having trouble connecting to our authentication servers.
               This may be why you can't sign in. Please try again later.
             </AlertDescription>
           </Alert>
         )}
-        
+
         {formErrors.general && (
           <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-4">
             <div className="flex">
@@ -543,7 +543,7 @@ export default function SignIn() {
             </div>
           </div>
         )}
-        
+
         <div className="neon-container">
           <div className="relative px-4 py-6 bg-[#1A1A1A] sm:rounded-xl">
             <div className="flex justify-center mb-6">
@@ -553,24 +553,24 @@ export default function SignIn() {
             </div>
 
             {!useMagicLink ? (
-              <form 
+              <form
                 id="signin-form"
-                onSubmit={handleSubmit} 
+                onSubmit={handleSubmit}
                 className="space-y-6 w-full max-w-sm mx-auto"
               >
                 <div className="hidden">
-                  <input 
-                    type="text" 
-                    name="honeypot" 
+                  <input
+                    type="text"
+                    name="honeypot"
                     id="honeypot"
-                    tabIndex={-1} 
-                    autoComplete="off" 
+                    tabIndex={-1}
+                    autoComplete="off"
                   />
                 </div>
-                
+
                 <div className="space-y-4">
                   <div>
-                    <label 
+                    <label
                       htmlFor="email"
                       className="block text-sm font-medium mb-1.5"
                     >
@@ -591,15 +591,15 @@ export default function SignIn() {
                       <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
                     )}
                   </div>
-                  
+
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label htmlFor="password" className="block text-sm font-medium">
                         Password
                       </label>
                       <div className="text-sm">
-                        <Link 
-                          to="/forgot-password" 
+                        <Link
+                          to="/forgot-password"
                           className="text-white hover:text-gray-300 hover:underline flex items-center gap-1"
                           aria-label="Reset your password"
                         >
@@ -636,7 +636,7 @@ export default function SignIn() {
                       <p className="text-red-500 text-sm mt-1">{formErrors.password}</p>
                     )}
                   </div>
-                  
+
                   <div className="flex items-center">
                     <input
                       type="checkbox"
@@ -650,7 +650,7 @@ export default function SignIn() {
                       Remember me
                     </label>
                   </div>
-                  
+
                   <Button
                     type="submit"
                     id="sign-in-button"
@@ -688,12 +688,12 @@ export default function SignIn() {
                   <div className="bg-green-50 border border-green-400 p-4 rounded-md">
                     <h3 className="font-medium text-green-800">Magic Link Sent!</h3>
                     <p className="text-green-700 mt-1">
-                      We've sent a sign-in link to <span className="font-medium">{formData.email}</span>. 
+                      We've sent a sign-in link to <span className="font-medium">{formData.email}</span>.
                       Please check your email to continue.
                     </p>
                     <p className="text-green-700 mt-3 text-sm">
-                      Don't see it? Check your spam folder or 
-                      <button 
+                      Don't see it? Check your spam folder or
+                      <button
                         type="button"
                         onClick={handleMagicLinkButtonClick}
                         className="text-green-800 font-medium hover:underline ml-1"
@@ -703,13 +703,13 @@ export default function SignIn() {
                     </p>
                   </div>
                 ) : (
-                  <form 
+                  <form
                     id="signin-form"
                     onSubmit={handleMagicLinkSubmit}
                   >
                     <div className="space-y-4">
                       <div>
-                        <label 
+                        <label
                           htmlFor="email-magic"
                           className="block text-sm font-medium mb-1.5"
                         >
@@ -730,11 +730,11 @@ export default function SignIn() {
                           <p className="text-red-500 text-sm mt-1">{formErrors.email}</p>
                         )}
                       </div>
-                      
+
                       <p className="text-gray-400 text-sm">
                         We'll email you a magic link that will sign you in instantly. No password needed!
                       </p>
-                      
+
                       <Button
                         type="submit"
                         className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-2"
@@ -755,7 +755,7 @@ export default function SignIn() {
                     </div>
                   </form>
                 )}
-                
+
                 <div className="text-center pt-2">
                   <button
                     type="button"
@@ -786,7 +786,7 @@ export default function SignIn() {
             <Lock className="w-4 h-4 text-[#88B04B]" />
             <span className="text-sm">Your information is secured with 256-bit SSL encryption</span>
           </div>
-          
+
           <div className="text-sm text-gray-500">
             <Link to="/terms" className="hover:text-white">Terms of Service</Link>
             <span className="mx-2">•</span>

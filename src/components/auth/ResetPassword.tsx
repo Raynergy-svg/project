@@ -59,8 +59,8 @@ export function ResetPassword() {
         toast({
           variant: "destructive",
           title: "Invalid Reset Link",
-          description: error instanceof Error 
-            ? error.message 
+          description: error instanceof Error
+            ? error.message
             : "This password reset link is invalid or has expired. Please request a new one.",
         });
         setIsTokenValid(false);
@@ -78,22 +78,22 @@ export function ResetPassword() {
       setPasswordError("Password is required");
       return false;
     }
-    
+
     if (password.length < 8) {
       setPasswordError("Password must be at least 8 characters long");
       return false;
     }
-    
+
     // Check for at least one uppercase letter, one lowercase letter, and one number
     const hasUppercase = /[A-Z]/.test(password);
     const hasLowercase = /[a-z]/.test(password);
     const hasNumber = /[0-9]/.test(password);
-    
+
     if (!hasUppercase || !hasLowercase || !hasNumber) {
       setPasswordError("Password must contain at least one uppercase letter, one lowercase letter, and one number");
       return false;
     }
-    
+
     setPasswordError("");
     return true;
   };
@@ -104,12 +104,12 @@ export function ResetPassword() {
       setConfirmPasswordError("Please confirm your password");
       return false;
     }
-    
+
     if (confirmPassword !== password) {
       setConfirmPasswordError("Passwords do not match");
       return false;
     }
-    
+
     setConfirmPasswordError("");
     return true;
   };
@@ -129,15 +129,15 @@ export function ResetPassword() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    
+
     // Validate inputs before submitting
     const isPasswordValid = validatePassword(password);
     const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
-    
+
     if (!isPasswordValid || !isConfirmPasswordValid) {
       return;
     }
-    
+
     setIsLoading(true);
 
     try {
@@ -166,8 +166,8 @@ export function ResetPassword() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error 
-          ? error.message 
+        description: error instanceof Error
+          ? error.message
           : "Failed to reset your password. Please try again later.",
       });
     } finally {
@@ -213,7 +213,7 @@ export function ResetPassword() {
               This password reset link is invalid or has expired.
             </p>
           </div>
-          
+
           <div className="mt-8">
             <Alert className="bg-red-900/20 border-red-900/30 mb-6">
               <AlertDescription className="text-white">
@@ -225,7 +225,7 @@ export function ResetPassword() {
                 </ul>
               </AlertDescription>
             </Alert>
-            
+
             <div className="flex justify-center">
               <Link to="/forgot-password">
                 <Button className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white">
@@ -254,12 +254,12 @@ export function ResetPassword() {
             {isSuccess ? "Password Reset Complete" : "Create New Password"}
           </h2>
           <p className="mt-2 text-center text-sm text-gray-400">
-            {isSuccess 
-              ? "Your password has been successfully updated" 
+            {isSuccess
+              ? "Your password has been successfully updated"
               : "Create a strong password that you don't use elsewhere"}
           </p>
         </div>
-        
+
         {isSuccess ? (
           <div className="mt-8 space-y-6">
             <Alert className="bg-[#88B04B]/10 border-[#88B04B]/20">
@@ -268,7 +268,7 @@ export function ResetPassword() {
                 Your password has been successfully reset. You can now log in with your new password.
               </AlertDescription>
             </Alert>
-            
+
             <div className="flex justify-center mt-4">
               <Link to="/login">
                 <Button className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white min-w-32">
@@ -310,7 +310,7 @@ export function ResetPassword() {
                 <p className="text-red-500 text-sm mt-1">{passwordError}</p>
               )}
             </div>
-            
+
             {/* Confirm Password Field */}
             <div className="space-y-2">
               <label htmlFor="confirm-password" className="block text-sm font-medium text-white">
@@ -342,18 +342,18 @@ export function ResetPassword() {
                 <p className="text-red-500 text-sm mt-1">{confirmPasswordError}</p>
               )}
             </div>
-            
+
             <Alert className="bg-white/5 border-white/10">
               <InfoIcon className="h-4 w-4 text-white mr-2" />
               <AlertDescription className="text-white">
-                Your password must be at least 8 characters long and include at least one uppercase letter, 
+                Your password must be at least 8 characters long and include at least one uppercase letter,
                 one lowercase letter, and one number.
               </AlertDescription>
             </Alert>
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-[#88B04B] hover:bg-[#88B04B]/90 text-white" 
+
+            <Button
+              type="submit"
+              className="w-full bg-[#88B04B] hover:bg-[#88B04B]/90 text-white"
               disabled={isLoading}
             >
               {isLoading ? <LoadingSpinner size="sm" /> : "Reset Password"}

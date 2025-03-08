@@ -61,7 +61,11 @@ export const securityConfig = {
           "'unsafe-eval'", 
           "https://js.stripe.com", 
           "https://cdn.plaid.com",
-          "https://static.cloudflareinsights.com"
+          "https://static.cloudflareinsights.com",
+          "https://va.vercel-scripts.com",
+          "https://*.vercel-scripts.com",
+          "https://*.vercel-analytics.com",
+          "https://*.vercel.com"
         ],
         'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         'font-src': ["'self'", "https://fonts.gstatic.com"],

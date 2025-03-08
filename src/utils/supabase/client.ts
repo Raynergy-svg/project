@@ -44,11 +44,6 @@ try {
     supabaseAnonKey, 
     clientOptions
   );
-  
-  // Verify connection on init but don't block
-  checkSupabaseConnection().catch(err => 
-    console.warn('Supabase connectivity check failed:', err)
-  );
 } catch (error) {
   console.error('Failed to initialize Supabase client:', error);
   // Fallback to null client - the app will handle this gracefully
@@ -57,6 +52,17 @@ try {
 
 // Export the client instance
 export const supabase = supabaseClient;
+
+// Now that the client is initialized and exported, we can verify the connection
+// This function will be executed only after the module is fully loaded
+if (supabaseClient) {
+  // Use setTimeout to ensure this runs after the module is fully initialized
+  setTimeout(() => {
+    checkSupabaseConnection().catch(err => 
+      console.warn('Supabase connectivity check failed:', err)
+    );
+  }, 100);
+}
 
 // ============================================================
 // CONNECTION VERIFICATION

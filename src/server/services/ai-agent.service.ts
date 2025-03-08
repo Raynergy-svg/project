@@ -158,7 +158,7 @@ export class AIAgentService {
       suggestedActions: [
         { id: 'avalanche', label: 'Avalanche Method', value: 'Tell me more about the Avalanche method.' },
         { id: 'snowball', label: 'Snowball Method', value: 'I want to learn about the Snowball method.' },
-        { id: 'comparison', label: 'Compare Methods', value: 'What's the difference between these methods?' },
+        { id: 'comparison', label: 'Compare Methods', value: "What's the difference between these methods?" },
         { id: 'custom', label: 'Custom Strategy', value: 'I need a personalized debt strategy.' }
       ],
       referenceId: uuidv4()

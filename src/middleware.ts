@@ -99,7 +99,7 @@ export async function middleware(request: NextRequest) {
     "script-src 'self' 'unsafe-inline' https://js.stripe.com; " + 
     "style-src 'self' 'unsafe-inline'; " +
     "img-src 'self' data: blob: https://*.stripe.com; " +
-    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.projectdcertan84workersdev.workers.dev; " +
+    "connect-src 'self' https://*.supabase.co https://api.stripe.com https://api.ipify.org https://*.projectdcertan84workersdev.workers.dev; " +
     "frame-src 'self' https://js.stripe.com; " +
     "object-src 'none';";
   

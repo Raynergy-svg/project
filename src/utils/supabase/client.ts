@@ -134,6 +134,51 @@ export const supabase = baseSupabaseClient;
 export const signIn = async (email: string, password: string) => {
   console.log(`Authentication attempt for user: ${email}`);
   
+  // TEMPORARY SOLUTION: Always use direct authentication
+  // This bypasses the API endpoints that are not working
+  try {
+    // Direct Supabase authentication
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    if (error) {
+      console.error('Authentication error:', error);
+      
+      // Format user-friendly error
+      if (error.status === 400 || error.status === 401) {
+        return { 
+          data: null, 
+          error: { 
+            message: 'Invalid email or password. Please check your credentials and try again.', 
+            status: error.status 
+          } 
+        };
+      } else {
+        return { 
+          data: null, 
+          error: { 
+            message: error.message || 'Authentication failed', 
+            status: error.status || 500 
+          } 
+        };
+      }
+    }
+    
+    return { data, error: null };
+  } catch (error) {
+    console.error('Authentication system error:', error);
+    return {
+      data: null,
+      error: {
+        message: 'Authentication error',
+        status: 500
+      }
+    };
+  }
+  
+  /* ORIGINAL CODE COMMENTED OUT
   // For local development environment, use direct Supabase authentication
   // This is safe to push to production because it only affects local development
   if (typeof window !== 'undefined' && 
@@ -245,6 +290,7 @@ export const signIn = async (email: string, password: string) => {
       };
     }
   }
+  */
 };
 
 /**

@@ -43,6 +43,7 @@ const generateCSP = (mode: string) => {
       'wss://localhost:*',
       'https://api.stripe.com',
       'https://*.plaid.com',
+      'https://api.ipify.org',
       'https://*.projectdcertan84workersdev.workers.dev'
     ],
     'frame-src': ["'self'", "https://js.stripe.com", "https://hooks.stripe.com", "https://cdn.plaid.com"],

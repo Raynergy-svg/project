@@ -243,6 +243,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     email?: string;
   }) => {
     try {
+      // For now, just log to console until the API endpoint is fixed
+      console.log('[Security Event]:', {
+        ...eventData,
+        timestamp: new Date().toISOString()
+      });
+      
+      /* ORIGINAL CODE COMMENTED OUT
       // For local development, just log to console
       if (typeof window !== 'undefined' && 
           (window.location.hostname === 'localhost' || 
@@ -262,6 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         },
         body: JSON.stringify(eventData),
       });
+      */
     } catch (error) {
       // Just log the error but don't interrupt the authentication flow
       console.warn('Error recording security event (non-critical):', error);

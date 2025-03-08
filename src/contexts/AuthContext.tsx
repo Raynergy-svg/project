@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect, useRef } from "r
 // Used for redirecting users after login/logout operations
 import { useNavigate } from "react-router-dom";
 import type { User, SignUpData } from "@/types";
-import { supabase, createBrowserClient, signIn, directAuthenticate } from "@/utils/supabase/client";
+import { supabase, createBrowserClient, signIn, directAuthenticate, authService, supabaseUrl, supabaseAnonKey } from "@/utils/supabase/client";
 import { useDevAccount } from '@/hooks/useDevAccount';
 import { encryptField, decryptField } from '@/utils/encryption';
 import { logSecurityEvent, SecurityEventType } from '@/services/securityAuditService';
@@ -216,7 +216,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   }, []);
 
-  // Update the login function to try multiple authentication methods if the standard one fails with CAPTCHA errors
+  /**
+   * Gets the client IP address safely
+   */
+  const getClientIP = async (): Promise<string> => {
+    // Use a safer method that works in all environments
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.warn('Could not get IP address:', error);
+      return '0.0.0.0';
+    }
+  };
+
+  /**
+   * Records security events with proper environment detection
+   */
+  const recordSecurityEvent = async (eventData: {
+    user_id?: string;
+    event_type: string;
+    ip_address: string;
+    user_agent: string;
+    details: string;
+    email?: string;
+  }) => {
+    try {
+      // For local development, just log to console
+      if (typeof window !== 'undefined' && 
+          (window.location.hostname === 'localhost' || 
+           window.location.hostname === '127.0.0.1')) {
+        console.log('[LOCAL] Security event:', {
+          ...eventData,
+          timestamp: new Date().toISOString()
+        });
+        return;
+      }
+      
+      // For production or preview deployments, use API
+      await fetch('/api/auth/security-log', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      });
+    } catch (error) {
+      // Just log the error but don't interrupt the authentication flow
+      console.warn('Error recording security event (non-critical):', error);
+    }
+  };
+
+  /**
+   * Simplified login function with better error handling
+   */
   const login = async (
     email: string,
     password: string,
@@ -224,195 +278,90 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       data?: Record<string, any>;
     }
   ): Promise<any> => {
-    setIsLoading(true);
-    setAuthError(null);
-    
-    const ipAddress = await getClientIP();
-    
     try {
-      // Check for rate limiting first
-      const isRateLimited = await checkRateLimiting(email, ipAddress);
-      if (isRateLimited) {
-        const rateLimitError = new Error('Too many login attempts. Please try again later.');
-        console.error('Rate limiting applied:', rateLimitError);
-        throw rateLimitError;
+      setIsLoading(true);
+      console.log('Login attempt initiated');
+
+      // Attempt authentication with proper environment handling
+      const { data, error } = await authService.signIn(email, password);
+      
+      if (error) {
+        console.error('Authentication error:', error);
+        throw new Error(error.message || 'Authentication failed');
       }
-      
-      // For development mode, handle special dev account
-      if (IS_DEV && email === 'dev@example.com' && password === 'development') {
-        console.log('Using development authentication');
-        
-        // Create a mock user for development
-        const mockUser: User = {
-          id: 'dev-user-id',
-          email: 'dev@example.com',
-          name: 'Development User',
-          isPremium: true,
-          trialEndsAt: null,
-          createdAt: new Date().toISOString(),
-          subscription: {
-            status: 'active',
-            planName: 'Developer Plan',
-            currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-          }
-        };
-        
-        // Set the mock user in state
-        setUser(mockUser);
-        setIsAuthenticated(true);
-        setLastActivityTime(Date.now());
-        
-        return { success: true, user: mockUser };
+
+      if (!data?.session || !data?.user) {
+        console.error('No session or user returned from authentication');
+        throw new Error('Our sign-in system is temporarily unavailable. Please try again in a few minutes.');
       }
-      
-      let authData = null; // Will store our authentication data
-      let authError = null;
-      
+
+      // Log successful authentication
+      console.log('Authentication successful for user:', data.user.id);
+
+      // Record the login event with environment awareness
       try {
-        // First try: Standard authentication
-        console.log('Using standard Supabase authentication');
-        const result = await signIn(email, password);
+        const ipAddress = await getClientIP();
+        const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
         
-        // Check if there was a CAPTCHA error
-        if (result.error && result.error.message && 
-            (result.error.message.includes('captcha') || 
-             (typeof result.error === 'object' && 'code' in result.error && result.error.code === 'captcha_failed'))) {
-          console.log('CAPTCHA error detected, trying direct authentication...');
-          throw new Error('CAPTCHA error detected');
-        }
-        
-        // If there's another type of error, process it
-        if (result.error) {
-          authError = result.error;
-          throw result.error;
-        }
-        
-        // If we reach here, authentication was successful
-        authData = result.data;
-        console.log('Login successful with standard auth');
-      } catch (error) {
-        // If first method failed with CAPTCHA error, try the direct method
-        if (error instanceof Error && error.message.includes('CAPTCHA')) {
-          try {
-            console.log('Trying direct authentication method...');
-            const directResult = await directAuthenticate(email, password);
-            
-            if (directResult.error) {
-              authError = directResult.error;
-              throw directResult.error;
-            }
-            
-            authData = directResult.data;
-            console.log('Login successful with direct auth');
-          } catch (directError) {
-            console.error('Direct authentication also failed:', directError);
-            authError = directError instanceof Error 
-              ? directError 
-              : new Error('Authentication failed after multiple attempts');
-          }
-        } else {
-          // Not a CAPTCHA error, just pass along the original error
-          authError = error;
-        }
+        await recordSecurityEvent({
+          user_id: data.user.id,
+          event_type: 'login_success',
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          details: 'User logged in successfully',
+          email: email,
+        });
+      } catch (securityLogError) {
+        // Non-critical, just log the error
+        console.warn('Failed to record security event:', securityLogError);
       }
-      
-      // If we still have an error after all attempts, handle it
-      if (authError && !authData) {
-        // Convert error to user-friendly message
-        let errorMessage = 'Invalid login credentials';
-        
-        // Handle specific error cases
-        if (authError.message && authError.message.includes('Invalid login')) {
-          errorMessage = 'Invalid email or password';
-        } else if (authError.message && authError.message.includes('Email not confirmed')) {
-          errorMessage = 'Please confirm your email before signing in';
-        } else if (authError.message && authError.message.includes('Rate limit')) {
-          errorMessage = 'Too many sign-in attempts. Please try again later.';
-        } else if (authError.status === 500 || authError.status === 503) {
-          errorMessage = 'Our servers are experiencing issues. Please try again later.';
-        }
-        
-        // Record the failed login attempt if security logging is enabled
-        if (isFeatureEnabled('ENABLE_SECURITY_LOGGING')) {
-          try {
-            await recordSecurityEvent({
-              email,
-              event_type: 'auth.login.failed',
-              ip_address: ipAddress,
-              user_agent: navigator.userAgent,
-              details: `Failed login attempt: ${authError.message}`
-            });
-          } catch (loggingError) {
-            // Don't fail the whole auth process if logging fails
-            console.error('Error recording security event:', loggingError);
-          }
-        }
-        
-        console.error('Authentication error after all attempts:', new Error(errorMessage));
-        throw new Error(errorMessage);
+
+      // Fetch the complete user data - with improved error handling
+      try {
+        // Get detailed user data
+        const userData = await fetchUserData(data.user.id);
+        setUser(userData);
+      } catch (userDataError) {
+        console.warn('Failed to fetch detailed user data:', userDataError);
+        // Fall back to basic user data
+        setUser({
+          id: data.user.id,
+          email: data.user.email || email,
+          isPremium: false,
+          trialEndsAt: null,
+          createdAt: data.user.created_at || new Date().toISOString(),
+        });
       }
-      
-      // If we got here without error and have auth data, proceed with login
-      if (authData && authData.session) {
-        try {
-          // Try to record successful login
-          try {
-            await recordSecurityEvent({
-              user_id: authData.user?.id,
-              event_type: 'auth.login.success',
-              ip_address: ipAddress,
-              user_agent: navigator.userAgent,
-              details: 'Successful login',
-              email: authData.user?.email || email
-            });
-          } catch (recordError) {
-            // Security logging is non-critical
-            console.warn("Could not record login event:", recordError);
-          }
-          
-          // Fetch detailed user data including profile
-          const userData = await fetchUserData(authData.user?.id || '');
-          
-          // Update the user state
-          setUser(userData);
-          setIsAuthenticated(true);
-          setLastActivityTime(Date.now());
-          
-          // Store user id in session storage
-          if (typeof window !== 'undefined') {
-            sessionStorage.setItem('last_auth', new Date().toISOString());
-          }
-          
-          setIsLoading(false);
-          return { success: true, user: userData };
-        } catch (userDataError) {
-          console.error("Error fetching user data after login:", userDataError);
-          
-          // We can continue with basic user data
-          const basicUser = {
-            id: authData.user?.id || '',
-            email: authData.user?.email || email,
-            isPremium: false,
-            trialEndsAt: null,
-            createdAt: authData.user?.created_at || new Date().toISOString()
-          };
-          
-          setUser(basicUser);
-          setIsAuthenticated(true);
-          setLastActivityTime(Date.now());
-          
-          setIsLoading(false);
-          return { success: true, user: basicUser };
-        }
-      } else {
-        setIsLoading(false);
-        throw new Error('Authentication failed - no session data returned');
-      }
-    } catch (error) {
-      console.error('Outer login error:', error);
-      setAuthError(error instanceof Error ? error.message : 'An unknown error occurred');
+
+      // Update authentication state
+      setIsAuthenticated(true);
       setIsLoading(false);
-      throw error;
+      
+      return { user: data.user };
+    } catch (error) {
+      console.error('Login error:', error);
+      
+      // Record the failed login attempt
+      try {
+        const ipAddress = await getClientIP();
+        const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
+        
+        await recordSecurityEvent({
+          event_type: 'login_failed',
+          ip_address: ipAddress,
+          user_agent: userAgent,
+          details: `Login failed for email: ${email}`,
+          email: email,
+        });
+      } catch (securityLogError) {
+        // Non-critical, just log
+        console.warn('Failed to record security event:', securityLogError);
+      }
+      
+      setIsLoading(false);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
+      throw new Error(errorMessage);
     }
   };
 
@@ -447,19 +396,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setAuthError(error instanceof Error ? error.message : 'An unexpected error occurred during logout');
     } finally {
       setIsLoading(false);
-    }
-  };
-  
-  // Helper function to get client IP for security logging
-  const getClientIP = async (): Promise<string> => {
-    try {
-      // Use the provided mock function instead of direct fetch
-      // This avoids CSP violations by using our own API endpoint
-      const result = await mockGetClientIp();
-      return result.ip;
-    } catch (error) {
-      console.warn('Could not get client IP:', error);
-      return '0.0.0.0'; // Default if unable to fetch
     }
   };
   
@@ -574,49 +510,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       console.error('Rate limiting check exception:', error);
       return false;
-    }
-  };
-  
-  // Records security events like login attempts and password changes
-  const recordSecurityEvent = async (eventData: {
-    user_id?: string;
-    event_type: string;
-    ip_address: string;
-    user_agent: string;
-    details: string;
-    email?: string;
-  }) => {
-    try {
-      // Check if the security_logs table exists
-      const { count, error: checkError } = await supabase
-        .from('security_logs')
-        .select('id', { count: 'exact', head: true });
-      
-      // If there's an error checking for the table (like 404 Not Found), 
-      // the table doesn't exist and we should silently return
-      if (checkError) {
-        console.log('Security logs table not found, skipping event recording');
-        return;
-      }
-      
-      // If we got here, the table exists, so insert the record
-      const { error } = await supabase
-        .from('security_logs')
-        .insert({
-          user_id: eventData.user_id || null,
-          event_type: eventData.event_type,
-          ip_address: eventData.ip_address,
-          user_agent: eventData.user_agent,
-          details: eventData.details,
-          email: eventData.email || null
-        });
-        
-      if (error) {
-        console.warn('Failed to record security event:', error);
-      }
-    } catch (error) {
-      // Silent fail - security logging is non-critical to the app functioning
-      console.warn('Security event recording failed silently:', error);
     }
   };
 

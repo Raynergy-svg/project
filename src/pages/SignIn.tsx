@@ -39,7 +39,10 @@ export default function SignIn() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showConfirmationAlert, setShowConfirmationAlert] = useState(false);
   const [securityMessage, setSecurityMessage] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<{isConnected: boolean, error: string | null} | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<{
+    isConnected: boolean;
+    error: string | null;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [useMagicLink, setUseMagicLink] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -55,11 +58,58 @@ export default function SignIn() {
   // Check Supabase connection to help diagnose auth issues
   useEffect(() => {
     const verifyConnection = async () => {
-      const status = await checkSupabaseConnection();
-      setConnectionStatus(status);
-      
-      if (!status.isConnected && status.error) {
-        console.error('Supabase connection failed:', status.error);
+      try {
+        // Local development detection without relying on environment flags
+        const isLocalDevelopment = typeof window !== 'undefined' && 
+            (window.location.hostname === 'localhost' || 
+             window.location.hostname === '127.0.0.1');
+        
+        // Use our connection check method
+        const connectionCheck = await checkSupabaseConnection();
+        
+        // Special handling for local development
+        if (isLocalDevelopment) {
+          console.log('Local development: Connection check simplified');
+          setConnectionStatus({
+            isConnected: true,
+            error: null
+          });
+          return;
+        }
+        
+        // For production, properly handle the connection status
+        setConnectionStatus({
+          isConnected: connectionCheck.success,
+          error: connectionCheck.message || null
+        });
+        
+        if (!connectionCheck.success) {
+          console.error('Supabase connection failed:', connectionCheck.message);
+          setSecurityMessage('We\'re having trouble connecting to our servers. Please try again later.');
+        } else {
+          console.log('Supabase connection verified successfully:', connectionCheck.status);
+        }
+      } catch (err) {
+        console.error('Error checking Supabase connection:', err);
+        
+        // In local development, don't show connection errors
+        const isLocalDevelopment = typeof window !== 'undefined' && 
+            (window.location.hostname === 'localhost' || 
+             window.location.hostname === '127.0.0.1');
+        
+        if (isLocalDevelopment) {
+          setConnectionStatus({
+            isConnected: true,
+            error: null
+          });
+          return;
+        }
+        
+        // In production, show connection errors
+        setConnectionStatus({
+          isConnected: false,
+          error: err instanceof Error ? err.message : 'Connection check failed'
+        });
         setSecurityMessage('We\'re having trouble connecting to our servers. Please try again later.');
       }
     };
@@ -194,40 +244,60 @@ export default function SignIn() {
 
   // Helper function to handle sign in errors
   const handleSignInError = (error: unknown) => {
-    console.error('Processing sign-in error:', error);
+    // Reset submitting state
+    setIsSubmitting(false);
     
-    // Special handling for network errors which might indicate server issues
-    if (error instanceof Error && error.message.includes('network') && !navigator.onLine) {
+    console.log('Processing sign-in error:', error);
+    
+    // Check for network connectivity issues first
+    if (!navigator.onLine) {
       setFormErrors({
-        general: 'Please check your internet connection and try again.'
+        general: 'You appear to be offline. Please check your internet connection and try again.'
       });
       return;
     }
     
-    // Handle different error types
-    if (error instanceof Error && error.message.includes('servers are experiencing issues')) {
-      setFormErrors({
-        general: 'Our servers are experiencing issues. The team has been notified and we\'re working on a fix.'
-      });
-    } else if (error instanceof Error && error.message.includes('temporarily unavailable')) {
-      setFormErrors({
-        general: 'The sign-in service is temporarily unavailable. Please try again in a few minutes.'
-      });
-    } else if (error instanceof Error && error.message.includes('Invalid')) {
-      // For credential errors, show a clear message
-      setFormErrors({
-        general: error.message
-      });
+    // Format the error message based on the type of error
+    if (error instanceof Error) {
+      // Handle specific error messages with user-friendly text
+      const errorMessage = error.message.toLowerCase();
+      
+      if (errorMessage.includes('invalid') && 
+          (errorMessage.includes('email') || errorMessage.includes('password') || errorMessage.includes('credentials'))) {
+        // Invalid credentials
+        setFormErrors({
+          general: 'Invalid email or password. Please check your credentials and try again.'
+        });
+      } else if (errorMessage.includes('confirm') && errorMessage.includes('email')) {
+        // Email not confirmed
+        setFormErrors({
+          general: 'Your email address has not been confirmed. Please check your inbox for a confirmation link.'
+        });
+      } else if (errorMessage.includes('too many') || errorMessage.includes('rate limit')) {
+        // Rate limiting
+        setFormErrors({
+          general: 'Too many sign-in attempts. Please wait a moment and try again later.'
+        });
+      } else if (errorMessage.includes('server') && errorMessage.includes('issues')) {
+        // Server issues
+        setFormErrors({
+          general: 'Our servers are experiencing issues. Please try again later.'
+        });
+      } else {
+        // Generic error with the exact message
+        setFormErrors({
+          general: error.message
+        });
+      }
     } else {
-      // Generic error handling
+      // Unknown error type
       setFormErrors({
-        general: error instanceof Error 
-          ? error.message 
-          : 'An unknown error occurred. Please try again later.'
+        general: 'An unexpected error occurred during sign-in. Please try again.'
       });
     }
     
-    setFailedAttempts(prev => prev + 1);
+    // When there's an error, make sure the form doesn't stay in loading state
+    setIsSubmitting(false);
   };
 
   const handleSubmit = useCallback(

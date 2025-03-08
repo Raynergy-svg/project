@@ -2,8 +2,11 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Server-side Supabase client with service role key
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl =
+  process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey =
+  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -29,15 +32,35 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse JSON body
-    const { email, password, metadata = {} } = JSON.parse(req.body);
+    // Check if we have the required environment variables
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing required environment variables");
+      return res.status(500).json({ error: "Server configuration error" });
+    }
+
+    // Parse JSON body safely
+    let email, password, metadata;
+    try {
+      const body = JSON.parse(req.body);
+      email = body.email;
+      password = body.password;
+      metadata = body.metadata || {};
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return res.status(400).json({ error: "Invalid request body" });
+    }
 
     if (!email || !password) {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
     // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     // Get client IP for logging
     const forwarded = req.headers["x-forwarded-for"];
@@ -63,16 +86,19 @@ export default async function handler(req, res) {
     if (error) {
       console.error("[Server] Signup error:", error);
 
-      // Try to log the failure
+      // Try to log the failure but don't fail if logging fails
       try {
-        await supabase.from("security_logs").insert({
-          event_type: "signup_failed",
-          ip_address: ip,
-          user_agent: userAgent,
-          details: error.message,
-          email: email,
-          created_at: new Date().toISOString(),
-        });
+        await supabase
+          .from("security_logs")
+          .insert({
+            event_type: "signup_failed",
+            ip_address: ip,
+            user_agent: userAgent,
+            details: error.message,
+            email: email,
+            created_at: new Date().toISOString(),
+          })
+          .throwOnError(false);
       } catch (logError) {
         // Non-critical, just log warning
         console.warn("[Server] Failed to log security event:", logError);
@@ -97,17 +123,36 @@ export default async function handler(req, res) {
       });
     }
 
-    // Log successful signup
+    // Try to create a profile entry
     try {
-      await supabase.from("security_logs").insert({
-        user_id: data.user.id,
-        event_type: "signup_success",
-        ip_address: ip,
-        user_agent: userAgent,
-        details: "Signup successful via server API",
-        email: email,
-        created_at: new Date().toISOString(),
-      });
+      await supabase
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          email: email.trim().toLowerCase(),
+          name: metadata.name || "",
+          created_at: new Date().toISOString(),
+        })
+        .throwOnError(false);
+    } catch (profileError) {
+      console.warn("[Server] Failed to create profile entry:", profileError);
+      // Non-critical error, continue
+    }
+
+    // Log successful signup but don't fail if logging fails
+    try {
+      await supabase
+        .from("security_logs")
+        .insert({
+          user_id: data.user.id,
+          event_type: "signup_success",
+          ip_address: ip,
+          user_agent: userAgent,
+          details: "Signup successful via server API",
+          email: email,
+          created_at: new Date().toISOString(),
+        })
+        .throwOnError(false);
     } catch (logError) {
       // Non-critical, just log warning
       console.warn("[Server] Failed to log security event:", logError);

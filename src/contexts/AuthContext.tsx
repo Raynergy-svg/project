@@ -105,48 +105,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     email?: string;
   }) => {
     try {
-      // Get client information
-      const ipAddress = await getClientIP();
-      const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown';
-      
-      // Always log to console first as a reliable backup
-      console.log('[Security Event]:', {
-        ...eventData,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Only attempt to log to database if supabase is initialized
-      if (supabase) {
-        try {
-          // Wrap in a try-catch to prevent any errors from affecting the auth flow
-          const { error } = await supabase.from('security_logs').insert({
-            user_id: eventData.user_id,
-            event_type: eventData.event_type,
-            ip_address: ipAddress,
-            user_agent: userAgent,
-            details: eventData.details,
-            email: eventData.email,
-            created_at: new Date().toISOString()
-          });
-          
-          // Check if the error is because the table doesn't exist
-          if (error) {
-            if (error.code === '42P01' || error.message?.includes('relation "security_logs" does not exist')) {
-              console.warn('Security logs table does not exist. Security events will only be logged to the console.');
-            } else {
-              console.warn('Could not write security log to database:', error);
-            }
-          }
-        } catch (dbError) {
-          // Non-critical, just log to console
-          console.warn('Could not write security log to database:', dbError);
+      // First try to use the server API endpoint
+      try {
+        const response = await fetch('/api/auth/security-log', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(eventData),
+        });
+
+        if (response.ok) {
+          console.log(`Security event logged: ${eventData.event_type}`);
+          return;
         }
+      } catch (apiError) {
+        console.warn('Failed to log security event via API, falling back to client:', apiError);
+      }
+
+      // Fall back to direct database insertion if the API fails
+      const { user_id, event_type, details, email } = eventData;
+      
+      // Get client IP
+      let ip_address = '0.0.0.0';
+      try {
+        ip_address = await getClientIP();
+      } catch (ipError) {
+        console.warn('Failed to get client IP:', ipError);
+      }
+      
+      const user_agent = navigator.userAgent;
+
+      // Try both security_logs and profiles tables to maximize chances of success
+      try {
+        const { error } = await supabase.from('security_logs').insert({
+          user_id: user_id || null,
+          event_type,
+          ip_address,
+          user_agent,
+          details,
+          email: email || null,
+          created_at: new Date().toISOString(),
+        });
+
+        if (error) {
+          if (error.code === '404' || error.code === 'PGRST116') {
+            console.log('Security logs table not available, trying to update profile activity instead');
+            
+            // If security_logs table doesn't exist, try to update the profile's last_activity
+            if (user_id) {
+              await supabase.from('profiles').update({
+                last_activity: event_type,
+                last_activity_at: new Date().toISOString(),
+              }).eq('id', user_id);
+            }
+          } else {
+            console.warn('Failed to log security event:', error);
+          }
+        }
+      } catch (error) {
+        console.warn('Error logging security event:', error);
+        // Non-critical, so we don't rethrow
       }
     } catch (error) {
-      // Just log the error but don't interrupt the authentication flow
-      console.warn('Error recording security event (non-critical):', error);
+      console.warn('Error in logSecurityEvent:', error);
+      // Non-critical function, so we don't rethrow to avoid breaking auth flows
     }
   };
   
@@ -307,12 +330,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             body: JSON.stringify({ email, password }),
           });
           
+          // First check if response is ok before trying to parse JSON
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Server authentication failed');
+            let errorMessage = 'Server authentication failed';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorMessage;
+            } catch (jsonError) {
+              console.error('Failed to parse error response:', jsonError);
+              // If we can't parse the JSON, use the status text
+              errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
           }
           
-          const serverAuthData = await response.json();
+          // Now safely parse the JSON
+          let serverAuthData;
+          try {
+            serverAuthData = await response.json();
+          } catch (jsonError) {
+            console.error('Failed to parse success response:', jsonError);
+            throw new Error('Invalid response from authentication server');
+          }
+          
+          if (!serverAuthData.session || !serverAuthData.user) {
+            throw new Error('Server authentication successful but response data is invalid');
+          }
           
           // Fetch complete user data
           const userData = await fetchUserData(serverAuthData.user.id);
@@ -325,24 +368,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             refresh_token: serverAuthData.session.refresh_token,
           });
           
-          // Log successful login
-          await logSecurityEvent({
-            user_id: serverAuthData.user.id,
-            event_type: 'login_success',
-            details: 'User logged in successfully via server API',
-            email: email,
-          });
+          // Log successful login (won't fail auth flow if it errors)
+          try {
+            await logSecurityEvent({
+              user_id: serverAuthData.user.id,
+              event_type: 'login_success',
+              details: 'User logged in successfully via server API',
+              email: email,
+            });
+          } catch (logError) {
+            console.warn('Failed to log security event:', logError);
+          }
           
           return { user: userData };
         } catch (serverError) {
           console.error('Server-side authentication failed:', serverError);
           
-          // Log failed login attempt
-          await logSecurityEvent({
-            event_type: 'login_failed',
-            details: `Login failed (server): ${serverError.message}`,
-            email: email,
-          });
+          // Log failed login attempt (won't fail auth flow if it errors)
+          try {
+            await logSecurityEvent({
+              event_type: 'login_failed',
+              details: `Login failed (server): ${serverError.message}`,
+              email: email,
+            });
+          } catch (logError) {
+            console.warn('Failed to log security event:', logError);
+          }
           
           throw serverError;
         }
@@ -476,32 +527,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             }),
           });
           
+          // First check if response is ok before trying to parse JSON
           if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Server signup failed');
+            let errorMessage = 'Server signup failed';
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.error || errorMessage;
+            } catch (jsonError) {
+              console.error('Failed to parse error response:', jsonError);
+              // If we can't parse the JSON, use the status text
+              errorMessage = `Server error: ${response.status} ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
           }
           
-          const serverAuthData = await response.json();
+          // Now safely parse the JSON
+          let serverAuthData;
+          try {
+            serverAuthData = await response.json();
+          } catch (jsonError) {
+            console.error('Failed to parse success response:', jsonError);
+            throw new Error('Invalid response from signup server');
+          }
           
-          // Log successful signup
-          await logSecurityEvent({
-            user_id: serverAuthData.user.id,
-            event_type: 'signup_success',
-            details: 'User registered successfully via server API',
-            email: email,
-          });
+          if (!serverAuthData.user) {
+            throw new Error('Server signup successful but user data is missing');
+          }
+          
+          // Log successful signup (won't fail auth flow if it errors)
+          try {
+            await logSecurityEvent({
+              user_id: serverAuthData.user.id,
+              event_type: 'signup_success',
+              details: 'User registered successfully via server API',
+              email: email,
+            });
+          } catch (logError) {
+            console.warn('Failed to log security event:', logError);
+          }
           
           // Since server confirms email directly, return needsEmailConfirmation as false
           return { needsEmailConfirmation: false };
         } catch (serverError) {
           console.error('Server-side signup failed:', serverError);
           
-          // Log failed signup attempt
-          await logSecurityEvent({
-            event_type: 'signup_failed',
-            details: `Signup failed (server): ${serverError.message}`,
-            email: email,
-          });
+          // Log failed signup attempt (won't fail auth flow if it errors)
+          try {
+            await logSecurityEvent({
+              event_type: 'signup_failed',
+              details: `Signup failed (server): ${serverError.message}`,
+              email: email,
+            });
+          } catch (logError) {
+            console.warn('Failed to log security event:', logError);
+          }
           
           throw serverError;
         }

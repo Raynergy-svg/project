@@ -2,8 +2,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Server-side Supabase client with service role key
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export default async function handler(req, res) {
   // Enable CORS
@@ -29,8 +29,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse JSON body
-    const { event_type, details, email, user_id } = JSON.parse(req.body);
+    // Check if we have the required environment variables
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing required environment variables");
+      return res.status(500).json({ error: "Server configuration error" });
+    }
+
+    // Parse JSON body safely
+    let event_type, details, email, user_id;
+    try {
+      const body = JSON.parse(req.body);
+      event_type = body.event_type;
+      details = body.details;
+      email = body.email;
+      user_id = body.user_id;
+    } catch (parseError) {
+      console.error("Failed to parse request body:", parseError);
+      return res.status(400).json({ error: "Invalid request body" });
+    }
 
     if (!event_type || !details) {
       return res
@@ -39,7 +55,12 @@ export default async function handler(req, res) {
     }
 
     // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
 
     // Get client IP
     const forwarded = req.headers["x-forwarded-for"];
@@ -52,36 +73,55 @@ export default async function handler(req, res) {
     // Get user agent
     const user_agent = req.headers["user-agent"] || "Unknown";
 
-    // Log the security event
-    const { error } = await supabase.from("security_logs").insert({
-      user_id: user_id || null,
-      event_type,
-      ip_address,
-      user_agent,
-      details,
-      email: email || null,
-      created_at: new Date().toISOString(),
-    });
+    try {
+      // First check if the table exists
+      const { error: tableCheckError } = await supabase
+        .from("security_logs")
+        .select("count(*)", { count: "exact", head: true })
+        .limit(1);
 
-    if (error) {
-      // Check if it's just a missing table (404) which is non-critical
-      if (error.code === "404" || error.code === "PGRST116") {
-        console.log("[Server] Security logs table not available - ignoring");
+      // If table doesn't exist or other error, log but don't fail
+      if (tableCheckError) {
+        console.log("[Server] Security logs table not available:", tableCheckError.message);
         return res
           .status(200)
-          .json({
-            success: true,
-            message: "Logging skipped - table not available",
-          });
-      } else {
-        console.warn("[Server] Failed to log security event:", error);
-        return res.status(500).json({ error: "Failed to log security event" });
+          .json({ success: true, message: "Logging skipped - table not available" });
       }
-    }
 
-    return res.status(200).json({ success: true });
+      // Log the security event
+      const { error } = await supabase.from("security_logs").insert({
+        user_id: user_id || null,
+        event_type,
+        ip_address,
+        user_agent,
+        details,
+        email: email || null,
+        created_at: new Date().toISOString(),
+      }).throwOnError(false);
+
+      if (error) {
+        // Check if it's just a missing table (404) which is non-critical
+        if (error.code === "404" || error.code === "PGRST116") {
+          console.log("[Server] Security logs table not available - ignoring");
+          return res
+            .status(200)
+            .json({ success: true, message: "Logging skipped - table not available" });
+        } else {
+          console.warn("[Server] Failed to log security event:", error);
+          // Still return success to avoid blocking auth flow
+          return res.status(200).json({ success: true, message: "Logging failed but proceeding" });
+        }
+      }
+
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error("[Server] Error logging security event:", error);
+      // Do not fail the auth flow, return success anyway
+      return res.status(200).json({ success: true, message: "Logging failed but proceeding" });
+    }
   } catch (error) {
-    console.error("[Server] Error logging security event:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    console.error("[Server] Error in security logging endpoint:", error);
+    // Return success anyway to not break the auth flow
+    return res.status(200).json({ success: true, message: "Endpoint error but proceeding" });
   }
 }

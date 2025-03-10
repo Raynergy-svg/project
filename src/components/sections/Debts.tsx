@@ -34,7 +34,7 @@ import { Debt } from '@/lib/supabase/debtService';
 import { toast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { DebtCategoryType, DEBT_CATEGORIES } from '@/lib/constants';
-import { DebtAIModule } from '@/components/ai/DebtAIModule';
+import DebtAIModule from '@/components/ai/DebtAIModule';
 
 // Map debt types between our UI and database
 const mapCategoryToType = (category: DebtCategoryType): Debt['type'] => {

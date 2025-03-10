@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { Logo } from '@/components/Logo';
 import { Facebook, Twitter, Instagram, Linkedin, Shield, Lock } from 'lucide-react';
 
@@ -25,80 +25,129 @@ export default function Footer() {
   };
 
   const socialLinks = [
-    { icon: Facebook, href: '#', label: 'Facebook' },
-    { icon: Twitter, href: '#', label: 'Twitter' },
-    { icon: Instagram, href: '#', label: 'Instagram' },
-    { icon: Linkedin, href: '#', label: 'LinkedIn' },
+    { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
+    { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
+    { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
+    { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
   ];
 
   return (
-    <footer className="bg-[#1A1A1A] border-t border-white/10">
+    <footer className="bg-card border-t">
       <div className="container mx-auto px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-12">
           {/* Logo and Description */}
           <div className="lg:col-span-2">
-            <Logo size="sm" />
-            <p className="mt-4 text-gray-400 text-sm">
-              Smart Debt Flow helps you take control of your financial future with AI-powered debt management strategies and tools.
+            <Link href="/" aria-label="Home">
+              <Logo className="h-8 w-auto mb-4" isLink={false} />
+            </Link>
+            <p className="text-muted-foreground text-sm">
+              Smart Debt Flow helps you manage your debt, create payment plans, and track your progress toward financial freedom.
             </p>
             
             {/* Social Links */}
-            <div className="mt-6 flex gap-4">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  className="text-gray-400 hover:text-[#88B04B] transition-colors"
-                  aria-label={social.label}
-                >
-                  <social.icon className="w-5 h-5" />
-                </a>
-              ))}
+            <div className="flex space-x-4 mt-6">
+              {socialLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={link.label}
+                    className="text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Icon className="h-5 w-5" />
+                  </a>
+                );
+              })}
             </div>
           </div>
 
-          {/* Links Sections */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:col-span-4 gap-8">
-            {Object.entries(footerLinks).map(([title, links]) => (
-              <div key={title}>
-                <h3 className="text-white font-semibold mb-3 capitalize">
-                  {title}
-                </h3>
-                <ul className="space-y-2">
-                  {links.map((link) => (
-                    <li key={link.label}>
-                      <Link
-                        to={link.href}
-                        className="text-gray-400 hover:text-[#88B04B] transition-colors text-sm"
-                      >
-                        {link.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
+          {/* Company Links */}
+          <div className="lg:col-span-1">
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">
+              Company
+            </h3>
+            <ul className="space-y-3">
+              {footerLinks.company.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Resources Links */}
+          <div className="lg:col-span-1">
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">
+              Resources
+            </h3>
+            <ul className="space-y-3">
+              {footerLinks.resources.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Legal Links */}
+          <div className="lg:col-span-1">
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">
+              Legal
+            </h3>
+            <ul className="space-y-3">
+              {footerLinks.legal.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-muted-foreground hover:text-primary transition-colors text-sm"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Security Information */}
+          <div className="lg:col-span-1">
+            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">
+              Security
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-start">
+                <Shield className="h-5 w-5 text-primary flex-shrink-0 mr-2 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  Your data is encrypted and stored securely
+                </p>
               </div>
-            ))}
+              <div className="flex items-start">
+                <Lock className="h-5 w-5 text-primary flex-shrink-0 mr-2 mt-0.5" />
+                <p className="text-sm text-muted-foreground">
+                  Bank-level 256-bit encryption
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Security Badge */}
-        <div className="mt-12 pt-8 border-t border-white/10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <Shield className="w-5 h-5 text-[#88B04B]" />
-              <div className="flex items-center gap-4 text-sm text-gray-400">
-                <span className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  256-bit SSL Encryption
-                </span>
-                <span>SOC 2 Certified</span>
-              </div>
-            </div>
-            
-            <div className="text-sm text-gray-400">
-              © {currentYear} Smart Debt Flow. All rights reserved.
-            </div>
-          </div>
+        {/* Bottom Copyright */}
+        <div className="mt-12 pt-8 border-t border-gray-200/10">
+          <p className="text-sm text-muted-foreground text-center">
+            &copy; {currentYear} Smart Debt Flow. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

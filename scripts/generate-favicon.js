@@ -14,10 +14,18 @@ async function generateFavicon() {
       join(__dirname, "../src/assets/logo.svg")
     );
 
-    // Convert SVG to PNG with higher quality settings
+    // Convert SVG to PNG with higher quality settings for ICO
     const pngBuffer = await svg2png(svgBuffer, {
-      width: 64,
-      height: 64,
+      width: 128,
+      height: 128,
+      preserveAspectRatio: true,
+      backgroundColor: "transparent",
+    });
+
+    // Generate a larger PNG for modern browsers
+    const largePngBuffer = await svg2png(svgBuffer, {
+      width: 192,
+      height: 192,
       preserveAspectRatio: true,
       backgroundColor: "transparent",
     });
@@ -28,12 +36,18 @@ async function generateFavicon() {
 
     // Convert PNG to ICO with multiple sizes for better quality
     const icoBuffer = await pngToIco([tempPngPath], {
-      sizes: [16, 32, 48, 64],
+      sizes: [32, 48, 64, 128],
       quality: 100,
     });
 
     // Save ICO file
     await fs.writeFile(join(__dirname, "../public/favicon.ico"), icoBuffer);
+
+    // Save the larger PNG version for modern browsers
+    await fs.writeFile(
+      join(__dirname, "../public/favicon-192.png"),
+      largePngBuffer
+    );
 
     // Clean up temporary PNG
     await fs.unlink(tempPngPath);

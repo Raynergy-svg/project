@@ -2,11 +2,11 @@
  * Utilities for working with Cloudflare Turnstile
  */
 
+// Import our centralized environment configuration
+import { ENV, getEnv } from './env-config';
+
 // Get the site key from environment variables
-export const TURNSTILE_SITE_KEY = 
-  import.meta.env.VITE_TURNSTILE_SITE_KEY || 
-  import.meta.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || 
-  '0x4AAAAAAAK5LpjT0Jzv4jzl';
+export const TURNSTILE_SITE_KEY = ENV.TURNSTILE_SITE_KEY;
 
 // Function to verify a Turnstile token with our backend
 export async function verifyTurnstileToken(token: string, action?: string): Promise<{
@@ -15,91 +15,94 @@ export async function verifyTurnstileToken(token: string, action?: string): Prom
   message?: string;
 }> {
   try {
-    console.log(`Verifying Turnstile token for action: ${action || 'unknown'}`);
+    // If captcha is disabled in development, return success
+    if (isTurnstileDisabled()) {
+      return { success: true };
+    }
+
+    const formData = new FormData();
+    formData.append('token', token);
+    formData.append('secret', ENV.TURNSTILE_SECRET_KEY);
     
-    const response = await fetch('/api/auth/verify-turnstile', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        token,
-        action,
-      }),
-    });
+    if (action) {
+      formData.append('action', action);
+    }
+
+    const response = await fetch(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
 
     const data = await response.json();
     
-    if (!response.ok) {
+    if (!data.success) {
       console.error('Turnstile verification failed:', data);
       return {
         success: false,
-        message: data.error || 'Verification failed',
-        errors: data.errors || ['unknown_error']
+        errors: data['error-codes'] || ['unknown_error'],
+        message: 'Security verification failed. Please try again.'
       };
     }
 
     return {
-      success: true,
-      message: 'Verification successful'
+      success: true
     };
   } catch (error) {
-    console.error('Error verifying Turnstile token:', error);
+    console.error('Error verifying turnstile token:', error);
     return {
       success: false,
-      message: 'Verification service error',
-      errors: ['network_error']
+      errors: ['verification_error'],
+      message: 'Security verification failed. Please try again.'
     };
   }
 }
 
-// Function to render the Turnstile widget programmatically 
-// (for use in non-React contexts)
+// Render the Turnstile widget in a container
 export function renderTurnstile(
   container: string | HTMLElement, 
   callback: (token: string) => void,
   options: Record<string, any> = {}
 ): string | null {
+  if (typeof window === 'undefined') return null;
+  
   if (!window.turnstile) {
-    console.error('Turnstile not loaded');
+    console.error('Turnstile script not loaded');
     return null;
+  }
+
+  if (isTurnstileDisabled()) {
+    // In development or test mode, we can bypass the captcha
+    const bypassToken = generateBypassToken();
+    setTimeout(() => callback(bypassToken), 500);
+    return bypassToken;
   }
 
   try {
-    const widgetId = window.turnstile.render(container, {
+    return window.turnstile.render(container, {
       sitekey: TURNSTILE_SITE_KEY,
-      callback,
+      callback: callback,
       ...options
     });
-    
-    return widgetId;
-  } catch (error) {
-    console.error('Failed to render Turnstile widget:', error);
+  } catch (e) {
+    console.error('Error rendering Turnstile:', e);
     return null;
   }
 }
 
-// Function to check if Turnstile is disabled in development mode
+// Check if Turnstile should be disabled (for development)
 export function isTurnstileDisabled(): boolean {
-  const skipCaptcha = 
-    import.meta.env.VITE_SKIP_AUTH_CAPTCHA === 'true' || 
-    import.meta.env.NEXT_PUBLIC_SKIP_AUTH_CAPTCHA === 'true' ||
-    import.meta.env.SUPABASE_AUTH_CAPTCHA_DISABLE === 'true' ||
-    import.meta.env.NEXT_PUBLIC_SUPABASE_AUTH_CAPTCHA_DISABLE === 'true';
-  
-  // Always enable in production
-  if (import.meta.env.PROD) {
-    return false;
-  }
-  
-  return skipCaptcha;
+  return ENV.SKIP_AUTH_CAPTCHA || ENV.SUPABASE_AUTH_CAPTCHA_DISABLE;
 }
 
-// Function to generate a bypass token for development mode
+// Generate a bypass token for development
 export function generateBypassToken(): string {
-  if (!isTurnstileDisabled()) {
-    throw new Error('Cannot generate bypass token when Turnstile is enabled');
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 40; i++) {
+    token += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  
-  return 'BYPASS_CAPTCHA_FOR_SELF_HOSTED';
+  return token;
 } 

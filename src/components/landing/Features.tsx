@@ -1,3 +1,6 @@
+'use client';
+
+import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Brain, 
@@ -9,7 +12,7 @@ import {
   Clock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 
 const FEATURES = [
   {
@@ -57,7 +60,7 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ delay: index * 0.1 }}
-      className="relative bg-white/5 rounded-xl overflow-hidden border border-white/10"
+      className="relative bg-card rounded-xl overflow-hidden border border-border"
     >
       <div className="relative h-48 overflow-hidden">
         <img 
@@ -84,14 +87,14 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
           <div className="w-14 h-14 rounded-xl bg-[#88B04B]/10 flex items-center justify-center">
             <Icon className="w-7 h-7 text-[#88B04B]" />
           </div>
-          <h3 className="text-2xl font-semibold text-white">{title}</h3>
+          <h3 className="text-2xl font-semibold text-foreground">{title}</h3>
         </div>
         
-        <p className="text-gray-300 mb-6 text-lg">{description}</p>
+        <p className="text-muted-foreground mb-6 text-lg">{description}</p>
         
         <ul className="space-y-3">
           {benefits.map((benefit: string, i: number) => (
-            <li key={i} className="flex items-center gap-3 text-gray-300">
+            <li key={i} className="flex items-center gap-3 text-muted-foreground">
               <Sparkles className="w-5 h-5 text-[#88B04B]" />
               <span>{benefit}</span>
             </li>
@@ -107,10 +110,10 @@ interface FeaturesProps {
 }
 
 export default function Features({ id }: FeaturesProps) {
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleExploreClick = () => {
-    navigate('/signup?plan=trial');
+    router.push('/signup?plan=trial');
   };
 
   return (

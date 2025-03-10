@@ -1,61 +1,25 @@
-import React, { useState } from 'react';
-import { accessibilityProps } from '../utils/accessibility';
-
-interface SkipToContentProps {
-  contentId?: string;
-  className?: string;
-}
+import { useState, useEffect } from 'react';
 
 /**
- * A skip-to-content link that appears when tabbed to, allowing keyboard users
- * to skip navigation and go straight to main content.
- * 
- * This is a crucial accessibility feature for keyboard users.
+ * SkipToContent component provides a hidden link that becomes visible when focused,
+ * allowing keyboard users to skip the navigation and go straight to main content.
  */
-const SkipToContent: React.FC<SkipToContentProps> = ({
-  contentId = 'main-content',
-  className = '',
-}) => {
-  const [isFocused, setIsFocused] = useState(false);
-  
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const contentElement = document.getElementById(contentId);
-    
-    if (contentElement) {
-      // Set tabindex temporarily to ensure it's focusable
-      contentElement.setAttribute('tabindex', '-1');
-      contentElement.focus();
-      
-      // Remove tabindex after focusing
-      setTimeout(() => {
-        contentElement.removeAttribute('tabindex');
-      }, 100);
-    }
-  };
-  
+export default function SkipToContent() {
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure this only runs on the client to avoid hydration errors
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <a
-      href={`#${contentId}`}
-      className={`
-        fixed top-0 left-0 z-50 transform -translate-y-full p-2 bg-primary text-white
-        focus:translate-y-0 transition-transform duration-200
-        rounded-b-md shadow-md font-medium
-        ${isFocused ? 'translate-y-0' : ''}
-        ${className}
-      `}
-      onClick={handleClick}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-      role="link"
-      aria-label="Skip to main content"
-      {...accessibilityProps({
-        description: 'Skip to main content'
-      })}
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded focus:outline-none focus:shadow-lg"
     >
-      Skip to main content
+      Skip to content
     </a>
   );
-};
-
-export default SkipToContent; 
+} 

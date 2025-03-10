@@ -1,0 +1,8 @@
+Removing debug/test files...
+Removing test.html (backup exists in .debug-backup/)
+Removing debug.html (backup exists in .debug-backup/)
+Removing src/debug.tsx (backup exists in .debug-backup/src/)
+Removing src/DebugApp.tsx (backup exists in .debug-backup/src/)
+Removing src/index.html (backup exists in .debug-backup/src/)
+Removing package.json.backup (outdated backup of package.json)
+Cleanup completed successfully!

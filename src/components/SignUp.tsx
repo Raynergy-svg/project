@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useRouter } from "next/router";
+import Link from "next/link";
 import { TextField, Button, Typography, Box, Paper, Grid, Radio, RadioGroup, FormControlLabel, FormControl, Alert, Divider } from "@mui/material";
 import { Check, ArrowRight } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
@@ -49,14 +50,14 @@ export const SignUp = () => {
     selectedTier: "basic"
   });
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const router = useRouter();
   const { signup } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await signup(formData);
-      navigate("/dashboard");
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     }
@@ -305,7 +306,7 @@ export const SignUp = () => {
 
               <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center' }}>
                 Already have an account?{' '}
-                <Link to="/signin" style={{ color: '#88B04B', textDecoration: 'none' }}>
+                <Link href="/signin" style={{ color: '#88B04B', textDecoration: 'none' }}>
                   Sign In
                 </Link>
               </Typography>

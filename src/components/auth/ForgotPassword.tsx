@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { useToast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -135,7 +135,7 @@ export function ForgotPassword() {
               </AlertDescription>
             </Alert>
             <div className="flex justify-center">
-              <Link to="/login">
+              <Link href="/login">
                 <Button variant="outline" className="mt-4 text-white bg-transparent border-white/20 hover:bg-white/5">
                   <ArrowLeftIcon className="mr-2 h-4 w-4" />
                   Back to Login
@@ -193,7 +193,7 @@ export function ForgotPassword() {
                 {isLoading ? <LoadingSpinner size="sm" /> : "Reset Password"}
               </Button>
               <Link 
-                to="/login" 
+                href="/login" 
                 className="text-center text-sm text-white hover:text-gray-300"
               >
                 Remember your password? Sign in

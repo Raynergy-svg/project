@@ -1,55 +1,89 @@
-/* Animation Effects CSS */
+/* Animation Effects CSS - Contains special animations for the landing page */
 
-/* Success celebration container */
-.celebration-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 9999;
-  overflow: hidden;
+/* Floating animation for background elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
 }
 
-/* Confetti particles */
-.confetti {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  border-radius: 0;
-  opacity: 0;
+.floating-animation {
+  animation: float 6s ease-in-out infinite;
 }
 
-.confetti-animation {
-  animation: confetti-fall 2.5s linear forwards;
+/* Gradient animation */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
-@keyframes confetti-fall {
-  0% {
-    opacity: 1;
-    top: -10px;
-    transform: translateX(0) rotate(0deg);
-  }
-  
-  100% {
-    opacity: 0;
-    top: 100%;
-    transform: translateX(calc(var(--random-x) * 200px)) rotate(calc(var(--random-rotate) * 360deg));
-  }
+.gradient-animation {
+  background-size: 200% 200%;
+  animation: gradient-shift 15s ease infinite;
 }
 
-/* Success flash effect */
+/* Pulse glow effect */
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(136, 176, 75, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(136, 176, 75, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(136, 176, 75, 0); }
+}
+
+.pulse-glow {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Button hover effects */
+.btn-hover-effect {
+  transition: all 0.3s ease;
+}
+
+.btn-hover-effect:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 7px 14px rgba(0, 0, 0, 0.25);
+}
+
+.btn-hover-effect:active {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Special effects for backdrop blur */
+.backdrop-blur-animation {
+  backdrop-filter: blur(8px);
+  transition: backdrop-filter 0.3s ease;
+}
+
+.backdrop-blur-animation:hover {
+  backdrop-filter: blur(12px);
+}
+
+/* Text gradient animation */
+@keyframes text-gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.text-gradient-animation {
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: text-gradient-shift 5s ease infinite;
+}
+
+/* Success flash animation */
 .success-flash {
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(136, 176, 75, 0.3);
-  opacity: 0;
-  z-index: 9998;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(136, 176, 75, 0.2);
+  z-index: 100;
   pointer-events: none;
+  opacity: 0;
 }
 
 .flash-animation {
@@ -57,12 +91,90 @@
 }
 
 @keyframes flash {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Confetti animation */
+.celebration-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 101;
+  overflow: hidden;
+}
+
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: -10px;
+  opacity: 0;
+}
+
+.confetti-animation {
+  animation: confetti-fall 3s ease-in-out forwards;
+}
+
+@keyframes confetti-fall {
   0% {
-    opacity: 0.7;
-  }
-  100% {
+    transform: translateY(0) rotate(0deg) scale(0);
     opacity: 0;
   }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(100vh + 10px)) 
+               rotate(calc(var(--random-rotate) * 1080deg)) 
+               scale(1)
+               translateX(calc(var(--random-x) * 200px));
+    opacity: 0;
+  }
+}
+
+/* Hardware acceleration classes */
+.hardware-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.hardware-accelerated-opacity {
+  will-change: opacity;
+}
+
+.hardware-accelerated-composite {
+  will-change: transform, opacity;
+  contain: paint layout style;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer-effect {
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0.03) 25%, 
+    rgba(255, 255, 255, 0.08) 50%, 
+    rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }
 
 /* Success icon animation */
@@ -71,67 +183,30 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%) scale(0);
-  width: 120px;
-  height: 120px;
-  background-color: #1A1A1A;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 80px;
+  height: 80px;
+  color: #88B04B;
   z-index: 9999;
-  box-shadow: 0 0 30px rgba(136, 176, 75, 0.8);
+  opacity: 0;
   pointer-events: none;
 }
 
-.success-icon svg {
-  width: 60px;
-  height: 60px;
-  color: #88B04B;
-}
-
 .success-icon-animation {
-  animation: success-pop 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation: success-icon 0.5s 0.3s ease-out forwards;
 }
 
-@keyframes success-pop {
+@keyframes success-icon {
   0% {
-    transform: translate(-50%, -50%) scale(0);
     opacity: 0;
-  }
-  40% {
-    transform: translate(-50%, -50%) scale(1.1);
-    opacity: 1;
-  }
-  60% {
-    transform: translate(-50%, -50%) scale(0.9);
-    opacity: 1;
-  }
-  80% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0;
-  }
-}
-
-/* Form success animation */
-.form-success-animation {
-  animation: form-success 0.5s ease forwards;
-}
-
-@keyframes form-success {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 15px rgba(136, 176, 75, 0.5);
+    transform: translate(-50%, -50%) scale(0.5);
   }
   50% {
-    transform: scale(1.03);
-    box-shadow: 0 0 30px rgba(136, 176, 75, 0.8);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
   }
   100% {
-    transform: scale(1);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
     box-shadow: 0 0 15px rgba(136, 176, 75, 0.5);
   }
 } 

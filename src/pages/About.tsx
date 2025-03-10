@@ -1,288 +1,540 @@
-import { motion } from 'framer-motion';
-import { 
-  Shield, Users, Target, BarChart, Brain, Globe, Heart, 
-  Star, ArrowRight, Zap, Sparkles, CheckCircle, ChevronRight 
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
+import { useState, useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import Image from "next/image";
+import { GetStaticProps } from "next";
+import Head from "next/head";
+import Link from "next/link";
+import { Layout } from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Clock,
+  Heart,
+  TrendingUp,
+  Shield,
+  Award,
+  Users,
+  BarChart2,
+  Globe,
+  ArrowRight,
+  Brain,
+  Calculator,
+  CreditCard,
+  Sparkles,
+} from "lucide-react";
 
-export default function About() {
+interface TeamMember {
+  name: string;
+  role: string;
+  bio: string;
+  image: string;
+  social: {
+    linkedin?: string;
+    twitter?: string;
+    github?: string;
+  };
+}
+
+interface ValueProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
+
+interface MilestoneProps {
+  year: string;
+  title: string;
+  description: string;
+}
+
+const ValueCard = ({ icon, title, description }: ValueProps) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.3 });
+
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white py-20 relative">
-      {/* Background decorative elements */}
-      <div className="absolute top-40 left-0 w-64 h-64 bg-[#88B04B]/10 rounded-full blur-3xl -z-10"></div>
-      <div className="absolute bottom-40 right-0 w-80 h-80 bg-[#88B04B]/5 rounded-full blur-3xl -z-10"></div>
-      
-      <div className="container mx-auto px-4 relative">
-        {/* Header with mission statement */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-4xl mx-auto mb-20"
-        >
-          <div className="inline-block bg-[#88B04B]/10 px-4 py-2 rounded-full mb-6">
-            <span className="text-[#88B04B] font-medium">About Smart Debt Flow</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-              Our Mission
-            </span>
-          </h1>
-          <p className="text-xl text-gray-300 mb-8">
-            Empowering financial freedom through AI-powered debt management solutions
-          </p>
-          <div className="relative p-8 bg-white/5 rounded-xl border border-white/10 mb-8">
-            <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-[#88B04B] text-white px-4 py-2 rounded-lg font-medium">
-              Why We Exist
-            </div>
-            <p className="text-lg leading-relaxed">
-              At Smart Debt Flow, we believe that <span className="text-[#88B04B] font-semibold">everyone deserves the tools and knowledge</span> to 
-              break free from the cycle of debt. Our AI-powered platform transforms complex financial challenges into 
-              clear, actionable pathways to freedom. By combining cutting-edge technology with financial expertise, 
-              we're changing how people manage and eliminate debt forever.
-            </p>
-          </div>
-        </motion.div>
-
-        {/* What We Do Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-24"
-        >
-          <h2 className="text-3xl font-bold mb-4 text-center">What We Do</h2>
-          <p className="text-gray-400 text-center max-w-2xl mx-auto mb-12">
-            Our comprehensive approach combines AI technology with proven financial strategies
-          </p>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all group hover:bg-white/[0.07] hover:translate-y-[-4px]">
-              <div className="w-14 h-14 rounded-full bg-[#88B04B]/20 flex items-center justify-center mb-6 group-hover:bg-[#88B04B]/30 transition-all">
-                <Brain className="w-7 h-7 text-[#88B04B]" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">AI-Powered Analysis</h3>
-              <p className="text-gray-300 mb-4">
-                Our advanced AI analyzes your financial situation to create personalized debt elimination strategies tailored to your unique circumstances.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Multi-factor debt analysis</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Budget optimization</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Payment prioritization</span>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all group hover:bg-white/[0.07] hover:translate-y-[-4px]">
-              <div className="w-14 h-14 rounded-full bg-[#88B04B]/20 flex items-center justify-center mb-6 group-hover:bg-[#88B04B]/30 transition-all">
-                <Zap className="w-7 h-7 text-[#88B04B]" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Optimized Strategies</h3>
-              <p className="text-gray-300 mb-4">
-                We implement proven debt reduction methods like Snowball and Avalanche, enhanced with AI optimization to maximize your progress and motivation.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Custom hybrid approaches</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Interest rate negotiation</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Adaptive payoff timeline</span>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all group hover:bg-white/[0.07] hover:translate-y-[-4px]">
-              <div className="w-14 h-14 rounded-full bg-[#88B04B]/20 flex items-center justify-center mb-6 group-hover:bg-[#88B04B]/30 transition-all">
-                <Sparkles className="w-7 h-7 text-[#88B04B]" />
-              </div>
-              <h3 className="text-xl font-bold mb-3">Smart Guidance</h3>
-              <p className="text-gray-300 mb-4">
-                Receive personalized recommendations, payment reminders, and insights that adapt to your financial behavior and progress.
-              </p>
-              <ul className="space-y-2">
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Behavioral insights</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Spending pattern detection</span>
-                </li>
-                <li className="flex items-start gap-2 text-sm text-gray-400">
-                  <CheckCircle className="w-4 h-4 text-[#88B04B] mt-0.5 flex-shrink-0" />
-                  <span>Milestone celebrations</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Real Impact Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-24"
-        >
-          <h2 className="text-3xl font-bold mb-4 text-center">Real Impact</h2>
-          <p className="text-gray-400 text-center max-w-2xl mx-auto mb-12">
-            The difference we're making in real people's financial lives
-          </p>
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 text-center hover:border-[#88B04B]/30 transition-all">
-              <h3 className="text-4xl font-bold text-[#88B04B] mb-2">$2M+</h3>
-              <p className="text-gray-300">Debt Eliminated</p>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 text-center hover:border-[#88B04B]/30 transition-all">
-              <h3 className="text-4xl font-bold text-[#88B04B] mb-2">50K+</h3>
-              <p className="text-gray-300">Active Users</p>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 text-center hover:border-[#88B04B]/30 transition-all">
-              <h3 className="text-4xl font-bold text-[#88B04B] mb-2">35%</h3>
-              <p className="text-gray-300">Average Interest Saved</p>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 text-center hover:border-[#88B04B]/30 transition-all">
-              <h3 className="text-4xl font-bold text-[#88B04B] mb-2">4.9/5</h3>
-              <p className="text-gray-300">User Rating</p>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Core Values */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-24"
-        >
-          <h2 className="text-3xl font-bold mb-4 text-center">Our Core Values</h2>
-          <p className="text-gray-400 text-center max-w-2xl mx-auto mb-12">
-            The principles that guide everything we do
-          </p>
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all hover:translate-y-[-4px]">
-              <Heart className="w-12 h-12 text-[#88B04B] mb-6" />
-              <h3 className="text-xl font-bold mb-3">Empathy</h3>
-              <p className="text-gray-300">We understand the emotional weight of debt and design compassionate solutions that account for the human experience.</p>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all hover:translate-y-[-4px]">
-              <Shield className="w-12 h-12 text-[#88B04B] mb-6" />
-              <h3 className="text-xl font-bold mb-3">Security</h3>
-              <p className="text-gray-300">We protect your financial data with bank-level encryption and privacy-first practices, earning trust through transparency.</p>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all hover:translate-y-[-4px]">
-              <Target className="w-12 h-12 text-[#88B04B] mb-6" />
-              <h3 className="text-xl font-bold mb-3">Innovation</h3>
-              <p className="text-gray-300">We continuously improve our AI to provide more effective financial solutions, staying at the forefront of financial technology.</p>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all hover:translate-y-[-4px]">
-              <Users className="w-12 h-12 text-[#88B04B] mb-6" />
-              <h3 className="text-xl font-bold mb-3">Community</h3>
-              <p className="text-gray-300">We foster a supportive environment for shared financial growth and celebrate every step toward debt freedom.</p>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Our Team Section */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-24"
-        >
-          <h2 className="text-3xl font-bold mb-4 text-center">Leadership</h2>
-          <p className="text-gray-400 text-center max-w-2xl mx-auto mb-12">
-            Meet the team behind Smart Debt Flow
-          </p>
-          <div className="grid md:grid-cols-3 gap-12">
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all hover:translate-y-[-4px] relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#88B04B]/0 to-[#88B04B]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="w-28 h-28 rounded-full bg-[#88B04B]/20 mx-auto mb-6 flex items-center justify-center relative z-10">
-                <span className="text-[#88B04B] text-2xl font-bold">DC</span>
-              </div>
-              <h3 className="text-xl font-bold mb-1 text-center">David Certan</h3>
-              <p className="text-[#88B04B] text-center mb-4">Founder & CEO</p>
-              <p className="text-gray-300 text-center">
-                Financial technology expert with a passion for making professional debt management accessible to everyone.
-              </p>
-              <div className="pt-4 mt-4 border-t border-white/10 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" className="text-[#88B04B] hover:text-[#88B04B] hover:bg-[#88B04B]/10">
-                  Connect <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all hover:translate-y-[-4px] relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#88B04B]/0 to-[#88B04B]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="w-28 h-28 rounded-full bg-[#88B04B]/20 mx-auto mb-6 flex items-center justify-center relative z-10">
-                <span className="text-[#88B04B] text-2xl font-bold">SC</span>
-              </div>
-              <h3 className="text-xl font-bold mb-1 text-center">Sarah Chen</h3>
-              <p className="text-[#88B04B] text-center mb-4">Chief AI Officer</p>
-              <p className="text-gray-300 text-center">
-                AI researcher with expertise in financial modeling and machine learning applications for personal finance.
-              </p>
-              <div className="pt-4 mt-4 border-t border-white/10 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" className="text-[#88B04B] hover:text-[#88B04B] hover:bg-[#88B04B]/10">
-                  Connect <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-            <div className="bg-white/5 p-8 rounded-xl border border-white/10 hover:border-[#88B04B]/30 transition-all hover:translate-y-[-4px] relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#88B04B]/0 to-[#88B04B]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-              <div className="w-28 h-28 rounded-full bg-[#88B04B]/20 mx-auto mb-6 flex items-center justify-center relative z-10">
-                <span className="text-[#88B04B] text-2xl font-bold">MR</span>
-              </div>
-              <h3 className="text-xl font-bold mb-1 text-center">Michael Ross</h3>
-              <p className="text-[#88B04B] text-center mb-4">Chief Financial Strategist</p>
-              <p className="text-gray-300 text-center">
-                Financial advisor with over 15 years of experience helping individuals and families eliminate debt.
-              </p>
-              <div className="pt-4 mt-4 border-t border-white/10 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button variant="ghost" className="text-[#88B04B] hover:text-[#88B04B] hover:bg-[#88B04B]/10">
-                  Connect <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Call to Action */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="bg-gradient-to-r from-[#88B04B]/20 to-[#6A9A2D]/20 rounded-xl border border-[#88B04B]/30 p-10 text-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#88B04B]/10 rounded-full blur-3xl -z-10"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#88B04B]/10 rounded-full blur-3xl -z-10"></div>
-            
-            <h2 className="text-3xl font-bold mb-4">Ready to Break Free from Debt?</h2>
-            <p className="text-gray-300 max-w-2xl mx-auto mb-8">
-              Join thousands of others who have transformed their financial future with Smart Debt Flow.
-              Our AI-powered platform makes it simple to create a clear path to financial freedom.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/signup">
-                <Button className="bg-[#88B04B] hover:bg-[#7a9d43] text-white px-8 py-3 rounded-lg font-medium flex items-center gap-2 h-auto">
-                  Start Your Journey
-                  <ArrowRight size={16} />
-                </Button>
-              </Link>
-              <Link to="/blog">
-                <Button variant="outline" className="border-white/20 hover:border-[#88B04B]/50 text-white hover:bg-[#88B04B]/10 px-8 py-3 rounded-lg font-medium h-auto">
-                  Read Success Stories
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </motion.section>
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="flex flex-col items-center text-center p-6 bg-card rounded-lg shadow-sm"
+    >
+      <div className="p-3 rounded-full bg-primary/10 text-primary mb-4">
+        {icon}
       </div>
-    </div>
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
+    </motion.div>
   );
+};
+
+const Milestone = ({ year, title, description }: MilestoneProps) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.3 });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, x: -20 }}
+      animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative pl-8 pb-10 border-l border-primary/30 last:border-0 last:pb-0"
+    >
+      <div className="absolute left-[-8px] top-0 w-4 h-4 rounded-full bg-primary" />
+      <span className="inline-block mb-1 text-sm font-semibold bg-primary/10 px-2 py-1 rounded text-primary">
+        {year}
+      </span>
+      <h3 className="text-xl font-semibold mb-2">{title}</h3>
+      <p className="text-muted-foreground">{description}</p>
+    </motion.div>
+  );
+};
+
+const TeamMemberCard = ({ member }: { member: TeamMember }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.3 });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="flex flex-col"
+    >
+      <div className="relative h-64 w-full mb-4 overflow-hidden rounded-lg">
+        <Image
+          src={member.image}
+          alt={member.name}
+          fill
+          className="object-cover"
+        />
+      </div>
+      <h3 className="text-xl font-semibold mb-1">{member.name}</h3>
+      <p className="text-primary mb-2">{member.role}</p>
+      <p className="text-muted-foreground mb-3 text-sm">{member.bio}</p>
+      <div className="flex gap-3 mt-auto">
+        {member.social.linkedin && (
+          <a
+            href={member.social.linkedin}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            LinkedIn
+          </a>
+        )}
+        {member.social.twitter && (
+          <a
+            href={member.social.twitter}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Twitter
+          </a>
+        )}
+        {member.social.github && (
+          <a
+            href={member.social.github}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            GitHub
+          </a>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
+export default function AboutPage() {
+  const [activeTab, setActiveTab] = useState("mission");
+  const heroRef = useRef(null);
+  const isHeroInView = useInView(heroRef, { once: true });
+
+  const values = [
+    {
+      icon: <Heart size={24} />,
+      title: "User-Centered",
+      description:
+        "We put you first. Our tools are designed to solve real money problems that people face every day, not just to look fancy.",
+    },
+    {
+      icon: <Shield size={24} />,
+      title: "Security",
+      description:
+        "Your money information is private and important. We protect it with the same security that banks use to keep your data safe.",
+    },
+    {
+      icon: <Brain size={24} />,
+      title: "Smart Technology",
+      description:
+        "Our AI tools analyze your finances and suggest the best ways to pay off debt faster, like having a financial advisor in your pocket.",
+    },
+    {
+      icon: <Calculator size={24} />,
+      title: "Simple Tools",
+      description:
+        "We make complicated financial stuff easy to understand with tools that show you exactly how to get out of debt step by step.",
+    },
+    {
+      icon: <Clock size={24} />,
+      title: "Time-Saving",
+      description:
+        "Our app does the hard work for you, saving you hours of figuring out payment plans and tracking your progress automatically.",
+    },
+    {
+      icon: <Globe size={24} />,
+      title: "For Everyone",
+      description:
+        "We believe everyone deserves financial freedom, no matter how much money you make or how much debt you have.",
+    },
+  ];
+
+  const milestones = [
+    {
+      year: "2020",
+      title: "Our Beginning",
+      description:
+        "Smart Debt Flow started when our founders realized how hard it was for regular people to get out of debt without expensive financial advisors.",
+    },
+    {
+      year: "2021",
+      title: "Testing Our Idea",
+      description:
+        "We invited 500 people to try our early version. Their feedback helped us make the app better and easier to use.",
+    },
+    {
+      year: "2022",
+      title: "Official Launch",
+      description:
+        "We released Smart Debt Flow to the public with tools to help people understand their debt and make plans to pay it off faster.",
+    },
+    {
+      year: "2022",
+      title: "Growing Community",
+      description:
+        "We reached 10,000 users who together were working to pay off over $50 million in debt using our app.",
+    },
+    {
+      year: "2023",
+      title: "New Features",
+      description:
+        "We added AI-powered tools that automatically create payment plans and show you how to save money on interest payments.",
+    },
+    {
+      year: "Present",
+      title: "Making a Difference",
+      description:
+        "Today, our users are saving an average of 35% on interest and paying off debt 40% faster than they would with minimum payments.",
+    },
+  ];
+
+  const teamMembers: TeamMember[] = [
+    {
+      name: "Sarah Johnson",
+      role: "CEO & Co-Founder",
+      bio: "Former financial advisor with a passion for making financial literacy accessible to everyone.",
+      image: "/assets/team/sarah.jpg",
+      social: {
+        linkedin: "https://linkedin.com/in/sarah-johnson",
+        twitter: "https://twitter.com/sarahjohnson",
+      },
+    },
+    {
+      name: "Michael Chen",
+      role: "CTO & Co-Founder",
+      bio: "Tech veteran with experience at major fintech companies, focused on building secure and scalable financial solutions.",
+      image: "/assets/team/michael.jpg",
+      social: {
+        linkedin: "https://linkedin.com/in/michael-chen",
+        github: "https://github.com/michaelchen",
+      },
+    },
+    {
+      name: "Aisha Patel",
+      role: "Chief Financial Officer",
+      bio: "Experienced financial strategist who believes in the power of data-driven decisions for financial wellness.",
+      image: "/assets/team/aisha.jpg",
+      social: {
+        linkedin: "https://linkedin.com/in/aisha-patel",
+      },
+    },
+    {
+      name: "James Wilson",
+      role: "Head of Product",
+      bio: "Product leader focused on creating intuitive financial tools that empower people to take control of their debt.",
+      image: "/assets/team/james.jpg",
+      social: {
+        linkedin: "https://linkedin.com/in/james-wilson",
+        twitter: "https://twitter.com/jameswilson",
+      },
+    },
+  ];
+
+  const stats = [
+    { label: "Users", value: "50,000+" },
+    { label: "Debt Managed", value: "$250M+" },
+    { label: "Average Savings", value: "$6,200" },
+    { label: "Countries", value: "12" },
+  ];
+
+  return (
+    <Layout>
+      <Head>
+        <title>About Smart Debt Flow | Our Mission to Help You Become Debt-Free</title>
+        <meta
+          name="description"
+          content="Learn how Smart Debt Flow is helping thousands of people take control of their finances and break free from debt with AI-powered tools and simple strategies."
+        />
+      </Head>
+
+      <main className="container mx-auto px-4 py-12">
+        {/* Hero Section */}
+        <section className="mb-20">
+          <motion.div
+            ref={heroRef}
+            initial={{ opacity: 0, y: 20 }}
+            animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="text-center max-w-3xl mx-auto"
+          >
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              Breaking Free From The Weight of Debt
+            </h1>
+            <p className="text-xl text-muted-foreground mb-8">
+              Smart Debt Flow helps you take control of your finances with easy-to-use tools that make paying off debt simpler and faster.
+            </p>
+          </motion.div>
+        </section>
+
+        {/* Mission & Vision Tabs */}
+        <section className="mb-20">
+          <Tabs
+            defaultValue="mission"
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="max-w-3xl mx-auto"
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="mission">Our Mission</TabsTrigger>
+              <TabsTrigger value="vision">Our Vision</TabsTrigger>
+            </TabsList>
+            <TabsContent value="mission" className="p-6 bg-card rounded-lg">
+              <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
+              <p className="text-muted-foreground mb-4">
+                We're on a mission to help people break free from debt and build a better financial future. We believe that:
+              </p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start gap-3">
+                  <Sparkles className="text-primary mt-1 flex-shrink-0" />
+                  <span>Everyone deserves to understand their finances without needing a finance degree</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Sparkles className="text-primary mt-1 flex-shrink-0" />
+                  <span>Smart technology should make managing money easier, not more complicated</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Sparkles className="text-primary mt-1 flex-shrink-0" />
+                  <span>Getting out of debt shouldn't require expensive financial advisors</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Sparkles className="text-primary mt-1 flex-shrink-0" />
+                  <span>The path to financial freedom should be clear and achievable for everyone</span>
+                </li>
+              </ul>
+              <p className="text-muted-foreground">
+                Our users have reduced their debt by an average of 40% in their first year using Smart Debt Flow, and we're just getting started.
+              </p>
+            </TabsContent>
+            <TabsContent value="vision" className="p-6 bg-card rounded-lg">
+              <h2 className="text-2xl font-bold mb-4">Our Vision</h2>
+              <p className="text-muted-foreground mb-4">
+                We envision a world where:
+              </p>
+              <ul className="space-y-3 mb-6">
+                <li className="flex items-start gap-3">
+                  <Sparkles className="text-primary mt-1 flex-shrink-0" />
+                  <span>Financial stress doesn't keep people up at night</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Sparkles className="text-primary mt-1 flex-shrink-0" />
+                  <span>Everyone has the tools they need to make smart money decisions</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Sparkles className="text-primary mt-1 flex-shrink-0" />
+                  <span>Debt is a temporary situation, not a lifelong burden</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <Sparkles className="text-primary mt-1 flex-shrink-0" />
+                  <span>Financial freedom is achievable for everyone, regardless of their starting point</span>
+                </li>
+              </ul>
+              <p className="text-muted-foreground">
+                We're building Smart Debt Flow to be the most helpful, easy-to-use financial tool that actually makes a difference in people's lives.
+              </p>
+            </TabsContent>
+          </Tabs>
+        </section>
+
+        {/* How We Help Section */}
+        <section className="mb-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">How We Help You Break Free From Debt</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Our AI-powered tools make it simple to understand your debt and create a clear path to becoming debt-free.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Card className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 rounded-full bg-primary/10">
+                  <Brain className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">AI-Powered Analysis</h3>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Our smart AI looks at your debts and financial situation, then suggests the best way to pay them off faster and save money on interest.
+              </p>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Personalized debt payoff strategies</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Save up to 35% on interest payments</span>
+                </li>
+              </ul>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 rounded-full bg-primary/10">
+                  <Calculator className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">Smart Financial Tools</h3>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Our easy-to-use tools help you see exactly where your money is going and how to redirect it to pay off debt faster.
+              </p>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Debt payoff calculator</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Visual progress tracking</span>
+                </li>
+              </ul>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="p-3 rounded-full bg-primary/10">
+                  <BarChart2 className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold">Financial Insights</h3>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                We show you patterns in your spending and help you find money you can use to pay off debt faster without feeling deprived.
+              </p>
+              <ul className="space-y-2">
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Spending pattern analysis</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm">Debt-free date forecasting</span>
+                </li>
+              </ul>
+            </Card>
+          </div>
+        </section>
+
+        {/* Our Values */}
+        <section className="mb-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Our Values</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              These core principles guide everything we do at Smart Debt Flow.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {values.map((value, index) => (
+              <ValueCard
+                key={index}
+                icon={value.icon}
+                title={value.title}
+                description={value.description}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Our Journey */}
+        <section className="mb-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Our Journey</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              From a simple idea to helping thousands of people become debt-free.
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto">
+            {milestones.map((milestone, index) => (
+              <Milestone
+                key={index}
+                year={milestone.year}
+                title={milestone.title}
+                description={milestone.description}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Team Section */}
+        <section className="mb-20">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Meet Our Team</h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              We're a group of finance experts, tech innovators, and people who've been in debt ourselves. We understand what you're going through.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {teamMembers.map((member, index) => (
+              <TeamMemberCard key={index} member={member} />
+            ))}
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="text-center py-12 px-4 bg-card rounded-lg border border-border">
+          <h2 className="text-3xl font-bold mb-4">Ready to Start Your Debt-Free Journey?</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
+            Join thousands of people who are taking control of their finances and working toward a debt-free future.
+          </p>
+          <Link href="/signup">
+            <Button size="lg" className="bg-primary hover:bg-primary/90">
+              Start Your Free Trial <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </section>
+      </main>
+    </Layout>
+  );
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+  return {
+    props: {},
+  };
 } 

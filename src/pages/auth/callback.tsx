@@ -1,88 +1,86 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/utils/supabase/client';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, Check } from 'lucide-react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { createServerClient } from '@supabase/ssr';
+import { GetServerSideProps } from 'next';
+import { Loader2 } from 'lucide-react';
+import { Layout } from '@/components/layout/Layout';
 
 export default function AuthCallback() {
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState<string>('Processing authentication...');
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      try {
-        const { searchParams } = new URL(window.location.href);
-        const code = searchParams.get('code');
-        const error = searchParams.get('error');
-        const errorDescription = searchParams.get('error_description');
-
-        if (error) {
-          setStatus('error');
-          setMessage(`Authentication error: ${errorDescription || error}`);
-          return;
-        }
-
-        if (!code) {
-          setStatus('error');
-          setMessage('No authentication code found in the URL');
-          return;
-        }
-
-        // Exchange the code for a session
-        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-
-        if (exchangeError) {
-          setStatus('error');
-          setMessage(`Error exchanging code for session: ${exchangeError.message}`);
-          return;
-        }
-
-        setStatus('success');
-        setMessage('Authentication successful! Redirecting...');
-
-        // Redirect to dashboard after successful authentication
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
-      } catch (error) {
-        setStatus('error');
-        setMessage(`Unexpected error: ${error instanceof Error ? error.message : String(error)}`);
+    const handleCallback = async () => {
+      // Check if we have a code in the URL
+      const { code } = router.query;
+      
+      // If no code in the URL, redirect to sign in page
+      if (!code) {
+        router.push('/signin');
+        return;
       }
+      
+      // If we have a code, wait 2 seconds and redirect to dashboard
+      // The server-side logic will exchange the code for a session
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 2000);
     };
-
-    handleAuthCallback();
-  }, [navigate]);
+    
+    if (router.isReady) {
+      handleCallback();
+    }
+  }, [router]);
 
   return (
-    <div className="flex justify-center items-center min-h-screen p-4">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Authentication</h1>
-        
-        {status === 'loading' && (
-          <div className="flex flex-col items-center justify-center p-4">
-            <LoadingSpinner className="h-10 w-10 mb-4" />
-            <p className="text-center text-gray-600">{message}</p>
-          </div>
-        )}
-        
-        {status === 'success' && (
-          <Alert>
-            <Check className="h-5 w-5 text-green-500" />
-            <AlertTitle>Success</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
-        
-        {status === 'error' && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-5 w-5" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{message}</AlertDescription>
-          </Alert>
-        )}
+    <Layout
+      title="Authenticating | Smart Debt Flow"
+      showNavbar={false}
+      showFooter={false}
+    >
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+          <h1 className="text-2xl font-bold mb-2">Authenticating...</h1>
+          <p className="text-muted-foreground">
+            Please wait while we complete your sign in.
+          </p>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
+}
+
+// Server-side props for authentication callback
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  // Create Supabase client
+  const supabase = createServerClient(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return context.req.cookies[name];
+        },
+        set(name, value, options) {
+          context.res.setHeader('Set-Cookie', `${name}=${value}; Path=/; ${options.httpOnly ? 'HttpOnly;' : ''} ${options.secure ? 'Secure;' : ''} SameSite=${options.sameSite || 'Lax'}`);
+        },
+        remove(name, options) {
+          context.res.setHeader('Set-Cookie', `${name}=; Path=/; Max-Age=0; ${options.httpOnly ? 'HttpOnly;' : ''} ${options.secure ? 'Secure;' : ''} SameSite=${options.sameSite || 'Lax'}`);
+        },
+      },
+    }
+  );
+
+  // Check if we have a code in the URL
+  const { code } = context.query;
+
+  if (code) {
+    // Exchange the code for a session
+    await supabase.auth.exchangeCodeForSession(code as string);
+  }
+
+  // We let the client side redirect to the appropriate page
+  return {
+    props: {},
+  };
 } 

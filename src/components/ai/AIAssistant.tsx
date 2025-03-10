@@ -1,161 +1,84 @@
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { queryAI, AIQueryResponse } from '@/lib/ai/aiService';
+'use client';
+
+import React, { useState, useEffect, FormEvent } from 'react';
+import { useAuth } from '@/context/AuthContext';
+import { queryAI, AIMessage } from '@/lib/ai/aiService';
+import { useDebounce } from '@/hooks/useDebounce';
+
+// UI Components
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Brain, SendIcon, Sparkles, MessagesSquare, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Brain, SendIcon, Sparkles, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 
-// Define Message interface for the conversation
-interface Message {
-  id: string;
-  text: string;
-  sender: 'user' | 'ai';
-  timestamp: string;
-  isError?: boolean;
-}
-
-/**
- * AI Assistant component that provides a chat-like interface for users to interact with the AI
- */
-export function AIAssistant() {
+export default function AIAssistant() {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversation, setConversation] = useState<Message[]>([
+  const [error, setError] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<AIMessage[]>([
     {
-      id: 'ai-welcome',
-      text: 'Hello! I\'m your financial AI assistant. How can I help you with your debt management today?',
-      sender: 'ai',
-      timestamp: new Date().toISOString(),
+      sender: 'assistant',
+      text: 'Hello! I\'m your financial AI assistant. How can I help you with debt management today?',
+      timestamp: Date.now(),
     },
   ]);
-  const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Handle form submission for sending a query to the AI
-   */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      const currentQuery = query.trim();
-      setQuery(''); // Clear input field
-      await handleSendQuery(currentQuery);
-    }
-  };
-
-  /**
-   * Send a query to the AI and process the response
-   */
-  const handleSendQuery = async (queryText: string) => {
-    if (!queryText.trim()) return;
-
-    setIsLoading(true);
-    setError(null);
-
-    // Add user message to the conversation
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      text: queryText,
-      sender: 'user',
-      timestamp: new Date().toISOString(),
-    };
-
-    setConversation(prev => [...prev, userMessage]);
-
-    // For development mode, mock context data
-    const isDev = import.meta.env.DEV;
-    const mockFinancialContext = isDev ? {
-      income: 5000,
-      debts: [
-        { id: 'debt1', name: 'Credit Card', amount: 5000, interestRate: 22.99 },
-        { id: 'debt2', name: 'Student Loan', amount: 25000, interestRate: 4.5 },
-        { id: 'debt3', name: 'Car Loan', amount: 12000, interestRate: 3.9 }
-      ],
-      transactions: [
-        { id: 'tx1', description: 'Grocery Store', amount: 150, category: 'Groceries', date: new Date().toISOString() },
-        { id: 'tx2', description: 'Gas Station', amount: 40, category: 'Transportation', date: new Date().toISOString() },
-        { id: 'tx3', description: 'Netflix', amount: 15, category: 'Entertainment', date: new Date().toISOString() }
-      ]
-    } : {};
-    
+  const handleSendQuery = async (userQuery: string) => {
     try {
-      // Get user ID from auth context, using a mock ID in development if needed
-      const userId = user?.id || (isDev ? 'dev-user-id' : undefined);
+      setIsLoading(true);
+      setError(null);
       
-      // Wrapping the AI query in a try-catch block with direct fallback
-      let response: AIQueryResponse | null = null;
+      // Add the user's message to the conversation
+      const userMessage: AIMessage = {
+        sender: 'user',
+        text: userQuery,
+        timestamp: Date.now(),
+      };
       
-      try {
-        console.log('Sending query to AI service:', queryText);
-        response = await queryAI(queryText, { 
-          ...mockFinancialContext,
-          request_type: 'general_query' 
-        }, userId);
-      } catch (queryError) {
-        console.error('AIAssistant: Error querying AI:', queryError);
-        
-        // Display error in development mode for debugging
-        if (isDev) {
-          const devErrorMessage: Message = {
-            id: `ai-error-${Date.now()}`,
-            text: `[DEV] AI Service Error: ${queryError instanceof Error ? queryError.message : 'Unknown error'}`,
-            sender: 'ai',
-            timestamp: new Date().toISOString(),
-            isError: true,
-          };
-          setConversation(prev => [...prev, devErrorMessage]);
-        }
-        
-        throw queryError; // Re-throw to be caught by the outer try-catch
-      }
+      setConversation(prev => [...prev, userMessage]);
       
-      // Check if we got a valid response
-      if (!response || !response.success) {
-        const errorMessage = response?.error || 'Failed to get a valid response from the AI service';
-        throw new Error(errorMessage);
-      }
+      // Clear the input field
+      setQuery('');
       
-      // Process the successful response
-      const aiMessage: Message = {
-        id: `ai-${Date.now()}`,
-        text: response.result || 'I processed your request but have no specific response.',
-        sender: 'ai',
-        timestamp: new Date().toISOString(),
+      // Query the AI
+      const response = await queryAI({
+        query: userQuery,
+        userId: user?.id,
+        history: conversation,
+      });
+      
+      // Add the AI's response to the conversation
+      const aiMessage: AIMessage = {
+        sender: 'assistant',
+        text: response,
+        timestamp: Date.now(),
       };
       
       setConversation(prev => [...prev, aiMessage]);
-    } catch (error) {
-      console.error('Error in AI conversation:', error);
-      
-      // Set a user-friendly error message
-      const errorMsg = error instanceof Error 
-        ? error.message
-        : 'An unexpected error occurred while processing your request';
-        
-      setError(errorMsg);
-      
-      // Add error message to conversation
-      const errorMessage: Message = {
-        id: `ai-${Date.now()}`,
-        text: isDev 
-          ? `I encountered a technical issue: ${errorMsg}`
-          : 'I apologize, but I encountered a technical issue processing your request. Please try again later.',
-        sender: 'ai',
-        timestamp: new Date().toISOString(),
-        isError: true,
-      };
-      
-      setConversation(prev => [...prev, errorMessage]);
+    } catch (err) {
+      console.error('Failed to get AI response:', err);
+      setError(err instanceof Error ? err.message : 'Failed to get AI response');
     } finally {
       setIsLoading(false);
     }
   };
 
-  /**
-   * Handle quick queries that we prefill for the user
-   */
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (query.trim() && !isLoading) {
+      handleSendQuery(query);
+    }
+  };
+
   const handleQuickQuery = (prefilledQuery: string) => {
     setQuery(prefilledQuery);
     // Don't automatically send to allow user to edit if desired

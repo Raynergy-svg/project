@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/auth-adapter';
+import { useRouter } from 'next/navigation';
 import { IS_DEV } from '@/utils/environment';
 
 /**
@@ -12,24 +12,32 @@ export function useDevSignIn() {
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const router = useRouter();
 
-  const handleDevSignIn = async (email: string, password: string) => {
+  // Default test account info
+  const defaultDevEmail = 'dev@example.com';
+  const defaultDevPassword = 'password123';  // Don't worry - this is only for dev mode
+
+  const handleDevSignIn = async () => {
+    if (!IS_DEV) {
+      console.warn('Dev sign-in attempted in production mode');
+      return { success: false };
+    }
+
     setLoading(true);
     setError(null);
     
     try {
       // In development, we provide special handling for dev accounts
-      // The login function in AuthContext will detect if this is a dev account
-      const result = await login(email, password);
+      const result = await login(defaultDevEmail, defaultDevPassword);
       
-      // The login function now handles the navigation to dashboard
-      // So we don't need to navigate here anymore
-      if (result && result.user) {
-        return { success: true };
+      if (result?.error) {
+        throw new Error(result.error.message || 'Authentication failed');
       }
       
-      return { success: false, message: 'Authentication failed' };
+      // Using App Router navigation
+      router.push('/dashboard');
+      return { success: true, user: result.user };
     } catch (err) {
       console.error('Development sign-in error:', err);
       
@@ -53,10 +61,10 @@ export function useDevSignIn() {
     handleDevSignIn,
     loading,
     error,
-    // Only provide dev account info in development mode, using our environment utility
+    // Only provide dev account info in development mode
     devAccountInfo: IS_DEV 
-      ? 'For testing, use dev@example.com with any password'
-      : ''
+      ? { email: defaultDevEmail, password: 'Any password works in dev mode' }
+      : null
   };
 }
 

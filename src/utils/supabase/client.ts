@@ -11,40 +11,31 @@ import { TURNSTILE_SITE_KEY, isTurnstileDisabled, generateBypassToken } from '..
 // CONFIGURATION
 // ============================================================
 
-// Prefer Vite environment variables
+// Get environment variables safely from all possible sources
 export const supabaseUrl = 
+  (typeof window !== 'undefined' && (window as any).env?.NEXT_PUBLIC_SUPABASE_URL) ||
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || 
   (typeof import.meta !== 'undefined' && import.meta.env?.NEXT_PUBLIC_SUPABASE_URL) ||
-  (typeof window !== 'undefined' && (window as any).env?.VITE_SUPABASE_URL) ||
   (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) ||
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
   (typeof process !== 'undefined' && process.env?.SUPABASE_URL) ||
   'https://gnwdahoiauduyncppbdb.supabase.co';
 
 export const supabaseAnonKey = 
+  (typeof window !== 'undefined' && (window as any).env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) ||
   (typeof import.meta !== 'undefined' && import.meta.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-  (typeof window !== 'undefined' && (window as any).env?.VITE_SUPABASE_ANON_KEY) ||
   (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_ANON_KEY) ||
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) ||
+  (typeof process !== 'undefined' && process.env?.VITE_ANON_KEY) ||
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U';
 
 // Get Turnstile site key from environment
 export const turnstileSiteKey = 
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_TURNSTILE_SITE_KEY) ||
   (typeof window !== 'undefined' && (window as any).env?.VITE_TURNSTILE_SITE_KEY) ||
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_TURNSTILE_SITE_KEY) ||
   (typeof process !== 'undefined' && process.env?.VITE_TURNSTILE_SITE_KEY);
-
-// Standard client options for browser environments
-const clientOptions = {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  }
-};
-
-// Create and export the Supabase client
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, clientOptions);
 
 // Diagnostic function to log environment variables
 export function logSupabaseCredentials() {
@@ -109,6 +100,68 @@ export function logSupabaseCredentials() {
 // Call the diagnostic function if in development mode
 if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development') {
   logSupabaseCredentials();
+}
+
+// ============================================================
+// CLIENT INITIALIZATION
+// ============================================================
+
+// Client configuration
+const clientOptions = {
+    auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+};
+
+// Create Supabase client with error handling
+let supabaseClient: SupabaseClient<Database>;
+
+try {
+  supabaseClient = createClient<Database>(
+    supabaseUrl, 
+    supabaseAnonKey, 
+    clientOptions
+  );
+} catch (error) {
+  console.error('Failed to initialize Supabase client:', error);
+  // Fallback to null client - the app will handle this gracefully
+  supabaseClient = null as any;
+}
+
+// Export the client instance
+export const supabase = supabaseClient;
+
+// Now that the client is initialized and exported, we can verify the connection
+// This function will be executed only after the module is fully loaded
+if (supabaseClient && typeof window !== 'undefined') {
+  // Only run connection check in browser environment, not during SSR
+  // Use a longer timeout and only in non-production environments for development diagnostics
+  const isDev = 
+    (typeof import.meta !== 'undefined' && import.meta.env?.DEV === true) ||
+    (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
+  
+  if (isDev) {
+    // In development, perform a more thorough check but after a slight delay
+    setTimeout(() => {
+      checkSupabaseConnection()
+        .then(isConnected => {
+          if (isConnected) {
+            console.log('✅ Supabase connection is active');
+          } else {
+            console.warn('⚠️ Supabase connection check did not pass, but app will continue');
+          }
+        })
+        .catch(err => {
+          console.warn('Supabase connectivity check failed:', err);
+        });
+    }, 500); // Longer timeout to ensure module is fully loaded
+  } else {
+    // In production, just log a connection attempt error if it happens
+    // but don't actively try to verify the connection
+    console.log('Supabase client initialized for production');
+  }
 }
 
 // ============================================================
@@ -675,47 +728,17 @@ export const authService = {
  * Creates a client specifically for browser environments
  */
 export function createBrowserClient(): SupabaseClient<Database> {
-  // Use standard createClient instead of any Next.js specific client
-  return createClient<Database>(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
-      }
-    }
-  );
-}
-
-// Now verify the connection with our client
-// This function will be executed only after the module is fully loaded
-if (typeof window !== 'undefined') {
-  // Only run connection check in browser environment, not during SSR
-  // Use a longer timeout and only in non-production environments for development diagnostics
-  const isDev = 
-    (typeof import.meta !== 'undefined' && import.meta.env?.DEV === true) ||
-    (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
+  // Check if we already have a client
+  if (supabase) return supabase;
   
-  if (isDev) {
-    // In development, perform a more thorough check but after a slight delay
-    setTimeout(() => {
-      checkSupabaseConnection()
-        .then(isConnected => {
-          if (isConnected) {
-            console.log('✅ Supabase connection is active');
-          } else {
-            console.warn('⚠️ Supabase connection check did not pass, but app will continue');
-          }
-        })
-        .catch(err => {
-          console.warn('Supabase connectivity check failed:', err);
-        });
-    }, 500); // Longer timeout to ensure module is fully loaded
-  } else {
-    // In production, just log a connection attempt error if it happens
-    // but don't actively try to verify the connection
-    console.log('Supabase client initialized for production');
+  try {
+    return createClient<Database>(
+      supabaseUrl, 
+      supabaseAnonKey, 
+      clientOptions
+    );
+  } catch (error) {
+    console.error('Failed to create browser client:', error);
+    throw error;
   }
 } 

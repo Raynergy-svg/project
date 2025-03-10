@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 // Determine the base URL for the AI API endpoints based on environment
 // Use a relative path that will be served by the development server's proxy
 // This avoids CSP issues by removing the need for cross-origin requests
-const isDev = import.meta.env.DEV;
+const isDev = process.env.NODE_ENV === 'development';
 const AI_API_BASE_URL = '/api/ai';  // Use relative path for both dev and prod
 
 // Enable local mock mode - Set this to true to bypass the worker completely in development
@@ -17,154 +17,82 @@ const USE_LOCAL_MOCK = isDev;
 // Log the API base URL to help with debugging
 console.log(`AI Service configured with base URL: ${AI_API_BASE_URL}, using ${USE_LOCAL_MOCK ? 'local mock' : 'worker'} in ${isDev ? 'development' : 'production'}`);
 
-// Interfaces for AI requests and responses
-export interface AIQueryRequest {
+// Type definitions for AI query and response
+export interface AIQueryOptions {
   query: string;
+  userId?: string;
   context?: Record<string, any>;
-  user_id?: string;
+  history?: AIMessage[];
 }
 
-export interface AIQueryResponse {
-  success: boolean;
-  message: string;
-  query: string;
-  result?: string;
-  recommendations?: string[];
-  error?: string;
+export interface AIMessage {
+  sender: 'user' | 'assistant';
+  text: string;
+  timestamp: number;
 }
 
 /**
- * Generate a mock AI response for development fallback
- * @param query The user's query
- * @param context Additional context provided
- * @returns A mock AI response
+ * Query the AI with a user message
+ * @param options Query options including the message and optional context
+ * @returns Promise with the AI response
  */
-function generateMockAIResponse(query: string, context: Record<string, any> = {}): AIQueryResponse {
-  console.log('Generating mock AI response for:', query, context);
-  
-  const mockResponses: Record<string, string> = {
-    "hello": "Hello! I'm your AI financial assistant. How can I help you with your financial planning today?",
-    "help": "I can help you with debt management, budgeting, financial planning, and analyzing your spending patterns. What would you like assistance with?",
-    "debt": "Based on your debts, I recommend focusing on high-interest accounts first. You might want to consider the debt snowball or avalanche method for faster payoff.",
-    "budget": "Creating a budget starts with tracking your income and expenses. Try allocating 50% to needs, 30% to wants, and 20% to savings and debt repayment.",
-    "default": `I'm currently running in offline mode, but I can still provide general guidance. For your query "${query}", I would typically analyze your financial situation and offer personalized advice. In the meantime, consider reviewing your budget and prioritizing high-interest debt payments.`
-  };
-  
-  // Check if the query contains any keywords we can respond to
-  const matchingKey = Object.keys(mockResponses).find(key => 
-    query.toLowerCase().includes(key.toLowerCase())
-  ) || "default";
-  
-  return {
-    success: true,
-    message: "AI response generated (mock)",
-    query,
-    result: mockResponses[matchingKey]
-  };
-}
-
-/**
- * Function to query the AI with a specific question or request
- * @param query The user's query or question
- * @param context Additional context to provide to the AI
- * @returns Promise with the AI's response
- */
-export async function queryAI(
-  query: string,
-  context: Record<string, any> = {},
-  userId?: string
-): Promise<AIQueryResponse> {
-  // For development, if local mock is enabled, don't even try to contact the worker
-  if (USE_LOCAL_MOCK) {
-    console.log('Using local mock AI response:', { query, context });
-    
-    // Simulate network delay for realistic testing
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return generateMockAIResponse(query, context);
-  }
-  
+export async function queryAI(options: AIQueryOptions): Promise<string> {
   try {
-    console.log(`Sending AI query to ${AI_API_BASE_URL}/query`, { query });
-    
-    // Add timeout to prevent hanging requests
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
-    
+    if (USE_LOCAL_MOCK) {
+      // In development with mock mode enabled, return a simulated response
+      console.log('Using mock AI response in development mode');
+      await new Promise(resolve => setTimeout(resolve, 1200)); // Simulate delay
+      return generateMockResponse(options.query);
+    }
+
+    // Make the actual API call to the worker
     const response = await fetch(`${AI_API_BASE_URL}/query`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        query,
-        context,
-        user_id: userId,
-      } as AIQueryRequest),
-      signal: controller.signal,
+      body: JSON.stringify(options),
     });
-    
-    // Clear the timeout since request completed
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
-      let errorMessage = `AI request failed: ${response.status}`;
-      try {
-        // Try to get more detailed error information from the response
-        const errorBody = await response.text();
-        console.error('AI error response:', errorBody);
-        
-        try {
-          // Check if the error is in JSON format
-          const errorJson = JSON.parse(errorBody);
-          if (errorJson.message || errorJson.error) {
-            errorMessage += ` - ${errorJson.message || errorJson.error}`;
-          }
-        } catch (parseError) {
-          // If not JSON, use the raw text
-          if (errorBody.trim()) {
-            errorMessage += ` - ${errorBody}`;
-          }
-        }
-      } catch (responseError) {
-        console.error('Failed to read error response:', responseError);
-      }
-      
-      // In development, fall back to mock response on error
-      if (isDev) {
-        console.warn('Falling back to mock response due to error:', errorMessage);
-        return generateMockAIResponse(query, context);
-      }
-      
-      throw new Error(errorMessage);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`);
     }
 
     const data = await response.json();
-    return data as AIQueryResponse;
+    return data.response;
   } catch (error) {
-    console.error('Error querying AI:', error);
-    
-    // In development mode, provide mock responses instead of failing
-    if (isDev) {
-      console.warn('Using mock AI response in development due to error:', error.message);
-      return generateMockAIResponse(query, context);
-    }
-    
-    // Provide more helpful error messages based on the type of error
-    if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-      toast.error('Could not connect to AI service. Please check your network connection.');
-    } else if (error instanceof DOMException && error.name === 'AbortError') {
-      toast.error('AI service request timed out. Please try again later.');
-    } else if (error instanceof Error && error.message.includes('Content Security Policy')) {
-      console.error('CSP Error:', error.message);
-      toast.error('Security policy prevented connection to AI service. Please contact support.');
-    } else {
-      toast.error('Failed to get AI response. Please try again later.');
-    }
-    
-    // Rethrow the error for handling by the caller
+    console.error('AI query failed:', error);
+    toast.error('Sorry, I had trouble answering that. Please try again.');
     throw error;
   }
+}
+
+/**
+ * Generate a simulated response for development testing
+ */
+function generateMockResponse(query: string): string {
+  // List of mock responses for development testing
+  const lowercaseQuery = query.toLowerCase();
+  
+  if (lowercaseQuery.includes('credit score')) {
+    return "To improve your credit score, focus on these key factors: payment history (35%), credit utilization (30%), credit history length (15%), credit mix (10%), and new credit inquiries (10%). Consistently paying bills on time and keeping your credit card balances below 30% of your limits will have the biggest impact.";
+  }
+  
+  if (lowercaseQuery.includes('consolidat')) {
+    return "Debt consolidation might be a good option if you can secure a lower interest rate than your current debts. It simplifies your payments into one monthly bill and could lower your overall interest costs. However, be cautious about fees, and make sure you address the spending habits that led to the debt in the first place.";
+  }
+  
+  if (lowercaseQuery.includes('budget') || lowercaseQuery.includes('spending')) {
+    return "A solid budget starts with tracking all your income and expenses. Try the 50/30/20 rule: 50% for needs, 30% for wants, and 20% for savings and debt repayment. With your current debt situation, you might want to temporarily adjust to 50/20/30 to accelerate your debt payoff.";
+  }
+  
+  if (lowercaseQuery.includes('credit card') || lowercaseQuery.includes('interest')) {
+    return "For credit card debt, I recommend either the avalanche method (paying highest interest first) or the snowball method (paying smallest balance first). Based on your profile, the avalanche method would save you more in interest, but the snowball method might provide psychological wins to keep you motivated.";
+  }
+  
+  // Default response if no keywords match
+  return "I'm your financial AI assistant. I can help with debt management strategies, budgeting advice, and financial planning based on your specific situation. Could you provide more details about your question or financial goals?";
 }
 
 /**

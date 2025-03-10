@@ -1,7 +1,9 @@
-import { Component, ErrorInfo, ReactNode } from "react";
-import { motion } from "framer-motion";
-import { AlertTriangle, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+'use client';
+
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 interface Props {
   children: ReactNode;
@@ -11,110 +13,95 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo?: ErrorInfo;
-  showThankYou: boolean;
+  errorInfo: ErrorInfo | null;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    showThankYou: false,
-    error: null,
-    errorInfo: undefined,
-  };
-
-  public static getDerivedStateFromError(error: Error): State {
-    // Don't show error UI for Supabase configuration errors
-    if (error && error.message && error.message.includes("Missing Supabase credentials")) {
-      return { 
-        hasError: false, 
-        error: null, 
-        showThankYou: false, 
-        errorInfo: undefined 
-      };
-    }
-    
-    // Update state so the next render will show the fallback UI.
-    return { 
-      hasError: true, 
-      error, 
-      showThankYou: false, 
-      errorInfo: undefined 
+/**
+ * Error Boundary component for Next.js
+ * 
+ * This component catches JavaScript errors in its child component tree,
+ * logs those errors, and displays a fallback UI instead of the component
+ * tree that crashed.
+ * 
+ * Note: Error boundaries do not catch errors in:
+ * - Event handlers
+ * - Asynchronous code (e.g. setTimeout or requestAnimationFrame callbacks)
+ * - Server-side rendering
+ * - Errors thrown in the error boundary itself
+ */
+class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null
     };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // For Supabase configuration errors, we don't want to show an error
-    if (error && error.message && error.message.includes("Missing Supabase credentials")) {
-      // Reset the error state to prevent showing the error UI
-      this.setState({ hasError: false, error: null });
-      return;
-    }
-
-    // Log error to console in development
-    if (process.env.NODE_ENV === "development") {
-      console.error("Uncaught error:", error, errorInfo);
-    }
-
-    // Track error for analytics
-    this.trackError(error, errorInfo);
-
-    // Set error info to state
-    this.setState({ errorInfo });
+  static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI
+    return { hasError: true, error, errorInfo: null };
   }
 
-  private trackError(error: Error, errorInfo: ErrorInfo) {
-    try {
-      // Store error locally for debugging
-      const errorLog = {
-        message: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        userAgent: navigator.userAgent,
-      };
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    // You can also log the error to an error reporting service
+    console.error('ErrorBoundary caught an error', error, errorInfo);
+    this.setState({
+      error,
+      errorInfo
+    });
 
-      const storedErrors = JSON.parse(
-        localStorage.getItem("errorLogs") || "[]"
-      );
-      storedErrors.push(errorLog);
-
-      // Keep only last 10 errors
-      if (storedErrors.length > 10) {
-        storedErrors.shift();
-      }
-
-      localStorage.setItem("errorLogs", JSON.stringify(storedErrors));
-    } catch (e) {
-      console.error("Failed to store error:", e);
-    }
+    // Here you could send the error to your analytics or error tracking service
+    // Example: sendToAnalytics(error, errorInfo);
   }
 
-  private handleReset = () => {
-    this.setState({ hasError: false, error: null });
-    window.location.reload();
+  resetErrorBoundary = (): void => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null
+    });
   };
 
-  public render() {
-    // Don't show error UI for Supabase configuration errors
-    if (this.state.error && this.state.error.message && 
-        this.state.error.message.includes("Missing Supabase credentials")) {
-      return this.props.children;
-    }
-
+  render(): ReactNode {
     if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <div className="max-w-md w-full p-6 text-center">
-            <h2 className="text-2xl font-bold text-foreground mb-4">Something went wrong</h2>
-            <p className="text-muted-foreground mb-6">
-              {this.state.error?.message || 'An unexpected error occurred'}
-            </p>
-            <Button onClick={this.handleReset} variant="default">
-              Try again
-            </Button>
+      // If a custom fallback is provided, use it
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
+      // Otherwise, use the default fallback UI
+      return (
+        <div className="flex min-h-[400px] flex-col items-center justify-center text-center p-6">
+          <div className="mb-4 rounded-full bg-muted p-3">
+            <AlertCircle className="h-8 w-8 text-destructive" />
           </div>
+          <h2 className="mb-2 text-2xl font-semibold">Something went wrong</h2>
+          <p className="mb-6 max-w-md text-muted-foreground">
+            We've encountered an unexpected error. Please try refreshing the page.
+          </p>
+          <div className="flex gap-4">
+            <Button
+              onClick={this.resetErrorBoundary}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
+            <Link href="/" passHref>
+              <Button variant="outline">Return Home</Button>
+            </Link>
+          </div>
+          {process.env.NODE_ENV === 'development' && this.state.error && (
+            <div className="mt-8 max-w-md overflow-auto rounded border bg-muted p-4 text-left">
+              <p className="mb-2 font-medium">Error details (development only):</p>
+              <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+                {this.state.error.toString()}
+                {this.state.errorInfo?.componentStack}
+              </pre>
+            </div>
+          )}
         </div>
       );
     }
@@ -122,3 +109,5 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+
+export default ErrorBoundary;

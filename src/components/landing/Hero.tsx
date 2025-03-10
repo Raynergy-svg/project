@@ -61,14 +61,14 @@ export function Hero({ onSelectPlan }: HeroProps) {
         >
           <h1
             id="hero-heading"
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white font-['Poppins'] leading-[1.1] tracking-tight"
+            className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground font-['Poppins'] leading-[1.1] tracking-tight"
           >
             <span className="inline-block bg-gradient-to-r from-[#88B04B] via-[#88B04B] to-[#6A8F3D] bg-clip-text text-transparent pb-2">
               Take Control of Your
               <br className="hidden sm:block" /> Financial Future
             </span>
           </h1>
-          <p className="text-lg sm:text-xl text-white/90 max-w-2xl mx-auto font-['Inter'] leading-relaxed px-4">
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto font-['Inter'] leading-relaxed px-4">
             Join 15,000+ users who reduced debt by an average of 40% in their
             first year. Start your risk-free trial today with AI-powered
             financial optimization.

@@ -1,316 +1,484 @@
-import { motion } from 'framer-motion';
-import { Search, Tag, Clock, User, ChevronRight, Calendar, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useRef } from "react";
+import { GetStaticProps } from "next";
+import Head from "next/head";
+import Link from "next/link";
+import Image from "next/image";
+import { motion, useInView } from "framer-motion";
+import { Layout } from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowRight, Search, Calendar, Clock, ChevronRight } from "lucide-react";
 
-export default function Blog() {
-  const [searchQuery, setSearchQuery] = useState('');
+// Types for blog data
+interface BlogAuthor {
+  id: string;
+  name: string;
+  role: string;
+  avatar: string;
+}
 
-  const categories = [
-    "Debt Management",
-    "Financial Freedom",
-    "Credit Score Improvement",
-    "AI & Finance",
-    "Success Stories",
-    "Debt Strategies"
-  ];
+interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  date: string;
+  readTime: string;
+  category: string;
+  image: string;
+  author: BlogAuthor;
+  featured?: boolean;
+}
 
-  const featuredPosts = [
-    {
-      title: "Snowball vs. Avalanche: How AI Optimizes Both Methods",
-      excerpt: "Learn how our AI combines and enhances traditional debt reduction strategies to provide personalized, efficient solutions.",
-      category: "Debt Strategies",
-      author: "Michael Ross",
-      readTime: "6 min read",
-      date: "April 12, 2023",
-      image: "https://images.unsplash.com/photo-1633158829585-23ba8f7c8caf?auto=format&fit=crop&q=80&w=800"
-    },
-    {
-      title: "Real Results: How Sarah Eliminated $42,000 in Debt",
-      excerpt: "A marketing professional shares her journey of eliminating credit card and student loan debt in just 27 months using Smart Debt Flow.",
-      category: "Success Stories",
-      author: "Emily Johnson",
-      readTime: "8 min read",
-      date: "April 8, 2023",
-      image: "https://images.unsplash.com/photo-1589666564459-93cdd3ab856a?auto=format&fit=crop&q=80&w=800"
-    },
-    {
-      title: "The Psychology of Debt: Breaking Free from Emotional Spending",
-      excerpt: "Understanding the psychological factors that contribute to debt accumulation and how to develop healthier financial habits.",
-      category: "Financial Freedom",
-      author: "Dr. Michael Ross",
-      readTime: "7 min read",
-      date: "April 5, 2023",
-      image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80&w=800"
-    }
-  ];
-
-  const recentPosts = [
-    {
-      title: "How to Boost Your Credit Score While Paying Off Debt",
-      category: "Credit Score Improvement",
-      date: "April 15, 2023"
-    },
-    {
-      title: "The Future of AI in Personal Debt Management",
-      category: "AI & Finance",
-      date: "April 10, 2023"
-    },
-    {
-      title: "5 Common Mistakes When Paying Off Multiple Debts",
-      category: "Debt Management",
-      date: "April 7, 2023"
-    },
-    {
-      title: "Building an Emergency Fund While Tackling Debt",
-      category: "Financial Freedom",
-      date: "April 2, 2023"
-    }
-  ];
-
-  const popularTopics = [
-    {
-      title: "Debt Freedom Planning",
-      count: 24
-    },
-    {
-      title: "Credit Card Debt",
-      count: 18
-    },
-    {
-      title: "Student Loans",
-      count: 16
-    },
-    {
-      title: "Emergency Savings",
-      count: 12
-    },
-    {
-      title: "Financial Mindset",
-      count: 10
-    }
-  ];
+// Blog post component
+const BlogPostCard = ({ post }: { post: BlogPost }) => {
+  const cardRef = useRef(null);
+  const isInView = useInView(cardRef, { once: true, amount: 0.2 });
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white py-20 relative">
-      <div className="container mx-auto px-4 relative">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-4xl mx-auto mb-16"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-              Financial Freedom Insights
-            </span>
-          </h1>
-          <p className="text-xl text-gray-300">
-            Expert advice, success stories, and AI-powered strategies for your debt-free journey
+    <motion.div
+      ref={cardRef}
+      initial={{ opacity: 0, y: 20 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <Link href={`/blog/${post.slug}`} className="group block h-full">
+        <Card className="h-full overflow-hidden hover:shadow-md transition-all border-border hover:border-primary/20">
+          <CardContent className="p-0">
+            <div className="relative aspect-[16/9] overflow-hidden">
+              <Image
+                src={post.image}
+                alt={post.title}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              <div className="absolute top-4 left-4">
+                <Badge variant="secondary" className="bg-white/90 text-foreground hover:bg-white">
+                  {post.category}
+                </Badge>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="flex items-center text-sm text-muted-foreground mb-3">
+                <Calendar className="h-4 w-4 mr-1" />
+                <span className="mr-4">{post.date}</span>
+                <Clock className="h-4 w-4 mr-1" />
+                <span>{post.readTime} read</span>
+              </div>
+              <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
+                {post.title}
+              </h3>
+              <p className="text-muted-foreground mb-4 text-sm">{post.excerpt}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="relative w-8 h-8 rounded-full overflow-hidden mr-3">
+                    <Image
+                      src={post.author.avatar}
+                      alt={post.author.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium">{post.author.name}</span>
+                  </div>
+                </div>
+                <div className="text-primary text-sm font-medium flex items-center">
+                  <span>Read more</span>
+                  <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    </motion.div>
+  );
+};
+
+// Featured post component
+const FeaturedPost = ({ post }: { post: BlogPost }) => {
+  const cardRef = useRef(null);
+  const isInView = useInView(cardRef, { once: true, amount: 0.2 });
+
+  return (
+    <motion.div
+      ref={cardRef}
+      initial={{ opacity: 0, y: 20 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative overflow-hidden rounded-xl bg-gradient-to-b from-muted/80 to-muted"
+    >
+      <div className="relative flex flex-col md:flex-row">
+        <div className="md:w-1/2 order-2 md:order-1 p-8 md:p-10">
+          <Badge className="mb-4">{post.category}</Badge>
+          <h2 className="text-2xl md:text-3xl font-bold mb-3">
+            {post.title}
+          </h2>
+          <p className="text-muted-foreground mb-4 md:mb-6">
+            {post.excerpt}
           </p>
-        </motion.div>
-
-        {/* Search and Filter Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
-        >
-          <div className="grid md:grid-cols-5 gap-8">
-            <div className="md:col-span-3">
-              <div className="relative mb-6">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search articles..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-400 focus:outline-none focus:border-[#88B04B]/50"
-                />
-              </div>
+          <div className="flex items-center text-sm text-muted-foreground mb-6">
+            <Calendar className="h-4 w-4 mr-1" />
+            <span className="mr-4">{post.date}</span>
+            <Clock className="h-4 w-4 mr-1" />
+            <span>{post.readTime} read</span>
+          </div>
+          <div className="flex items-center mb-6">
+            <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3">
+              <Image
+                src={post.author.avatar}
+                alt={post.author.name}
+                fill
+                className="object-cover"
+              />
             </div>
-            <div className="md:col-span-2">
-              <div className="flex flex-wrap gap-2 justify-start">
-                {categories.slice(0, 3).map((category) => (
-                  <Button
-                    key={category}
-                    variant="outline"
-                    size="sm"
-                    className="border-white/10 hover:border-[#88B04B]/50 text-white hover:bg-[#88B04B]/10"
-                  >
-                    <Tag className="w-3 h-3 mr-1" />
-                    {category}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-white/10 hover:border-[#88B04B]/50 text-white hover:bg-[#88B04B]/10"
-                >
-                  <span>+{categories.length - 3} more</span>
-                </Button>
-              </div>
+            <div>
+              <div className="font-medium">{post.author.name}</div>
+              <div className="text-sm text-muted-foreground">{post.author.role}</div>
             </div>
           </div>
-        </motion.div>
-
-        {/* Main Content */}
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Featured Posts */}
-          <div className="md:col-span-2">
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-16"
-            >
-              <h2 className="text-2xl font-bold mb-8 flex items-center">
-                <span className="bg-[#88B04B]/20 text-[#88B04B] text-sm font-medium px-3 py-1 rounded-full mr-3">Featured</span>
-                Latest Articles
-              </h2>
-              <div className="space-y-8">
-                {featuredPosts.map((post, index) => (
-                  <motion.article
-                    key={post.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white/5 rounded-xl border border-white/10 overflow-hidden hover:border-[#88B04B]/30 transition-colors"
-                  >
-                    <div className="md:flex">
-                      <div className="md:w-2/5">
-                        <img
-                          src={post.image}
-                          alt={post.title}
-                          className="w-full h-60 md:h-full object-cover"
-                        />
-                      </div>
-                      <div className="p-6 md:w-3/5">
-                        <div className="flex items-center gap-3 mb-3">
-                          <span className="text-xs bg-[#88B04B]/20 text-[#88B04B] px-2 py-1 rounded-full">{post.category}</span>
-                          <span className="text-xs text-gray-400 flex items-center">
-                            <Calendar className="w-3 h-3 mr-1" />
-                            {post.date}
-                          </span>
-                        </div>
-                        <h3 className="text-xl font-bold mb-3 hover:text-[#88B04B] transition-colors">{post.title}</h3>
-                        <p className="text-gray-300 mb-4">{post.excerpt}</p>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center text-sm text-gray-400">
-                            <User className="w-4 h-4 mr-2" />
-                            {post.author}
-                          </div>
-                          <div className="flex items-center text-sm text-gray-400">
-                            <Clock className="w-4 h-4 mr-2" />
-                            {post.readTime}
-                          </div>
-                        </div>
-                        <Button
-                          variant="link"
-                          className="text-[#88B04B] hover:text-[#7a9d43] px-0 mt-4 flex items-center gap-2"
-                        >
-                          Read Article
-                          <ArrowRight className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </motion.article>
-                ))}
-              </div>
-              
-              <div className="mt-8 text-center">
-                <Button
-                  variant="outline"
-                  className="border-white/10 hover:border-[#88B04B]/50 text-white hover:bg-[#88B04B]/10"
-                >
-                  View All Articles
-                </Button>
-              </div>
-            </motion.section>
-          </div>
-          
-          {/* Sidebar */}
-          <div className="md:col-span-1">
-            {/* Recent Posts */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-8"
-            >
-              <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-                <h2 className="text-xl font-bold mb-6 pb-4 border-b border-white/10">Recent Posts</h2>
-                <div className="space-y-4">
-                  {recentPosts.map((post) => (
-                    <div
-                      key={post.title}
-                      className="group cursor-pointer"
-                    >
-                      <span className="text-xs bg-[#88B04B]/20 text-[#88B04B] px-2 py-1 rounded-full mb-2 inline-block">{post.category}</span>
-                      <h3 className="font-medium group-hover:text-[#88B04B] transition-colors line-clamp-2 mb-1">
-                        {post.title}
-                      </h3>
-                      <span className="text-xs text-gray-400 flex items-center">
-                        <Calendar className="w-3 h-3 mr-1" />
-                        {post.date}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.section>
-            
-            {/* Popular Topics */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="bg-white/5 rounded-xl border border-white/10 p-6">
-                <h2 className="text-xl font-bold mb-6 pb-4 border-b border-white/10">Popular Topics</h2>
-                <div className="space-y-3">
-                  {popularTopics.map((topic) => (
-                    <div
-                      key={topic.title}
-                      className="flex items-center justify-between group cursor-pointer"
-                    >
-                      <span className="group-hover:text-[#88B04B] transition-colors">{topic.title}</span>
-                      <span className="bg-white/10 text-xs px-2 py-1 rounded-full">{topic.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.section>
-            
-            {/* Subscribe Box */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-8"
-            >
-              <div className="bg-gradient-to-r from-[#88B04B]/20 to-[#6A9A2D]/20 rounded-xl border border-[#88B04B]/30 p-6">
-                <h2 className="text-xl font-bold mb-4">Get Debt-Free Insights</h2>
-                <p className="text-sm text-gray-300 mb-4">
-                  Receive our latest articles, tools, and success stories directly to your inbox
-                </p>
-                <div className="space-y-3">
-                  <input
-                    type="email"
-                    placeholder="Your email address"
-                    className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-[#88B04B]/50"
-                  />
-                  <Button
-                    className="w-full bg-[#88B04B] hover:bg-[#7a9d43] text-white"
-                  >
-                    Subscribe
-                  </Button>
-                </div>
-                <p className="text-xs text-gray-400 mt-3">
-                  We respect your privacy. Unsubscribe anytime.
-                </p>
-              </div>
-            </motion.section>
-          </div>
+          <Link href={`/blog/${post.slug}`}>
+            <Button>
+              Read Full Article
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        </div>
+        <div className="md:w-1/2 h-64 md:h-auto order-1 md:order-2 relative">
+          <Image
+            src={post.image}
+            alt={post.title}
+            fill
+            className="object-cover"
+          />
         </div>
       </div>
-    </div>
+    </motion.div>
   );
+};
+
+export default function BlogPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const heroRef = useRef(null);
+  const isHeroInView = useInView(heroRef, { once: true });
+
+  // Sample categories
+  const categories = [
+    { id: "all", name: "All Posts" },
+    { id: "debt-strategies", name: "Debt Strategies" },
+    { id: "financial-tips", name: "Financial Tips" },
+    { id: "success-stories", name: "Success Stories" },
+    { id: "technology", name: "Technology" }
+  ];
+
+  // Sample blog posts
+  const posts: BlogPost[] = [
+    {
+      id: "1",
+      slug: "debt-snowball-vs-avalanche",
+      title: "Debt Snowball vs. Avalanche: Which Strategy is Right for You?",
+      excerpt: "Compare two popular debt reduction strategies and learn which one might be the best fit for your financial situation and personality.",
+      date: "June 12, 2023",
+      readTime: "8 min",
+      category: "debt-strategies",
+      image: "/assets/blog/debt-snowball-vs-avalanche.jpg",
+      featured: true,
+      author: {
+        id: "a1",
+        name: "Sarah Johnson",
+        role: "Financial Coach",
+        avatar: "/assets/team/sarah.jpg"
+      }
+    },
+    {
+      id: "2",
+      slug: "psychology-of-debt",
+      title: "The Psychology of Debt: Understanding Your Relationship with Money",
+      excerpt: "Explore the emotional and psychological factors that influence our financial decisions and debt management approaches.",
+      date: "May 28, 2023",
+      readTime: "10 min",
+      category: "financial-tips",
+      image: "/assets/blog/psychology-of-debt.jpg",
+      author: {
+        id: "a2",
+        name: "Michael Chen",
+        role: "Behavioral Economist",
+        avatar: "/assets/team/michael.jpg"
+      }
+    },
+    {
+      id: "3",
+      slug: "from-50k-to-debt-free",
+      title: "From $50K in Debt to Financial Freedom: Lisa's Journey",
+      excerpt: "Read the inspiring story of how one of our users eliminated $50,000 in debt in just 3 years using Smart Debt Flow.",
+      date: "May 15, 2023",
+      readTime: "6 min",
+      category: "success-stories",
+      image: "/assets/blog/debt-free-journey.jpg",
+      author: {
+        id: "a3",
+        name: "Aisha Patel",
+        role: "Content Director",
+        avatar: "/assets/team/aisha.jpg"
+      }
+    },
+    {
+      id: "4",
+      slug: "ai-revolution-in-personal-finance",
+      title: "The AI Revolution in Personal Finance Management",
+      excerpt: "Discover how artificial intelligence is transforming debt management and financial planning tools for everyday users.",
+      date: "April 30, 2023",
+      readTime: "7 min",
+      category: "technology",
+      image: "/assets/blog/ai-finance.jpg",
+      author: {
+        id: "a4",
+        name: "James Wilson",
+        role: "Tech Analyst",
+        avatar: "/assets/team/james.jpg"
+      }
+    },
+    {
+      id: "5",
+      slug: "hidden-costs-of-minimum-payments",
+      title: "The Hidden Cost of Making Only Minimum Payments",
+      excerpt: "Learn why minimum payments on credit cards can trap you in debt for decades, and strategies to break free from this cycle.",
+      date: "April 18, 2023",
+      readTime: "5 min",
+      category: "debt-strategies",
+      image: "/assets/blog/minimum-payments.jpg",
+      author: {
+        id: "a1",
+        name: "Sarah Johnson",
+        role: "Financial Coach",
+        avatar: "/assets/team/sarah.jpg"
+      }
+    },
+    {
+      id: "6",
+      slug: "building-emergency-fund",
+      title: "Building an Emergency Fund While Paying Off Debt",
+      excerpt: "Discover the balance between saving for emergencies and aggressively paying down your debt with practical strategies.",
+      date: "April 5, 2023",
+      readTime: "9 min",
+      category: "financial-tips",
+      image: "/assets/blog/emergency-fund.jpg",
+      author: {
+        id: "a2",
+        name: "Michael Chen",
+        role: "Behavioral Economist",
+        avatar: "/assets/team/michael.jpg"
+      }
+    },
+    {
+      id: "7",
+      slug: "debt-consolidation-pros-cons",
+      title: "Debt Consolidation: Pros, Cons, and When to Consider It",
+      excerpt: "A comprehensive guide to understanding when debt consolidation makes sense and when it might do more harm than good.",
+      date: "March 22, 2023",
+      readTime: "11 min",
+      category: "debt-strategies",
+      image: "/assets/blog/debt-consolidation.jpg",
+      author: {
+        id: "a3",
+        name: "Aisha Patel",
+        role: "Content Director",
+        avatar: "/assets/team/aisha.jpg"
+      }
+    },
+    {
+      id: "8",
+      slug: "interview-financial-expert",
+      title: "Expert Interview: What Most Financial Advisors Get Wrong About Debt",
+      excerpt: "We interview a leading financial expert who shares insights on common misconceptions about debt management.",
+      date: "March 10, 2023",
+      readTime: "12 min",
+      category: "financial-tips",
+      image: "/assets/blog/financial-expert.jpg",
+      author: {
+        id: "a4",
+        name: "James Wilson",
+        role: "Tech Analyst",
+        avatar: "/assets/team/james.jpg"
+      }
+    }
+  ];
+
+  // Featured post
+  const featuredPost = posts.find(post => post.featured);
+
+  // Filter posts based on search query and selected category
+  const filteredPosts = posts.filter(post => {
+    const matchesSearch = searchQuery === "" ||
+      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesCategory = selectedCategory === "all" || post.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory && !post.featured;
+  });
+
+  return (
+    <Layout
+      title="Blog - Smart Debt Flow"
+      description="Read articles on debt management, financial tips, success stories, and more from the Smart Debt Flow team."
+    >
+      <Head>
+        <meta property="og:title" content="Blog - Smart Debt Flow" />
+        <meta
+          property="og:description"
+          content="Insights and guides for managing your debt and improving your financial well-being."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://smartdebtflow.com/blog" />
+      </Head>
+
+      {/* Hero Section */}
+      <section
+        ref={heroRef}
+        className="py-16 md:py-24 bg-muted/30"
+      >
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.h1
+              initial={{ opacity: 0, y: -20 }}
+              animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="text-4xl md:text-5xl font-bold mb-6"
+            >
+              Smart Debt Flow Blog
+            </motion.h1>
+            
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-xl text-muted-foreground mb-8"
+            >
+              Insights, guides, and success stories to help you on your path to financial freedom.
+            </motion.p>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="relative max-w-lg mx-auto"
+            >
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search articles..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Post */}
+      {featuredPost && !searchQuery && selectedCategory === "all" && (
+        <section className="py-12">
+          <div className="container mx-auto px-4">
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold">Featured Article</h2>
+            </div>
+            <FeaturedPost post={featuredPost} />
+          </div>
+        </section>
+      )}
+
+      {/* Blog Posts */}
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <div className="mb-8">
+            <Tabs
+              defaultValue="all"
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+              className="w-full"
+            >
+              <TabsList className="mb-8 flex flex-wrap justify-start gap-2">
+                {categories.map((category) => (
+                  <TabsTrigger
+                    key={category.id}
+                    value={category.id}
+                    className="rounded-full"
+                  >
+                    {category.name}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              {categories.map((category) => (
+                <TabsContent key={category.id} value={category.id} className="mt-0">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredPosts.map((post) => (
+                      <BlogPostCard key={post.id} post={post} />
+                    ))}
+                  </div>
+
+                  {filteredPosts.length === 0 && (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground mb-4">
+                        No articles found matching your criteria
+                      </p>
+                      <Button onClick={() => {
+                        setSearchQuery("");
+                        setSelectedCategory("all");
+                      }}>
+                        Reset Filters
+                      </Button>
+                    </div>
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section className="py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-2xl md:text-3xl font-bold mb-4">
+              Subscribe to Our Newsletter
+            </h2>
+            <p className="text-muted-foreground mb-8">
+              Get the latest debt management strategies, financial tips, and exclusive content delivered to your inbox.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
+              <Input
+                type="email"
+                placeholder="Your email address"
+                className="sm:flex-1"
+              />
+              <Button>
+                Subscribe
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              By subscribing, you agree to our <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>. You can unsubscribe at any time.
+            </p>
+          </div>
+        </div>
+      </section>
+    </Layout>
+  );
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+  return {
+    props: {},
+    // Revalidate once per day
+    revalidate: 86400,
+  };
 } 

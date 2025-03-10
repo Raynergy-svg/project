@@ -56,26 +56,24 @@ export function isFeatureEnabled(featureKey: keyof typeof FEATURE_FLAGS): boolea
  * These functions help determine the current environment and handle environment-specific logic
  */
 
+// Add a check to detect which environment system we're using
+const isNextJs = typeof process !== 'undefined' && process.env.NEXT_PUBLIC_RUNTIME === 'next';
+
 /**
  * Checks if the application is running in development mode
  * This function will always return false in production builds due to tree-shaking
  */
 export function isDevelopmentMode(): boolean {
-  // This condition will be evaluated at build time and completely removed in production builds
-  if (import.meta.env.PROD) {
-    return false;
-  }
-  
-  // Additional runtime checks to ensure we're truly in development
-  return import.meta.env.DEV && import.meta.env.MODE !== 'production';
+  // Use the already defined IS_DEV constant for consistency
+  return IS_DEV;
 }
 
 /**
  * Checks if the application is running in production mode
  */
 export function isProductionMode(): boolean {
-  return !isDevelopmentMode();
+  return !IS_DEV;
 }
 
 // For convenience, provide pre-evaluated constants
-export const IS_PROD = isProductionMode(); 
+export const IS_PROD = !IS_DEV; 

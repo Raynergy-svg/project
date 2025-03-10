@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useRouter } from "next/router";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,11 +23,10 @@ export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFor
   const [emailError, setEmailError] = useState("");
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
   const { toast } = useToast();
 
-  const from = (location.state as any)?.from?.pathname || "/dashboard";
+  const from = router.query.from?.toString() || "/dashboard";
 
   const turnstileDisabled = isTurnstileDisabled();
 
@@ -93,7 +93,7 @@ export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFor
       if (onSuccess) {
         onSuccess();
       } else {
-        navigate(redirectPath);
+        router.push(redirectPath);
       }
     } catch (error) {
       console.error('Error during sign in:', error);
@@ -173,7 +173,7 @@ export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFor
       
       <div className="auth-links">
         <Link 
-          to="/forgot-password" 
+          href="/forgot-password" 
           className="flex items-center gap-1 text-white hover:text-gray-300 hover:underline"
         >
           <KeyIcon size={16} />
@@ -181,7 +181,7 @@ export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFor
         </Link>
         <span className="divider">•</span>
         <Link 
-          to="/signup" 
+          href="/signup" 
           className="flex items-center gap-1 text-white hover:text-gray-300 hover:underline"
         >
           <UserPlus size={16} />

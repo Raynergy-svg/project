@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useRouter } from "next/router";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -24,11 +25,10 @@ export function ResetPassword() {
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const router = useRouter();
   const { toast } = useToast();
 
-  const token = searchParams.get("token");
+  const token = router.query.token?.toString() || "";
 
   // Validate token on component mount
   useEffect(() => {
@@ -69,7 +69,11 @@ export function ResetPassword() {
       }
     }
 
-    validateToken();
+    if (token) {
+      validateToken();
+    } else {
+      setIsValidating(false);
+    }
   }, [token, toast]);
 
   // Validate password
@@ -227,7 +231,7 @@ export function ResetPassword() {
             </Alert>
 
             <div className="flex justify-center">
-              <Link to="/forgot-password">
+              <Link href="/forgot-password">
                 <Button className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white">
                   Request a new reset link
                 </Button>
@@ -270,7 +274,7 @@ export function ResetPassword() {
             </Alert>
 
             <div className="flex justify-center mt-4">
-              <Link to="/login">
+              <Link href="/login">
                 <Button className="bg-[#88B04B] hover:bg-[#88B04B]/90 text-white min-w-32">
                   Go to Login
                 </Button>

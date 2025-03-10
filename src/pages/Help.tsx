@@ -1,479 +1,561 @@
-import { motion } from 'framer-motion';
+import { useState, useRef } from "react";
+import { GetStaticProps } from "next";
+import Head from "next/head";
+import Link from "next/link";
+import Image from "next/image";
+import { motion, useInView } from "framer-motion";
 import { 
   Search, 
-  HelpCircle, 
+  ChevronDown, 
+  ChevronRight, 
   MessageCircle, 
   Mail, 
-  Phone, 
   FileText, 
-  Book, 
-  CreditCard, 
-  Settings, 
-  RefreshCw, 
-  PieChart, 
-  Zap, 
-  Lock, 
-  UserCog, 
-  LifeBuoy
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+  Video,
+  ArrowRight
+} from "lucide-react";
+import { Layout } from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger 
+} from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 
-export default function Help() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
+// Define types for our components
+interface FAQItem {
+  question: string;
+  answer: string;
+  category: string;
+}
 
-  const categories = [
-    {
-      id: 'getting-started',
-      title: "Getting Started",
-      icon: Book,
-      description: "Learn the basics of Smart Debt Flow",
-      articles: [
-        {
-          id: "account-setup",
-          title: "Setting up your account",
-          description: "Learn how to create and configure your Smart Debt Flow account",
-          category: "getting-started",
-          views: 3452
-        },
-        {
-          id: "adding-debts",
-          title: "Adding your debts",
-          description: "How to add and manage different types of debts in the system",
-          category: "getting-started",
-          views: 2891
-        },
-        {
-          id: "dashboard-overview",
-          title: "Understanding your dashboard",
-          description: "A guide to all the metrics and insights on your debt management dashboard",
-          category: "getting-started",
-          views: 2104
-        },
-        {
-          id: "connection-guide",
-          title: "Connecting financial accounts",
-          description: "Securely link your bank and credit accounts for automated tracking",
-          category: "getting-started",
-          views: 1876
-        }
-      ]
-    },
-    {
-      id: 'debt-strategies',
-      title: "Debt Strategies",
-      icon: Zap,
-      description: "Optimize your debt repayment approach",
-      articles: [
-        {
-          id: "snowball-method",
-          title: "Debt Snowball method",
-          description: "How the snowball method works and when to use it",
-          category: "debt-strategies",
-          views: 4210
-        },
-        {
-          id: "avalanche-method",
-          title: "Debt Avalanche method",
-          description: "Using the avalanche method to minimize interest payments",
-          category: "debt-strategies",
-          views: 3987
-        },
-        {
-          id: "ai-optimization",
-          title: "AI-optimized payment plans",
-          description: "How our AI customizes strategies for your specific situation",
-          category: "debt-strategies",
-          views: 3542
-        },
-        {
-          id: "debt-consolidation",
-          title: "Debt consolidation analysis",
-          description: "When and how to consider debt consolidation options",
-          category: "debt-strategies",
-          views: 3201
-        }
-      ]
-    },
-    {
-      id: 'account-billing',
-      title: "Account & Billing",
-      icon: CreditCard,
-      description: "Manage your subscription and payments",
-      articles: [
-        {
-          id: "subscription-plans",
-          title: "Subscription plans comparison",
-          description: "Detailed breakdown of Basic and Pro plan features",
-          category: "account-billing",
-          views: 1876
-        },
-        {
-          id: "payment-methods",
-          title: "Managing payment methods",
-          description: "How to add, remove, or update your payment information",
-          category: "account-billing",
-          views: 1543
-        },
-        {
-          id: "billing-history",
-          title: "Accessing billing history",
-          description: "How to view and download past invoices and receipts",
-          category: "account-billing",
-          views: 1321
-        },
-        {
-          id: "cancellation",
-          title: "Cancellation and refunds",
-          description: "Our cancellation policy and how to request a refund",
-          category: "account-billing",
-          views: 2109
-        }
-      ]
-    },
-    {
-      id: 'account-security',
-      title: "Privacy & Security",
-      icon: Lock,
-      description: "Protect your financial information",
-      articles: [
-        {
-          id: "data-protection",
-          title: "How we protect your data",
-          description: "Our encryption, storage, and security practices",
-          category: "account-security",
-          views: 2645
-        },
-        {
-          id: "account-security",
-          title: "Account security best practices",
-          description: "Tips to keep your Smart Debt Flow account secure",
-          category: "account-security",
-          views: 1987
-        },
-        {
-          id: "third-party-access",
-          title: "Third-party connections",
-          description: "Managing access for linked financial accounts",
-          category: "account-security",
-          views: 1562
-        },
-        {
-          id: "privacy-policy",
-          title: "Privacy policy explained",
-          description: "Plain-language explanation of our privacy policy",
-          category: "account-security",
-          views: 1342
-        }
-      ]
-    },
-    {
-      id: 'troubleshooting',
-      title: "Troubleshooting",
-      icon: LifeBuoy,
-      description: "Solve common problems",
-      articles: [
-        {
-          id: "connection-issues",
-          title: "Fixing account connection issues",
-          description: "Solutions for problems with linked financial accounts",
-          category: "troubleshooting",
-          views: 3421
-        },
-        {
-          id: "payment-tracking",
-          title: "Payment tracking problems",
-          description: "Troubleshooting when payments aren't properly recorded",
-          category: "troubleshooting",
-          views: 2876
-        },
-        {
-          id: "login-issues",
-          title: "Login and access issues",
-          description: "Solutions for account access problems",
-          category: "troubleshooting",
-          views: 2543
-        },
-        {
-          id: "data-sync",
-          title: "Data synchronization errors",
-          description: "Fixing issues with data updates between accounts",
-          category: "troubleshooting",
-          views: 2187
-        }
-      ]
-    }
-  ];
+interface HelpCategory {
+  id: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+}
 
-  const faqs = [
+interface HelpArticle {
+  id: string;
+  title: string;
+  excerpt: string;
+  category: string;
+  url: string;
+}
+
+export default function HelpPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("help-center");
+  const heroRef = useRef(null);
+  const isHeroInView = useInView(heroRef, { once: true });
+
+  // Sample FAQ data
+  const faqs: FAQItem[] = [
     {
-      question: "How does Smart Debt Flow use AI to eliminate debt?",
-      answer: "Our AI analyzes your complete financial picture including income, expenses, and all debts. It creates a customized debt elimination strategy by calculating the most efficient payment allocation, identifying opportunities for interest rate reduction, and adapting to your ongoing financial behavior. The system continuously optimizes your strategy as your situation changes, helping you become debt-free faster than traditional methods."
+      question: "How does Smart Debt Flow calculate payment recommendations?",
+      answer: "Smart Debt Flow uses a combination of industry-standard debt reduction strategies (like the debt snowball and debt avalanche methods) along with AI optimization to recommend payment plans. We consider factors such as interest rates, balances, your budget, and behavioral psychology to create a plan that's both mathematically sound and motivating.",
+      category: "features"
     },
     {
-      question: "Is my financial information secure?",
-      answer: "Absolutely. We use bank-level 256-bit encryption to protect your data and never store complete account numbers. Our platform is SOC 2 Type II certified, uses AES-256-GCM encryption for all sensitive data, and implements strict access controls. We maintain compliance with major financial security standards and conduct regular security audits."
-    },
-    {
-      question: "What's the difference between the Basic and Pro plans?",
-      answer: "The Basic plan ($20/mo after 7-day free trial) includes AI debt analysis, snowball/avalanche strategies, payment tracking, basic spending insights, payment reminders, and email support. The Pro plan ($50/mo) adds advanced AI financial analysis, all debt strategies, payment optimization, deep financial insights, budgeting recommendations, priority support, and unlimited AI assistance."
-    },
-    {
-      question: "Can I cancel my subscription anytime?",
-      answer: "Yes, you can cancel your subscription at any time from your account settings. After cancellation, you'll continue to have access until the end of your current billing period. We don't charge any cancellation fees, and we make the process straightforward."
+      question: "Is my financial data secure?",
+      answer: "Yes, your security is our priority. We use bank-level 256-bit encryption for all data transmission and storage. We never store your bank login credentials - we use secure token-based access through our trusted financial partners. Additionally, we employ multiple layers of security including two-factor authentication and regular security audits.",
+      category: "security"
     },
     {
       question: "How do I connect my financial accounts?",
-      answer: "Our platform uses secure API connections to link with financial institutions. Go to the 'Accounts' section in your dashboard, click 'Add Account', and follow the prompts to connect accounts. We support most major banks and credit card providers through our secure integration partners, ensuring your credentials are never stored on our servers."
+      answer: "To connect your accounts, go to the Dashboard and click on 'Add Account'. We partner with Plaid, a secure financial connection service used by major banks and financial apps, which allows you to safely connect your accounts without sharing credentials with us directly.",
+      category: "getting-started"
+    },
+    {
+      question: "Can I manually add accounts or debts?",
+      answer: "Yes, you can manually add any financial account or debt. From your Dashboard, click on 'Add Account' and select the 'Manual Entry' option. This is useful for accounts that can't be connected automatically or for keeping track of informal debts.",
+      category: "features"
+    },
+    {
+      question: "How do I cancel my subscription?",
+      answer: "You can cancel your subscription at any time from your Account Settings page. Navigate to Settings > Billing and click 'Cancel Subscription'. Your access will continue until the end of your current billing period. We don't offer refunds for partial months.",
+      category: "billing"
+    },
+    {
+      question: "What happens to my data if I cancel my subscription?",
+      answer: "If you cancel your subscription, your data remains secure in our system for 30 days, allowing you to reactivate if you change your mind. After 30 days, you can request data deletion from our support team, or your data will be automatically anonymized according to our data retention policy.",
+      category: "security"
+    },
+    {
+      question: "Is there a mobile app available?",
+      answer: "Yes, we offer mobile apps for both iOS and Android. You can download them from the App Store or Google Play Store. The mobile apps provide all the core functionality of the web application, allowing you to track your progress and manage your debt on the go.",
+      category: "features"
+    },
+    {
+      question: "How often is my account information updated?",
+      answer: "For connected accounts, information is typically updated daily. However, some financial institutions may have different update frequencies. For the most current information, you can manually trigger an update by clicking the refresh button on your Dashboard.",
+      category: "features"
     }
   ];
 
-  // Get all articles from all categories
-  const allArticles = categories.flatMap(category => 
-    category.articles.map(article => ({
-      ...article,
-      categoryTitle: category.title,
-      categoryIcon: category.icon,
-      categoryId: category.id
-    }))
-  );
+  // Filter FAQs based on search query
+  const filteredFAQs = searchQuery
+    ? faqs.filter(
+        faq =>
+          faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : faqs;
 
-  // Filter articles based on active category and search query
-  const filteredArticles = allArticles.filter(article => {
-    const matchesCategory = activeCategory === 'all' || article.categoryId === activeCategory;
-    const matchesSearch = !searchQuery || 
-      article.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      article.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    return matchesCategory && matchesSearch;
-  });
+  // Help categories
+  const helpCategories: HelpCategory[] = [
+    {
+      id: "getting-started",
+      title: "Getting Started",
+      description: "Learn the basics and set up your account",
+      icon: <ChevronRight className="h-5 w-5" />
+    },
+    {
+      id: "features",
+      title: "Features & Tools",
+      description: "Explore all available features and how to use them",
+      icon: <ChevronRight className="h-5 w-5" />
+    },
+    {
+      id: "billing",
+      title: "Billing & Subscription",
+      description: "Manage your plan and payment information",
+      icon: <ChevronRight className="h-5 w-5" />
+    },
+    {
+      id: "security",
+      title: "Security & Privacy",
+      description: "Learn how we protect your data",
+      icon: <ChevronRight className="h-5 w-5" />
+    }
+  ];
 
-  // Get popular articles
-  const popularArticles = [...allArticles]
-    .sort((a, b) => b.views - a.views)
-    .slice(0, 5);
+  // Help articles
+  const helpArticles: HelpArticle[] = [
+    {
+      id: "1",
+      title: "Setting Up Your Debt Payoff Plan",
+      excerpt: "Learn how to create your first debt payoff plan and optimize it for your financial situation.",
+      category: "getting-started",
+      url: "/help/articles/setting-up-debt-payoff-plan"
+    },
+    {
+      id: "2",
+      title: "Connecting Your Financial Accounts Securely",
+      excerpt: "A guide to safely linking your bank accounts and credit cards for automatic tracking.",
+      category: "security",
+      url: "/help/articles/connecting-financial-accounts"
+    },
+    {
+      id: "3",
+      title: "Understanding the Debt Snowball Method",
+      excerpt: "Learn how the debt snowball method works and how it can keep you motivated on your debt-free journey.",
+      category: "features",
+      url: "/help/articles/debt-snowball-method"
+    },
+    {
+      id: "4",
+      title: "Comparing Debt Avalanche vs. Snowball",
+      excerpt: "Understand the differences between debt payment strategies and which one might work best for you.",
+      category: "features",
+      url: "/help/articles/avalanche-vs-snowball"
+    },
+    {
+      id: "5",
+      title: "Managing Your Subscription",
+      excerpt: "How to change your plan, update payment methods, or cancel your subscription.",
+      category: "billing",
+      url: "/help/articles/managing-subscription"
+    },
+    {
+      id: "6",
+      title: "Tracking Your Debt Freedom Progress",
+      excerpt: "Make the most of our progress tracking features to stay motivated on your journey.",
+      category: "features",
+      url: "/help/articles/tracking-progress"
+    }
+  ];
+
+  // Filter articles based on search query
+  const filteredArticles = searchQuery
+    ? helpArticles.filter(
+        article =>
+          article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          article.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : helpArticles;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white py-20 relative">
-      <div className="container mx-auto px-4 relative">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-4xl mx-auto mb-16"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-              Help Center
-            </span>
-          </h1>
-          <p className="text-xl text-gray-300">
-            Get the support you need on your journey to financial freedom
-          </p>
-        </motion.div>
+    <Layout
+      title="Help Center - Smart Debt Flow"
+      description="Get help with Smart Debt Flow. Find answers to frequently asked questions, tutorials, and support resources."
+    >
+      <Head>
+        <meta property="og:title" content="Help Center - Smart Debt Flow" />
+        <meta
+          property="og:description"
+          content="Find answers to your questions about using Smart Debt Flow for debt management."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://smartdebtflow.com/help" />
+      </Head>
 
-        {/* Search Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="max-w-2xl mx-auto mb-16"
-        >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="What can we help you with?"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-400 focus:outline-none focus:border-[#88B04B]/50"
-              aria-label="Search help articles"
-            />
+      {/* Hero Section */}
+      <section
+        ref={heroRef}
+        className="py-16 md:py-24 bg-gradient-to-b from-primary/10 to-background"
+      >
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.h1
+              initial={{ opacity: 0, y: -20 }}
+              animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
+              transition={{ duration: 0.5 }}
+              className="text-4xl md:text-5xl font-bold mb-6"
+            >
+              How Can We Help You?
+            </motion.h1>
+            
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-xl text-muted-foreground mb-8"
+            >
+              Find answers, learn how to use Smart Debt Flow, and get support when you need it.
+            </motion.p>
+            
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="relative max-w-xl mx-auto"
+            >
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search for help, tutorials, FAQs..."
+                className="pl-10 py-6 text-lg"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </motion.div>
           </div>
-        </motion.div>
-
-        {/* Topic Categories */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-20"
-        >
-          <div className="flex overflow-x-auto py-4 mb-8 no-scrollbar">
-            <div className="flex space-x-4">
-              <Button
-                variant={activeCategory === 'all' ? "default" : "outline"}
-                className={activeCategory === 'all' 
-                  ? "bg-[#88B04B] hover:bg-[#7a9d43] text-white whitespace-nowrap" 
-                  : "border-white/10 hover:border-[#88B04B]/50 text-white hover:bg-[#88B04B]/10 whitespace-nowrap"}
-                onClick={() => setActiveCategory('all')}
-              >
-                All Topics
-              </Button>
-              
-              {categories.map((category) => (
-                <Button
-                  key={category.id}
-                  variant={activeCategory === category.id ? "default" : "outline"}
-                  className={activeCategory === category.id 
-                    ? "bg-[#88B04B] hover:bg-[#7a9d43] text-white whitespace-nowrap" 
-                    : "border-white/10 hover:border-[#88B04B]/50 text-white hover:bg-[#88B04B]/10 whitespace-nowrap"}
-                  onClick={() => setActiveCategory(category.id)}
-                >
-                  <category.icon className="w-4 h-4 mr-2" />
-                  {category.title}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredArticles.length > 0 ? (
-              filteredArticles.map((article) => (
-                <motion.article
-                  key={`${article.categoryId}-${article.id}`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/5 rounded-xl border border-white/10 p-6 hover:border-[#88B04B]/30 transition-colors h-full flex flex-col"
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-[#88B04B]/20 flex items-center justify-center">
-                      <article.categoryIcon className="w-4 h-4 text-[#88B04B]" />
-                    </div>
-                    <span className="text-sm text-gray-400">{article.categoryTitle}</span>
-                  </div>
-                  <h3 className="text-lg font-bold mb-2 hover:text-[#88B04B] transition-colors">
-                    {article.title}
-                  </h3>
-                  <p className="text-gray-300 text-sm mb-4 flex-grow">{article.description}</p>
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/10">
-                    <span className="text-xs text-gray-400 flex items-center">
-                      <FileText className="w-3 h-3 mr-1" />
-                      Article
-                    </span>
-                    <Link 
-                      to={`/help/articles/${article.id}`}
-                      className="text-[#88B04B] hover:text-[#7a9d43] p-0 h-auto text-sm font-medium"
-                    >
-                      Read more
-                    </Link>
-                  </div>
-                </motion.article>
-              ))
-            ) : (
-              <div className="col-span-3 py-10 text-center">
-                <HelpCircle className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold mb-2">No results found</h3>
-                <p className="text-gray-300 mb-6">
-                  We couldn't find any articles matching your search.
-                </p>
-                <Button 
-                  variant="outline"
-                  className="border-white/10 hover:border-[#88B04B]/50 text-white hover:bg-[#88B04B]/10"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setActiveCategory('all');
-                  }}
-                >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Reset filters
-                </Button>
-              </div>
-            )}
-          </div>
-        </motion.section>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* FAQs */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="md:col-span-2 mb-16"
-          >
-            <h2 className="text-2xl font-bold mb-8 flex items-center">
-              <HelpCircle className="w-6 h-6 text-[#88B04B] mr-3" />
-              Frequently Asked Questions
-            </h2>
-            <div className="space-y-4">
-              {faqs.map((faq, index) => (
-                <motion.div
-                  key={faq.question}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="bg-white/5 rounded-xl border border-white/10 p-6"
-                >
-                  <h3 className="text-lg font-bold mb-3 text-[#88B04B]">{faq.question}</h3>
-                  <p className="text-gray-300">{faq.answer}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.section>
-
-          {/* Sidebar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="md:col-span-1"
-          >
-            {/* Popular Articles */}
-            <div className="bg-white/5 rounded-xl border border-white/10 p-6 mb-8">
-              <h3 className="text-xl font-bold mb-6 pb-4 border-b border-white/10">
-                Popular Articles
-              </h3>
-              <div className="space-y-4">
-                {popularArticles.map((article, index) => (
-                  <Link 
-                    key={`${article.categoryId}-${article.id}-${index}`}
-                    to={`/help/articles/${article.id}`}
-                    className="flex items-start gap-3 group cursor-pointer"
-                  >
-                    <div className="w-6 h-6 rounded bg-[#88B04B]/20 flex-shrink-0 flex items-center justify-center mt-0.5">
-                      <article.categoryIcon className="w-3 h-3 text-[#88B04B]" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium group-hover:text-[#88B04B] transition-colors">
-                        {article.title}
-                      </h4>
-                      <p className="text-xs text-gray-400 mt-1">{article.categoryTitle}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
-
-            {/* Contact Support */}
-            <div className="bg-gradient-to-r from-[#88B04B]/20 to-[#6A9A2D]/20 rounded-xl border border-[#88B04B]/30 p-6">
-              <h3 className="text-xl font-bold mb-4">Still Need Help?</h3>
-              <p className="text-sm text-gray-300 mb-6">
-                Our support team is ready to assist you with any questions or issues
-              </p>
-              <div className="space-y-3">
-                <Button
-                  className="w-full bg-white/10 hover:bg-white/20 text-white justify-start"
-                >
-                  <MessageCircle className="w-4 h-4 mr-3" />
-                  Live Chat
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-white/20 hover:border-white/30 text-white justify-start"
-                >
-                  <Mail className="w-4 h-4 mr-3" />
-                  Email Support
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full border-white/20 hover:border-white/30 text-white justify-start"
-                >
-                  <Phone className="w-4 h-4 mr-3" />
-                  Call Support
-                </Button>
-              </div>
-            </div>
-          </motion.div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      {/* Main Content */}
+      <section className="py-12 md:py-16">
+        <div className="container mx-auto px-4">
+          <Tabs 
+            defaultValue="help-center" 
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <div className="flex justify-center mb-8">
+              <TabsList className="grid w-full max-w-2xl grid-cols-3">
+                <TabsTrigger value="help-center">Help Center</TabsTrigger>
+                <TabsTrigger value="faqs">FAQs</TabsTrigger>
+                <TabsTrigger value="contact">Contact Us</TabsTrigger>
+              </TabsList>
+            </div>
+
+            {/* Help Center Content */}
+            <TabsContent value="help-center" className="mt-0">
+              <div className="max-w-6xl mx-auto">
+                {/* Categories */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                  {helpCategories.map((category) => (
+                    <Link
+                      key={category.id}
+                      href={`/help/categories/${category.id}`}
+                      className="block group"
+                    >
+                      <Card className="h-full transition-all hover:shadow-md hover:border-primary/50">
+                        <CardContent className="p-6">
+                          <div className="flex flex-col h-full">
+                            <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
+                              {category.title}
+                            </h3>
+                            <p className="text-muted-foreground mb-4">
+                              {category.description}
+                            </p>
+                            <div className="mt-auto flex items-center text-primary">
+                              <span>Browse articles</span>
+                              <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+
+                {/* Popular Articles */}
+                <div className="mb-12">
+                  <h2 className="text-2xl font-bold mb-6">
+                    {searchQuery ? "Search Results" : "Popular Articles"}
+                  </h2>
+                  
+                  {filteredArticles.length === 0 && searchQuery && (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground mb-4">
+                        No articles found matching "{searchQuery}"
+                      </p>
+                      <Button onClick={() => setSearchQuery("")}>
+                        Clear Search
+                      </Button>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredArticles.map((article) => (
+                      <Link
+                        key={article.id}
+                        href={article.url}
+                        className="block group"
+                      >
+                        <Card className="h-full transition-all hover:shadow-md hover:border-primary/50">
+                          <CardContent className="p-6">
+                            <div className="flex flex-col h-full">
+                              <div className="text-xs font-medium text-primary mb-2">
+                                {helpCategories.find(c => c.id === article.category)?.title}
+                              </div>
+                              <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+                                {article.title}
+                              </h3>
+                              <p className="text-muted-foreground text-sm mb-4">
+                                {article.excerpt}
+                              </p>
+                              <div className="mt-auto text-sm text-primary flex items-center">
+                                <span>Read more</span>
+                                <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Video Tutorials */}
+                <div>
+                  <h2 className="text-2xl font-bold mb-6">Video Tutorials</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card>
+                      <CardContent className="p-0 overflow-hidden">
+                        <div className="relative aspect-video bg-muted">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="rounded-full bg-primary text-primary-foreground w-12 h-12 flex items-center justify-center">
+                              <Video className="h-5 w-5" />
+                            </div>
+                          </div>
+                          <Image
+                            src="/assets/help/tutorial-1.jpg"
+                            alt="Getting Started with Smart Debt Flow"
+                            fill
+                            className="object-cover opacity-80"
+                          />
+                        </div>
+                        <div className="p-5">
+                          <h3 className="font-semibold mb-2">Getting Started Tutorial</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Learn how to set up your account and start managing your debt in under 10 minutes.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-0 overflow-hidden">
+                        <div className="relative aspect-video bg-muted">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="rounded-full bg-primary text-primary-foreground w-12 h-12 flex items-center justify-center">
+                              <Video className="h-5 w-5" />
+                            </div>
+                          </div>
+                          <Image
+                            src="/assets/help/tutorial-2.jpg"
+                            alt="Creating a Debt Payoff Plan"
+                            fill
+                            className="object-cover opacity-80"
+                          />
+                        </div>
+                        <div className="p-5">
+                          <h3 className="font-semibold mb-2">Creating a Debt Payoff Plan</h3>
+                          <p className="text-sm text-muted-foreground">
+                            A detailed walkthrough of creating a customized debt payment strategy.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardContent className="p-0 overflow-hidden">
+                        <div className="relative aspect-video bg-muted">
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="rounded-full bg-primary text-primary-foreground w-12 h-12 flex items-center justify-center">
+                              <Video className="h-5 w-5" />
+                            </div>
+                          </div>
+                          <Image
+                            src="/assets/help/tutorial-3.jpg"
+                            alt="Advanced Features"
+                            fill
+                            className="object-cover opacity-80"
+                          />
+                        </div>
+                        <div className="p-5">
+                          <h3 className="font-semibold mb-2">Advanced Features</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Explore powerful tools for optimization, scenario planning, and tracking.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* FAQs Content */}
+            <TabsContent value="faqs" className="mt-0">
+              <div className="max-w-3xl mx-auto">
+                <h2 className="text-2xl font-bold mb-6 text-center">
+                  {searchQuery ? "FAQ Search Results" : "Frequently Asked Questions"}
+                </h2>
+                
+                {filteredFAQs.length === 0 && searchQuery && (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">
+                      No FAQs found matching "{searchQuery}"
+                    </p>
+                    <Button onClick={() => setSearchQuery("")}>
+                      Clear Search
+                    </Button>
+                  </div>
+                )}
+
+                <Accordion type="single" collapsible className="w-full">
+                  {filteredFAQs.map((faq, index) => (
+                    <AccordionItem key={index} value={`faq-${index}`}>
+                      <AccordionTrigger>
+                        <span className="text-left">{faq.question}</span>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          <p>{faq.answer}</p>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
+            </TabsContent>
+
+            {/* Contact Us Content */}
+            <TabsContent value="contact" className="mt-0">
+              <div className="max-w-4xl mx-auto">
+                <div className="text-center mb-10">
+                  <h2 className="text-2xl font-bold mb-4">Get in Touch</h2>
+                  <p className="text-muted-foreground max-w-2xl mx-auto">
+                    Need more help? Our support team is ready to assist you with any questions or issues you might have.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <div className="rounded-full bg-primary/10 p-3 mb-4 inline-block">
+                        <MessageCircle className="h-6 w-6 text-primary" />
+                      </div>
+                      <h3 className="font-semibold mb-2">Live Chat</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Chat with our support team in real-time during business hours.
+                      </p>
+                      <Button>Start Chat</Button>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <div className="rounded-full bg-primary/10 p-3 mb-4 inline-block">
+                        <Mail className="h-6 w-6 text-primary" />
+                      </div>
+                      <h3 className="font-semibold mb-2">Email Support</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Send us a message and we'll respond within 24 hours.
+                      </p>
+                      <Link href="mailto:support@smartdebtflow.com">
+                        <Button>Email Us</Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <div className="rounded-full bg-primary/10 p-3 mb-4 inline-block">
+                        <FileText className="h-6 w-6 text-primary" />
+                      </div>
+                      <h3 className="font-semibold mb-2">Submit a Ticket</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Create a support ticket for complex issues or feature requests.
+                      </p>
+                      <Button>Create Ticket</Button>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="bg-muted rounded-lg p-8 text-center">
+                  <h3 className="text-xl font-semibold mb-4">Business Hours</h3>
+                  <p className="mb-4">
+                    Our support team is available Monday through Friday, 9am to 5pm PT.
+                  </p>
+                  <p className="text-muted-foreground text-sm">
+                    We strive to respond to all inquiries within 24 business hours.
+                  </p>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </section>
+
+      {/* Community Section */}
+      <section className="py-12 md:py-16 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-2xl font-bold mb-4">Join Our Community</h2>
+            <p className="text-muted-foreground mb-8">
+              Connect with other users, share strategies, and get inspired on your debt-free journey.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button>
+                Join Forum
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button variant="outline">
+                Follow on Social Media
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </Layout>
   );
+}
+
+export const getStaticProps: GetStaticProps = async () => {
+  return {
+    props: {},
+    // Revalidate once per day
+    revalidate: 86400,
+  };
 } 

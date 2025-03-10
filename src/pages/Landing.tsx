@@ -263,6 +263,8 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
   );
 }
 
+const MethodsSection = lazy(() => import("@/components/landing/MethodsSection"));
+
 const Landing = () => {
   // 1. Context hooks
   const { isReducedMotion, type: deviceType } = useDeviceContext();
@@ -626,6 +628,8 @@ const Landing = () => {
           </div>
         </div>
       </Section>
+
+      <MethodsSection />
 
       <Suspense fallback={<SectionLoader />}>
         <Footer />

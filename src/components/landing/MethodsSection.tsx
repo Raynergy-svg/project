@@ -413,7 +413,7 @@ const MethodsSection = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#1DB954] to-[#1DB954]/80 bg-clip-text text-transparent">
           Say Goodbye to Due Date Anxiety
         </h3>
         <p className="text-gray-400">Let us handle the stress of remembering - you focus on living</p>
@@ -448,8 +448,8 @@ const MethodsSection = () => {
         <h4 className="text-lg font-semibold text-white mb-4">Next Payment Due</h4>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full bg-[#88B04B]/10">
-              <Calendar className="h-6 w-6 text-[#88B04B]" />
+            <div className="p-3 rounded-full bg-[#1DB954]/10">
+              <Calendar className="h-6 w-6 text-[#1DB954]" />
             </div>
             <div>
               <p className="text-xl font-bold text-white">{formatCurrency(featureSteps[1].preview.upcomingPayment.amount)}</p>
@@ -463,7 +463,7 @@ const MethodsSection = () => {
           </div>
           <Button 
             onClick={handleSignup}
-            className="bg-[#88B04B] hover:bg-[#6A9A2D] text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+            className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white px-6 py-2 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
           >
             Pay Now
           </Button>
@@ -478,7 +478,7 @@ const MethodsSection = () => {
       >
         <Button 
           onClick={handleSignup}
-          className="bg-[#88B04B] hover:bg-[#6A9A2D] text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+          className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
         >
           Start Tracking Your Payments
           <ArrowUpRight className="ml-2 h-5 w-5" />
@@ -504,7 +504,7 @@ const MethodsSection = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#1DB954] to-[#1DB954]/80 bg-clip-text text-transparent">
           Your Path, Your Pace, Our Expertise
         </h3>
         <p className="text-gray-400">From high-net-worth optimization to debt-free dreams, we've got your strategy</p>
@@ -517,7 +517,7 @@ const MethodsSection = () => {
             key={strategy}
             className={`flex-1 px-6 py-3 rounded-lg text-base font-medium transition-all duration-300 ${
               selectedStrategy === strategy 
-                ? 'bg-[#88B04B] text-white shadow-lg' 
+                ? 'bg-[#1DB954] text-white shadow-lg' 
                 : 'hover:bg-gray-700 text-gray-400'
             }`}
             onClick={() => setSelectedStrategy(strategy)}
@@ -541,8 +541,8 @@ const MethodsSection = () => {
           <Card className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-[#88B04B]/10">
-                  <TrendingUp className="h-6 w-6 text-[#88B04B]" />
+                <div className="p-2 rounded-full bg-[#1DB954]/10">
+                  <TrendingUp className="h-6 w-6 text-[#1DB954]" />
                 </div>
                 <div>
                   <h4 className="text-xl font-bold text-white">
@@ -556,7 +556,7 @@ const MethodsSection = () => {
                 </div>
               </div>
               {selectedStrategy === 'snowball' && (
-                <span className="px-3 py-1 bg-[#88B04B]/20 text-[#88B04B] text-sm font-medium rounded-full">
+                <span className="px-3 py-1 bg-[#1DB954]/20 text-[#1DB954] text-sm font-medium rounded-full">
                   Recommended
                 </span>
               )}
@@ -573,7 +573,7 @@ const MethodsSection = () => {
               </div>
               <div className="p-4 rounded-lg bg-gray-800/50">
                 <p className="text-sm text-gray-400 mb-1">Monthly Savings</p>
-                <p className="text-2xl font-bold text-[#88B04B]">
+                <p className="text-2xl font-bold text-[#1DB954]">
                   {formatCurrency(
                     selectedStrategy === 'snowball'
                       ? featureSteps[2].preview.strategies[0].projection.monthlySavings
@@ -595,7 +595,7 @@ const MethodsSection = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <CheckCircle2 className="h-5 w-5 text-[#88B04B]" />
+                  <CheckCircle2 className="h-5 w-5 text-[#1DB954]" />
                   <span className="text-gray-300">{benefit}</span>
                 </motion.div>
               ))}
@@ -610,7 +610,7 @@ const MethodsSection = () => {
           >
             <Button 
               onClick={handleSignup}
-              className="bg-[#88B04B] hover:bg-[#6A9A2D] text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
             >
               Start Your Stress-Free Journey
               <ArrowUpRight className="ml-2 h-5 w-5" />
@@ -638,7 +638,7 @@ const MethodsSection = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#1DB954] to-[#1DB954]/80 bg-clip-text text-transparent">
           AI-Powered Financial Guidance
         </h3>
         <p className="text-gray-400">Smart recommendations tailored to your spending patterns</p>
@@ -665,13 +665,13 @@ const MethodsSection = () => {
                    <LineChart className="h-5 w-5 text-purple-500" />}
                 </div>
                 <span className={`text-sm font-medium ${
-                  insight.impact === 'High' ? 'text-[#88B04B]' : 'text-yellow-500'
+                  insight.impact === 'High' ? 'text-[#1DB954]' : 'text-yellow-500'
                 }`}>
                   {insight.impact} Impact
                 </span>
               </div>
               {insight.savings && (
-                <span className="text-lg font-bold text-[#88B04B]">
+                <span className="text-lg font-bold text-[#1DB954]">
                   ${insight.savings.toLocaleString()}
                 </span>
               )}
@@ -707,7 +707,7 @@ const MethodsSection = () => {
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${(featureSteps[3].preview.spendingPatterns.current[index] / Math.max(...featureSteps[3].preview.spendingPatterns.current)) * 100}%` }}
-                    className="absolute h-full bg-[#88B04B] rounded-full"
+                    className="absolute h-full bg-[#1DB954] rounded-full"
                     transition={{ duration: 1, delay: index * 0.1 }}
                   />
                 </div>
@@ -734,7 +734,7 @@ const MethodsSection = () => {
       >
         <Button 
           onClick={handleSignup}
-          className="bg-[#88B04B] hover:bg-[#6A9A2D] text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+          className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
         >
           Get AI-Powered Insights
           <ArrowUpRight className="ml-2 h-5 w-5" />
@@ -821,7 +821,7 @@ const MethodsSection = () => {
   );
 
   return (
-    <section className="py-24 bg-background">
+    <section id="methods" className="py-24 bg-background">
       <motion.div
         ref={containerRef}
         variants={containerVariants}
@@ -860,12 +860,12 @@ const MethodsSection = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.15 }}
-            className="absolute -top-20 -left-20 w-72 h-72 bg-[#88B04B] rounded-full blur-[120px] pointer-events-none"
+            className="absolute -top-20 -left-20 w-72 h-72 bg-[#1DB954] rounded-full blur-[120px] pointer-events-none"
           />
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.15 }}
-            className="absolute -bottom-20 -right-20 w-72 h-72 bg-[#88B04B] rounded-full blur-[120px] pointer-events-none"
+            className="absolute -bottom-20 -right-20 w-72 h-72 bg-[#1DB954] rounded-full blur-[120px] pointer-events-none"
           />
 
           <BrowserChrome>
@@ -884,7 +884,7 @@ const MethodsSection = () => {
               className={`
                 relative w-12 h-12 rounded-full flex items-center justify-center
                 ${isPlaying 
-                  ? 'bg-[#88B04B] text-white' 
+                  ? 'bg-[#1DB954] text-white' 
                   : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
                 }
                 transition-all duration-300 ease-out
@@ -898,7 +898,7 @@ const MethodsSection = () => {
                 <Play className="h-5 w-5 ml-1" />
               )}
               <motion.div
-                className="absolute inset-0 rounded-full border-2 border-[#88B04B]"
+                className="absolute inset-0 rounded-full border-2 border-[#1DB954]"
                 initial={false}
                 animate={isPlaying ? {
                   scale: [1, 1.1, 1],
@@ -921,7 +921,7 @@ const MethodsSection = () => {
                     setIsPlaying(false);
                   }}
                   className={`h-1.5 w-8 rounded-full transition-colors duration-300 ${
-                    activeStep === index ? 'bg-[#88B04B]' : 'bg-gray-700'
+                    activeStep === index ? 'bg-[#1DB954]' : 'bg-gray-700'
                   }`}
                   whileHover={{ scale: 1.1 }}
                   animate={{
@@ -937,4 +937,4 @@ const MethodsSection = () => {
   );
 };
 
-export default MethodsSection; 
+export default MethodsSection;

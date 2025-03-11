@@ -243,7 +243,7 @@ export default function Navbar({
                 </Button>
                 <Button
                   onClick={onSignUp}
-                  className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                  className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white transition-opacity"
                 >
                   Sign Up
                 </Button>
@@ -259,7 +259,11 @@ export default function Navbar({
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-white"
             >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </Button>
           </div>
         </div>
@@ -370,7 +374,7 @@ export default function Navbar({
                         setIsMenuOpen(false);
                         setOpenDropdowns([]);
                       }}
-                      className="w-full bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white hover:opacity-90 transition-opacity"
+                      className="w-full bg-[#1DB954] hover:bg-[#1DB954]/90 text-white transition-opacity"
                     >
                       Sign Up
                     </Button>

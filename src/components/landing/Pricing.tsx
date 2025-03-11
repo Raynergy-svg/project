@@ -55,7 +55,7 @@ export default function Pricing({ onGetStarted }: PricingProps) {
   return (
     <section className="py-16" id="pricing-heading">
       <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#88B04B] to-[#6A9A2D]">
+        <h2 className="text-4xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-[#1DB954] to-[#1DB954]/80">
           Choose Your Plan
         </h2>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -73,17 +73,17 @@ export default function Pricing({ onGetStarted }: PricingProps) {
             transition={{ duration: 0.5 }}
             className={`p-8 rounded-xl border backdrop-blur-sm transition-all ${
               tier.recommended
-                ? 'border-[#88B04B] bg-[#88B04B]/10'
-                : 'border-border bg-card hover:border-[#88B04B]/50'
+                ? 'border-[#1DB954] bg-[#1DB954]/10'
+                : 'border-border bg-card hover:border-[#1DB954]/50'
             }`}
           >
             <div className="flex justify-between items-start mb-6">
               <div>
                 <h3 className="text-2xl font-semibold text-foreground">{tier.name}</h3>
-                <p className="text-3xl font-bold text-[#88B04B] mt-2">{tier.price}</p>
+                <p className="text-3xl font-bold text-[#1DB954] mt-2">{tier.price}</p>
               </div>
               {tier.recommended && (
-                <span className="bg-[#88B04B] text-white text-sm px-3 py-1 rounded-full">
+                <span className="bg-[#1DB954] text-white text-sm px-3 py-1 rounded-full">
                   Recommended
                 </span>
               )}
@@ -94,7 +94,7 @@ export default function Pricing({ onGetStarted }: PricingProps) {
             <div className="space-y-4 mb-8">
               {tier.features.map((feature, index) => (
                 <div key={index} className="flex items-center gap-3">
-                  <Check className="w-5 h-5 text-[#88B04B] flex-shrink-0" />
+                  <Check className="w-5 h-5 text-[#1DB954] flex-shrink-0" />
                   <span className="text-muted-foreground">{feature}</span>
                 </div>
               ))}
@@ -104,7 +104,7 @@ export default function Pricing({ onGetStarted }: PricingProps) {
               onClick={() => handlePlanSelection(tier.id)}
               className={`w-full py-6 text-lg font-medium ${
                 tier.recommended
-                  ? 'bg-[#88B04B] hover:bg-[#7a9d43] text-white'
+                  ? 'bg-[#1DB954] hover:bg-[#1DB954]/90 text-white'
                   : 'bg-muted hover:bg-muted/80 text-foreground border border-border'
               }`}
             >

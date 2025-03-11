@@ -1,75 +1,81 @@
-'use client';
-
 import Link from 'next/link';
-import { memo, useEffect } from 'react';
+import { memo } from 'react';
 
 interface LogoProps {
   className?: string;
   showText?: boolean;
   size?: 'sm' | 'md' | 'lg';
   isLink?: boolean;
-  linkClassName?: string;
 }
 
 const LogoContent = memo(({ className = '', showText = true, size = 'md' }: LogoProps) => {
   const sizeClasses = {
-    sm: '24px',
-    md: '28px',
-    lg: '32px'
+    sm: 'h-10 w-10',
+    md: 'h-14 w-14',
+    lg: 'h-16 w-16'
   };
 
   return (
-    <div className="flex items-center">
-      <div style={{ height: sizeClasses[size], width: sizeClasses[size] }} className="relative flex-shrink-0">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-          {/* Simple circle */}
-          <circle cx="12" cy="12" r="10" fill="#1DB954" />
-          
-          {/* Properly oriented S */}
+    <>
+      <div 
+        className={`${sizeClasses[size]} flex items-center justify-center overflow-visible`}
+        style={{ 
+          contain: 'none',
+          boxSizing: 'content-box',
+          padding: '2px'
+        }}
+      >
+        {/* Circle background */}
+        <svg 
+          viewBox="0 0 28 28" 
+          fill="none" 
+          xmlns="http://www.w3.org/2000/svg" 
+          style={{
+            width: '100%',
+            height: '100%',
+            overflow: 'visible',
+            display: 'block'
+          }}
+        >
+          {/* Simple circle with padding inside viewBox */}
+          <circle cx="14" cy="14" r="11" fill="#1DB954" />
+
+          {/* Skinnier S - adjusted for new viewBox center */}
           <path 
-            d="M15 9.5C15 8.11929 13.8807 7 12.5 7H11.5C10.1193 7 9 8.11929 9 9.5C9 10.8807 10.1193 12 11.5 12H12.5C13.8807 12 15 13.1193 15 14.5C15 15.8807 13.8807 17 12.5 17H11.5C10.1193 17 9 15.8807 9 14.5" 
+            d="M18 11C18 9.34315 16.6569 8 15 8H13C11.3431 8 10 9.34315 10 11C10 12.6569 11.3431 14 13 14H15C16.6569 14 18 15.3431 18 17C18 18.6569 16.6569 20 15 20H13C11.3431 20 10 18.6569 10 17" 
             stroke="white" 
-            strokeWidth="2" 
-            strokeLinecap="round"
+            strokeWidth="1.8" 
+            strokeLinecap="round" 
           />
         </svg>
       </div>
-      
       {showText && (
         <span 
-          className="font-bold text-xl whitespace-nowrap text-[#1DB954] ml-2"
+          className="font-bold text-[#1DB954] font-['Poppins'] text-xl whitespace-nowrap"
+          style={{ 
+            contain: 'none',
+            marginLeft: '4px'
+          }}
         >
           Smart Debt Flow
         </span>
       )}
-    </div>
+    </>
   );
 });
 
 LogoContent.displayName = 'LogoContent';
 
-export function Logo({ className = '', showText = true, size = 'md', isLink = true, linkClassName = '' }: LogoProps) {
-  // Development warning for potential nesting issues
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && isLink) {
-      const parentIsLink = document.querySelector('a > [data-logo-component="true"]');
-      if (parentIsLink) {
-        console.warn('Warning: Logo component with isLink=true is nested inside another <a> tag. This can cause hydration errors. Set isLink={false} when using Logo inside another link.');
-      }
-    }
-  }, [isLink]);
-
-  // Always return just the content when nested in a Link/anchor to avoid nesting issues
-  if (typeof window !== 'undefined' && window.__NEXT_DATA__?.props?.pageProps?.__isPrerendering) {
-    // This is a workaround for SSR
-    return <LogoContent showText={showText} size={size} />;
-  }
-
+export function Logo({ className = '', showText = true, size = 'md', isLink = true }: LogoProps) {
   if (isLink) {
     return (
       <Link 
         href="/" 
-        className={`inline-flex items-center hover:opacity-90 transition-opacity ${className} ${linkClassName}`}
+        className={`flex items-center hover:opacity-90 transition-opacity ${className}`}
+        style={{ 
+          contain: 'none',
+          gap: '8px'
+        }}
       >
         <LogoContent showText={showText} size={size} />
       </Link>
@@ -78,8 +84,11 @@ export function Logo({ className = '', showText = true, size = 'md', isLink = tr
 
   return (
     <div 
-      className={`inline-flex items-center ${className}`}
-      data-logo-component="true"
+      className={`flex items-center ${className}`}
+      style={{ 
+        contain: 'none',
+        gap: '8px'
+      }}
     >
       <LogoContent showText={showText} size={size} />
     </div>

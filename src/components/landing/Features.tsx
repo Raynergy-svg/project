@@ -84,8 +84,8 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
       
       <div className="p-8">
         <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-xl bg-[#88B04B]/10 flex items-center justify-center">
-            <Icon className="w-7 h-7 text-[#88B04B]" />
+          <div className="w-14 h-14 rounded-xl bg-[#1DB954]/10 flex items-center justify-center">
+            <Icon className="w-7 h-7 text-[#1DB954]" />
           </div>
           <h3 className="text-2xl font-semibold text-foreground">{title}</h3>
         </div>
@@ -95,7 +95,7 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
         <ul className="space-y-3">
           {benefits.map((benefit: string, i: number) => (
             <li key={i} className="flex items-center gap-3 text-muted-foreground">
-              <Sparkles className="w-5 h-5 text-[#88B04B]" />
+              <Sparkles className="w-5 h-5 text-[#1DB954]" />
               <span>{benefit}</span>
             </li>
           ))}
@@ -106,46 +106,42 @@ function FeatureCard({ title, description, icon: Icon, image, benefits, index }:
 }
 
 interface FeaturesProps {
+  onFeatureClick?: (featureId: string) => void;
   id?: string;
 }
 
-export default function Features({ id }: FeaturesProps) {
+export default function Features({ onFeatureClick, id = 'features' }: FeaturesProps) {
   const router = useRouter();
-
+  
   const handleExploreClick = () => {
-    router.push('/signup?plan=trial');
+    if (onFeatureClick) {
+      onFeatureClick('all');
+    } else {
+      router.push('/features');
+    }
   };
-
+  
   return (
-    <div id={id} className="relative py-24 overflow-hidden">
-      <div className="absolute inset-0">
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.1 }}
-          transition={{ duration: 0.3 }}
-          className="absolute top-1/4 -left-1/4 w-1/2 h-1/2 bg-[#88B04B] rounded-full blur-[120px]" 
-        />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
+    <div id={id} className="py-24 bg-background">
+      <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center gap-2 bg-[#88B04B]/10 rounded-full px-4 py-2">
-            <Sparkles className="w-5 h-5 text-[#88B04B]" />
-            <span className="text-[#88B04B] font-semibold">AI-Powered Features</span>
-          </div>
+          <h2 className="text-4xl font-bold mb-6">Powerful Features to Eliminate Debt</h2>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Our platform combines cutting-edge technology with proven financial strategies to help you become debt-free faster.
+          </p>
         </motion.div>
-
-        <div className="grid lg:grid-cols-3 gap-8 mb-16">
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
           {FEATURES.map((feature, index) => (
-            <FeatureCard key={feature.title} {...feature} index={index} />
+            <FeatureCard key={index} {...feature} index={index} />
           ))}
         </div>
-
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -154,7 +150,7 @@ export default function Features({ id }: FeaturesProps) {
         >
           <Button
             onClick={handleExploreClick}
-            className="px-6 py-3 bg-[#88B04B] hover:bg-[#88B04B]/90 text-white rounded-xl font-semibold text-lg"
+            className="px-6 py-3 bg-[#1DB954] hover:bg-[#1DB954]/90 text-white rounded-xl font-semibold text-lg"
           >
             <span className="flex items-center gap-2">
               Explore All Features

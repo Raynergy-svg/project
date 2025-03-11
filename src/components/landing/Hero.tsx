@@ -63,7 +63,7 @@ export function Hero({ onSelectPlan }: HeroProps) {
             id="hero-heading"
             className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground font-['Poppins'] leading-[1.1] tracking-tight"
           >
-            <span className="inline-block bg-gradient-to-r from-[#88B04B] via-[#88B04B] to-[#6A8F3D] bg-clip-text text-transparent pb-2">
+            <span className="inline-block bg-gradient-to-r from-[#1DB954] via-[#1DB954] to-[#19A449] bg-clip-text text-transparent pb-2">
               Take Control of Your
               <br className="hidden sm:block" /> Financial Future
             </span>
@@ -92,7 +92,7 @@ export function Hero({ onSelectPlan }: HeroProps) {
               }
               className={`relative bg-[#2A2A2A] rounded-xl p-6 sm:p-8 border ${
                 tier.isPopular
-                  ? "border-[#88B04B] shadow-lg shadow-[#88B04B]/10"
+                  ? "border-[#1DB954] shadow-lg shadow-[#1DB954]/10"
                   : "border-white/10"
               }`}
               role="article"
@@ -107,7 +107,7 @@ export function Hero({ onSelectPlan }: HeroProps) {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className="bg-[#88B04B] text-white px-4 py-1 rounded-full text-sm font-medium inline-flex items-center gap-1.5"
+                    className="bg-[#1DB954] text-white px-4 py-1 rounded-full text-sm font-medium inline-flex items-center gap-1.5"
                   >
                     Most Popular
                   </motion.span>
@@ -126,7 +126,7 @@ export function Hero({ onSelectPlan }: HeroProps) {
                   <span className="text-lg text-white/60">/month</span>
                 </div>
                 {tier.name === "Premium" && (
-                  <p className="text-[#88B04B] text-sm">
+                  <p className="text-[#1DB954] text-sm">
                     Includes 7-day free trial
                   </p>
                 )}
@@ -142,7 +142,7 @@ export function Hero({ onSelectPlan }: HeroProps) {
                     className="flex items-start gap-3 text-white/80"
                   >
                     <Check
-                      className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5"
+                      className="w-5 h-5 text-[#1DB954] flex-shrink-0 mt-0.5"
                       aria-hidden="true"
                     />
                     <span>{feature}</span>
@@ -154,7 +154,7 @@ export function Hero({ onSelectPlan }: HeroProps) {
                 onClick={() => onSelectPlan?.(tier)}
                 className={`w-full h-12 ${
                   tier.isPopular
-                    ? "bg-[#88B04B] hover:bg-[#88B04B]/90"
+                    ? "bg-[#1DB954] hover:bg-[#1DB954]/90"
                     : "bg-white/10 hover:bg-white/20"
                 } text-white font-medium group`}
                 aria-label={`Select ${tier.name} plan`}
@@ -181,7 +181,7 @@ export function Hero({ onSelectPlan }: HeroProps) {
           role="complementary"
           aria-label="Security information"
         >
-          <Shield className="text-[#88B04B] w-4 h-4" aria-hidden="true" />
+          <Shield className="text-[#1DB954] w-4 h-4" aria-hidden="true" />
           <span className="font-['Inter']">
             256-bit Encryption • SOC 2 Certified
           </span>

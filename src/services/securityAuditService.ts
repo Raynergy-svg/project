@@ -4,6 +4,7 @@
  * Provides functions for logging security-related events and monitoring security incidents.
  * All security events should be logged using this service for consistent auditing.
  */
+// Import the supabase client from the singleton pattern
 import { supabase } from '@/utils/supabase/client';
 
 export enum SecurityEventType {
@@ -46,224 +47,238 @@ export interface SecurityEvent {
   timestamp?: string;
 }
 
+// Type alias for offline security logs to ensure consistency
+export type OfflineSecurityLog = SecurityEvent;
+
 /**
- * Log a security event
- * @param event - The security event to log
- * @returns Promise with success status
+ * Log a security event to the security_audit_log table
+ * @param eventOrType - The security event to log or the event type
+ * @param details - Additional details about the event (if not using SecurityEvent object)
+ * @param severity - The severity level of the event (if not using SecurityEvent object)
+ * @param userId - The user ID associated with the event (if not using SecurityEvent object)
  */
 export const logSecurityEvent = async (
-  eventType: SecurityEventType,
-  details: string | object,
+  eventOrType: SecurityEvent | SecurityEventType,
+  details?: string | Record<string, unknown>,
   severity: 'low' | 'medium' | 'high' | 'critical' = 'low',
   userId?: string
 ): Promise<void> => {
   try {
-    // Prepare the event object
-    const event: SecurityEvent = {
-      eventType,
-      details: typeof details === 'string' ? details : JSON.stringify(details),
-      severity,
-      userId,
-      timestamp: new Date().toISOString(),
-      ipAddress: null,
-      userAgent: navigator.userAgent
-    };
+    // Determine if we're using a SecurityEvent object or individual parameters
+    let event: SecurityEvent;
     
-    // Try to get IP address if available (this would be from a service in a real app)
-    try {
-      // Simplified mock implementation - in a real app, this would use a proper IP detection service
-      event.ipAddress = localStorage.getItem('last_known_ip') || '0.0.0.0';
-    } catch (e) {
-      console.warn('Could not retrieve IP address for security log');
+    if (typeof eventOrType === 'object') {
+      // Using a SecurityEvent object
+      event = eventOrType;
+    } else {
+      // Using individual parameters
+      event = createSecurityEvent(eventOrType, details!, severity, userId);
     }
-
-    // First attempt to log to the database
-    let dbLoggingSuccessful = false;
+    
+    // Try to get the current session
     try {
-      const { error } = await supabase
-        .from('security_audit_log')
-        .insert({
-          event_type: event.eventType,
-          user_id: event.userId,
-          ip_address: event.ipAddress,
-          user_agent: event.userAgent,
-          details: event.details,
-          severity: event.severity,
-          created_at: event.timestamp
-        });
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (error) {
-        // Log specific error types for better diagnostics
-        if (error.code === '42P01') {
-          console.warn('Security audit log table does not exist, storing event in localStorage');
-        } else if (error.code === '23505') {
-          console.warn('Duplicate key violation in security log, possible retry of event');
-        } else {
-          console.warn('Error logging security event to database:', error);
-        }
-      } else {
-        dbLoggingSuccessful = true;
-        console.log(`Security event logged to database: ${eventType}`);
+      if (sessionError || !session || !session.access_token) {
+        // No valid session, store for offline sync
+        console.log('🔒 Security: No active session, storing security event offline');
+        storeOfflineSecurityEvent(event);
+        return;
       }
-    } catch (dbError) {
-      console.warn('Exception when logging security event to database:', dbError);
-    }
-
-    // If database logging failed, store in localStorage
-    if (!dbLoggingSuccessful) {
+      
+      // We have a valid session, try to log the event
       try {
-        // Retrieve existing offline logs
-        const offlineLogsJSON = localStorage.getItem('offline_security_events') || '[]';
-        let offlineLogs: SecurityEvent[] = [];
+        const response = await fetch(
+          `${supabase.supabaseUrl}/rest/v1/security_audit_log`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabase.supabaseKey,
+              'Authorization': `Bearer ${session.access_token}`,
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              event_type: event.eventType,
+              user_id: event.userId,
+              ip_address: event.ipAddress,
+              user_agent: event.userAgent,
+              details: event.details,
+              severity: event.severity,
+              created_at: event.timestamp || new Date().toISOString()
+            })
+          }
+        );
         
-        try {
-          offlineLogs = JSON.parse(offlineLogsJSON);
-        } catch (parseError) {
-          console.error('Error parsing offline security logs, resetting:', parseError);
-          offlineLogs = [];
+        if (!response.ok) {
+          console.warn(`Error logging security event: ${response.status} ${response.statusText}`);
+          storeOfflineSecurityEvent(event);
         }
-        
-        // Add new event to the offline logs
-        offlineLogs.push(event);
-        
-        // Limit the number of stored events to prevent localStorage from getting too large
-        if (offlineLogs.length > 100) {
-          // Keep only the 100 most recent events
-          offlineLogs = offlineLogs.slice(-100);
-        }
-        
-        // Store updated offline logs
-        localStorage.setItem('offline_security_events', JSON.stringify(offlineLogs));
-        console.log(`Security event stored in localStorage: ${eventType}`);
-      } catch (localStorageError) {
-        console.error('Failed to store security event in localStorage:', localStorageError);
+      } catch (fetchError) {
+        console.error('Error logging security event:', fetchError);
+        storeOfflineSecurityEvent(event);
       }
+    } catch (sessionError) {
+      console.error('Error checking session for security logging:', sessionError);
+      storeOfflineSecurityEvent(event);
     }
-
-    // For critical/high severity events, try to notify security admins
-    // regardless of where the event was logged
-    if (severity === 'critical' || severity === 'high') {
-      try {
-        // In a real application, this would send an email, SMS, or notification
-        // to security administrators
-        console.warn(`SECURITY ALERT: ${severity.toUpperCase()} severity event - ${eventType}`);
-        
-        // Mock notification - in a real app this would be an API call
-        // to a notification service
-        if (typeof window !== 'undefined') {
-          const notificationEvent = new CustomEvent('security-alert', { 
-            detail: { 
-              severity, 
-              eventType,
-              timestamp: event.timestamp
-            } 
-          });
-          window.dispatchEvent(notificationEvent);
-        }
-      } catch (notifyError) {
-        console.error('Failed to send security alert notification:', notifyError);
-      }
-    }
-    
   } catch (error) {
-    // Catch-all for any unexpected errors
-    console.error('Unexpected error in logSecurityEvent:', error);
+    console.error('Error in security event logging:', error);
+    // Store event for offline sync
+    if (typeof eventOrType === 'object') {
+      storeOfflineSecurityEvent(eventOrType);
+    } else if (details !== undefined) {
+      storeOfflineSecurityEvent(createSecurityEvent(eventOrType, details, severity, userId));
+    }
   }
 };
 
 /**
- * Check for and sync any offline security logs
+ * Store a security event for offline sync
+ * @param event - The security event to store
+ */
+const storeOfflineSecurityEvent = (event: SecurityEvent): void => {
+  try {
+    // Ensure timestamp is set
+    const eventWithTimestamp = {
+      ...event,
+      timestamp: event.timestamp || new Date().toISOString()
+    };
+    
+    // Get existing offline logs
+    const offlineLogsJson = localStorage.getItem('offlineSecurityLogs');
+    let offlineLogs: SecurityEvent[] = [];
+    
+    if (offlineLogsJson) {
+      try {
+        offlineLogs = JSON.parse(offlineLogsJson);
+      } catch (parseError) {
+        console.error('Error parsing offline security logs:', parseError);
+        // Reset if corrupted
+        offlineLogs = [];
+      }
+    }
+    
+    // Add new event
+    offlineLogs.push(eventWithTimestamp);
+    
+    // Store back to localStorage
+    localStorage.setItem('offlineSecurityLogs', JSON.stringify(offlineLogs));
+    console.log('Security event stored for offline sync');
+  } catch (error) {
+    console.error('Error storing offline security event:', error);
+  }
+};
+
+/**
+ * Sync offline security logs to the server when connection is restored
  */
 export const syncOfflineSecurityLogs = async (): Promise<void> => {
   try {
-    // Check if we have offline logs to sync
-    const offlineLogsJSON = localStorage.getItem('offline_security_events');
-    if (!offlineLogsJSON) {
-      // No offline logs to sync
+    const offlineLogsJson = localStorage.getItem('offlineSecurityLogs');
+    if (!offlineLogsJson) return;
+
+    const offlineLogs = JSON.parse(offlineLogsJson) as OfflineSecurityLog[];
+    if (!offlineLogs.length) return;
+
+    // Get the current session to ensure we have a valid token
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error('Error getting session for syncing offline logs:', sessionError);
       return;
     }
     
-    // Parse offline logs
-    let offlineLogs: SecurityEvent[] = [];
-    try {
-      offlineLogs = JSON.parse(offlineLogsJSON);
-    } catch (parseError) {
-      console.error('Error parsing offline security logs:', parseError);
+    if (!session || !session.access_token) {
+      console.log('🔒 Security: No active session, cannot sync offline security logs');
       return;
     }
+
+    console.log(`Syncing ${offlineLogs.length} offline security logs`);
+
+    // Process logs in batches to avoid overwhelming the server
+    const batchSize = 10;
+    const batches = [];
     
-    if (offlineLogs.length === 0) {
-      // No logs to sync
-      return;
+    for (let i = 0; i < offlineLogs.length; i += batchSize) {
+      batches.push(offlineLogs.slice(i, i + batchSize));
     }
+
+    let successCount = 0;
     
-    console.log(`Attempting to sync ${offlineLogs.length} offline security logs...`);
-    
-    // Check if we can access the security_audit_log table
-    try {
-      const { error: tableCheckError } = await supabase
-        .from('security_audit_log')
-        .select('id')
-        .limit(1);
-      
-      if (tableCheckError) {
-        if (tableCheckError.code === '42P01') {
-          console.warn('Cannot sync offline logs: security_audit_log table does not exist');
-        } else {
-          console.warn('Error checking security_audit_log table:', tableCheckError);
+    for (const batch of batches) {
+      const promises = batch.map(async (log) => {
+        try {
+          // Use direct fetch for more reliable authentication
+          const response = await fetch(
+            `${supabase.supabaseUrl}/rest/v1/security_audit_log`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': supabase.supabaseKey,
+                'Authorization': `Bearer ${session.access_token}`,
+                'Prefer': 'return=minimal'
+              },
+              body: JSON.stringify({
+                event_type: log.eventType,
+                user_id: log.userId,
+                ip_address: log.ipAddress,
+                user_agent: log.userAgent,
+                details: log.details,
+                severity: log.severity,
+                created_at: log.timestamp
+              })
+            }
+          );
+          
+          if (!response.ok) {
+            console.warn(`Failed to sync offline log: ${response.status} ${response.statusText}`);
+            
+            // Try with Supabase client as fallback
+            const { error } = await supabase.from('security_audit_log').insert({
+              event_type: log.eventType,
+              user_id: log.userId,
+              ip_address: log.ipAddress,
+              user_agent: log.userAgent,
+              details: log.details,
+              severity: log.severity,
+              created_at: log.timestamp
+            });
+            
+            if (error) {
+              console.error('Failed to sync offline log via Supabase client:', error);
+              return false;
+            }
+            
+            return true;
+          }
+          
+          return true;
+        } catch (error) {
+          console.error('Error syncing offline log:', error);
+          return false;
         }
-        return;
-      }
-      
-      // Table exists, try to sync logs
-      let syncCount = 0;
-      const failedLogs: SecurityEvent[] = [];
-      
-      // Process logs in batches to avoid overloading the database
-      const batchSize = 10;
-      for (let i = 0; i < offlineLogs.length; i += batchSize) {
-        const batch = offlineLogs.slice(i, i + batchSize);
-        
-        // Convert events to database format
-        const dbRecords = batch.map(event => ({
-          event_type: event.eventType,
-          user_id: event.userId || null,
-          ip_address: event.ipAddress || null,
-          user_agent: event.userAgent || null,
-          details: event.details || null,
-          severity: event.severity,
-          created_at: event.timestamp
-        }));
-        
-        // Insert batch into database
-        const { error: insertError } = await supabase
-          .from('security_audit_log')
-          .insert(dbRecords);
-        
-        if (insertError) {
-          console.warn('Error syncing some offline logs:', insertError);
-          failedLogs.push(...batch);
-        } else {
-          syncCount += batch.length;
-        }
-      }
-      
-      console.log(`Successfully synced ${syncCount} of ${offlineLogs.length} offline security logs`);
-      
-      // Update localStorage with any failed logs
-      if (failedLogs.length > 0) {
-        localStorage.setItem('offline_security_events', JSON.stringify(failedLogs));
-        console.warn(`${failedLogs.length} logs failed to sync and remain in localStorage`);
+      });
+
+      const results = await Promise.all(promises);
+      successCount += results.filter(Boolean).length;
+    }
+
+    console.log(`Successfully synced ${successCount}/${offlineLogs.length} offline security logs`);
+
+    // Remove synced logs
+    if (successCount > 0) {
+      if (successCount === offlineLogs.length) {
+        localStorage.removeItem('offlineSecurityLogs');
       } else {
-        // All logs synced successfully, clear localStorage
-        localStorage.removeItem('offline_security_events');
-        console.log('All offline logs synced successfully');
+        // Keep only the failed logs
+        const remainingLogs = offlineLogs.slice(successCount);
+        localStorage.setItem('offlineSecurityLogs', JSON.stringify(remainingLogs));
       }
-    } catch (syncError) {
-      console.error('Error syncing offline security logs:', syncError);
     }
   } catch (error) {
-    console.error('Exception in syncOfflineSecurityLogs:', error);
+    console.error('Error syncing offline security logs:', error);
   }
 };
 
@@ -278,26 +293,96 @@ export const getUserSecurityEvents = async (
   limit = 50
 ): Promise<SecurityEvent[]> => {
   try {
-    const { data, error } = await supabase
-      .from('security_audit_log')
-      .select('*')
-      .eq('user_id', userId)
-      .order('timestamp', { ascending: false })
-      .limit(limit);
+    // Get the current session to ensure we have a valid token
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (error) {
-      throw error;
+    if (sessionError) {
+      console.error('Error getting session for security event retrieval:', sessionError);
+      return [];
     }
     
-    return data.map((event) => ({
-      eventType: event.event_type as SecurityEventType,
-      userId: event.user_id,
-      ipAddress: event.ip_address,
-      userAgent: event.user_agent,
-      details: event.details,
-      severity: event.severity as 'low' | 'medium' | 'high' | 'critical',
-      timestamp: event.timestamp
-    }));
+    if (!session || !session.access_token) {
+      console.warn('No active session or access token found for security event retrieval');
+      return [];
+    }
+    
+    // Use a direct fetch call with explicit headers
+    try {
+      const response = await fetch(
+        `${supabase.supabaseUrl}/rest/v1/security_audit_log?user_id=eq.${encodeURIComponent(userId)}&order=created_at.desc&limit=${limit}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabase.supabaseKey,
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        console.warn(`Error fetching security events: ${response.status} ${response.statusText}`);
+        
+        // Try with the Supabase client as a fallback
+        const { data, error } = await supabase
+          .from('security_audit_log')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        
+        if (error) {
+          console.error('Error fetching user security events via Supabase client:', error);
+          return [];
+        }
+        
+        return data.map((event) => ({
+          eventType: event.event_type as SecurityEventType,
+          userId: event.user_id,
+          ipAddress: event.ip_address,
+          userAgent: event.user_agent,
+          details: event.details,
+          severity: event.severity as 'low' | 'medium' | 'high' | 'critical',
+          timestamp: event.created_at
+        }));
+      }
+      
+      const data = await response.json();
+      return data.map((event: any) => ({
+        eventType: event.event_type as SecurityEventType,
+        userId: event.user_id,
+        ipAddress: event.ip_address,
+        userAgent: event.user_agent,
+        details: event.details,
+        severity: event.severity as 'low' | 'medium' | 'high' | 'critical',
+        timestamp: event.created_at
+      }));
+    } catch (fetchError) {
+      console.error('Error fetching security events via direct fetch:', fetchError);
+      
+      // Try with the Supabase client as a fallback
+      const { data, error } = await supabase
+        .from('security_audit_log')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) {
+        console.error('Error fetching user security events via Supabase client:', error);
+        return [];
+      }
+      
+      return data.map((event) => ({
+        eventType: event.event_type as SecurityEventType,
+        userId: event.user_id,
+        ipAddress: event.ip_address,
+        userAgent: event.user_agent,
+        details: event.details,
+        severity: event.severity as 'low' | 'medium' | 'high' | 'critical',
+        timestamp: event.created_at
+      }));
+    }
   } catch (error) {
     console.error('Error fetching user security events:', error);
     return [];
@@ -315,40 +400,136 @@ export const getAllSecurityEvents = async (
   limit = 100
 ): Promise<SecurityEvent[]> => {
   try {
-    let query = supabase
-      .from('security_audit_log')
-      .select('*')
-      .order('timestamp', { ascending: false })
-      .limit(limit);
+    // Get the current session to ensure we have a valid token
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    // Apply filters if provided
+    if (sessionError) {
+      console.error('Error getting session for security event retrieval:', sessionError);
+      return [];
+    }
+    
+    if (!session || !session.access_token) {
+      console.warn('No active session or access token found for security event retrieval');
+      return [];
+    }
+    
+    // Build the query string for filters
+    let queryParams = `order=created_at.desc&limit=${limit}`;
     if (filters?.eventType) {
-      query = query.eq('event_type', filters.eventType);
+      queryParams += `&event_type=eq.${encodeURIComponent(filters.eventType)}`;
     }
-    
     if (filters?.userId) {
-      query = query.eq('user_id', filters.userId);
+      queryParams += `&user_id=eq.${encodeURIComponent(filters.userId)}`;
     }
-    
     if (filters?.severity) {
-      query = query.eq('severity', filters.severity);
+      queryParams += `&severity=eq.${encodeURIComponent(filters.severity)}`;
     }
     
-    const { data, error } = await query;
-    
-    if (error) {
-      throw error;
+    // Use a direct fetch call with explicit headers
+    try {
+      const response = await fetch(
+        `${supabase.supabaseUrl}/rest/v1/security_audit_log?${queryParams}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabase.supabaseKey,
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        }
+      );
+      
+      if (!response.ok) {
+        console.warn(`Error fetching security events: ${response.status} ${response.statusText}`);
+        
+        // Try with the Supabase client as a fallback
+        let query = supabase
+          .from('security_audit_log')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(limit);
+        
+        // Apply filters if provided
+        if (filters?.eventType) {
+          query = query.eq('event_type', filters.eventType);
+        }
+        
+        if (filters?.userId) {
+          query = query.eq('user_id', filters.userId);
+        }
+        
+        if (filters?.severity) {
+          query = query.eq('severity', filters.severity);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Error fetching security events via Supabase client:', error);
+          return [];
+        }
+        
+        return data.map((event) => ({
+          eventType: event.event_type as SecurityEventType,
+          userId: event.user_id,
+          ipAddress: event.ip_address,
+          userAgent: event.user_agent,
+          details: event.details,
+          severity: event.severity as 'low' | 'medium' | 'high' | 'critical',
+          timestamp: event.created_at
+        }));
+      }
+      
+      const data = await response.json();
+      return data.map((event: any) => ({
+        eventType: event.event_type as SecurityEventType,
+        userId: event.user_id,
+        ipAddress: event.ip_address,
+        userAgent: event.user_agent,
+        details: event.details,
+        severity: event.severity as 'low' | 'medium' | 'high' | 'critical',
+        timestamp: event.created_at
+      }));
+    } catch (fetchError) {
+      console.error('Error fetching security events via direct fetch:', fetchError);
+      
+      // Try with the Supabase client as a fallback
+      let query = supabase
+        .from('security_audit_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      // Apply filters if provided
+      if (filters?.eventType) {
+        query = query.eq('event_type', filters.eventType);
+      }
+      
+      if (filters?.userId) {
+        query = query.eq('user_id', filters.userId);
+      }
+      
+      if (filters?.severity) {
+        query = query.eq('severity', filters.severity);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Error fetching security events via Supabase client:', error);
+        return [];
+      }
+      
+      return data.map((event) => ({
+        eventType: event.event_type as SecurityEventType,
+        userId: event.user_id,
+        ipAddress: event.ip_address,
+        userAgent: event.user_agent,
+        details: event.details,
+        severity: event.severity as 'low' | 'medium' | 'high' | 'critical',
+        timestamp: event.created_at
+      }));
     }
-    
-    return data.map((event) => ({
-      eventType: event.event_type as SecurityEventType,
-      userId: event.user_id,
-      ipAddress: event.ip_address,
-      userAgent: event.user_agent,
-      details: event.details,
-      severity: event.severity as 'low' | 'medium' | 'high' | 'critical',
-      timestamp: event.timestamp
-    }));
   } catch (error) {
     console.error('Error fetching security events:', error);
     return [];
@@ -576,9 +757,9 @@ export const createSecurityAuditLogTable = async (hasSqlFunction: boolean): Prom
         -- Insert policy
         IF NOT EXISTS (
           SELECT 1 FROM pg_policies 
-          WHERE tablename = 'security_audit_log' AND policyname = 'insert_security_logs'
+          WHERE tablename = 'security_audit_log' AND policyname = 'insert_security_audit_logs'
         ) THEN
-          CREATE POLICY insert_security_logs ON public.security_audit_log
+          CREATE POLICY insert_security_audit_logs ON public.security_audit_log
             FOR INSERT WITH CHECK (true);
         END IF;
       END
@@ -624,7 +805,7 @@ export const createSecurityAuditLogTable = async (hasSqlFunction: boolean): Prom
         console.log('Security audit log table setup completed successfully using security_execute_sql');
       }
     } catch (error) {
-      console.error('Exception executing SQL for security audit table:', error);
+      console.error('Exception executing SQL for security audit log table:', error);
       displaySetupInstructions();
     }
   } catch (error) {
@@ -730,7 +911,7 @@ CREATE POLICY user_read_own_security_logs ON public.security_audit_log
     );
 
 -- Create a policy that allows insertion of logs
-CREATE POLICY insert_security_logs ON public.security_audit_log
+CREATE POLICY insert_security_audit_logs ON public.security_audit_log
     FOR INSERT WITH CHECK (true);
   `;
 };
@@ -904,4 +1085,29 @@ export const createSecurityAuditFunctions = async (): Promise<boolean> => {
     console.error('Error generating SQL for security audit functions:', error);
     return false;
   }
+};
+
+/**
+ * Create a security event with default values
+ * @param eventType - The type of security event
+ * @param details - Additional details about the event
+ * @param severity - The severity level of the event
+ * @param userId - The user ID associated with the event
+ * @returns A SecurityEvent object with default values filled in
+ */
+export const createSecurityEvent = (
+  eventType: SecurityEventType,
+  details: string | Record<string, unknown>,
+  severity: 'low' | 'medium' | 'high' | 'critical' = 'low',
+  userId?: string
+): SecurityEvent => {
+  return {
+    eventType,
+    details: typeof details === 'string' ? details : JSON.stringify(details),
+    severity,
+    userId,
+    timestamp: new Date().toISOString(),
+    ipAddress: null,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'server'
+  };
 }; 

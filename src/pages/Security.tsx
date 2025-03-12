@@ -1,10 +1,24 @@
 import { motion } from 'framer-motion';
 import { Shield, Lock, FileCheck, Eye, Server, Key, RefreshCcw, AlertTriangle } from 'lucide-react';
+import { Layout } from '@/components/layout/Layout';
+import Head from 'next/head';
 
 export default function Security() {
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white py-20 relative">
-      <div className="container mx-auto px-4 relative">
+    <Layout 
+      title="Security - Smart Debt Flow" 
+      description="Learn about how Smart Debt Flow protects your financial data and personal information."
+    >
+      <Head>
+        <meta property="og:title" content="Security - Smart Debt Flow" />
+        <meta
+          property="og:description"
+          content="Learn about our security practices and how we protect your financial data."
+        />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://smartdebtflow.com/security" />
+      </Head>
+      <div className="container mx-auto px-4 py-12 relative">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -12,11 +26,11 @@ export default function Security() {
           className="text-center max-w-4xl mx-auto mb-16"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               Security Measures
             </span>
           </h1>
-          <p className="text-xl text-gray-300">
+          <p className="text-xl text-muted-foreground">
             How we protect your financial data and personal information
           </p>
         </motion.div>
@@ -176,6 +190,6 @@ export default function Security() {
           </div>
         </motion.div>
       </div>
-    </div>
+    </Layout>
   );
 } 

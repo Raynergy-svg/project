@@ -8,8 +8,6 @@ import { Metadata } from 'next';
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import '../styles/globals.css';
-import { AuthAdapter } from '@/contexts/auth-adapter';
-import { NextAuthProvider } from '@/contexts/next-auth-context';
 import { SecurityProvider } from "@/contexts/SecurityContext";
 import { DeviceProvider } from "@/contexts/DeviceContext";
 import ThemeProvider from '@/components/ThemeProvider';
@@ -17,6 +15,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { CookieConsent } from "@/components/CookieConsent";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Inter, Poppins } from 'next/font/google';
+import { AuthProvider } from '@/components/AuthProvider';
 
 // Load fonts properly
 const inter = Inter({
@@ -97,28 +96,20 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link
-          rel="preload"
-          href="/fonts/inter-var.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
+        {/* Removed the preload link for inter-var.woff2 as it's not being used */}
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans`}>
         <ErrorBoundary>
           <ThemeProvider defaultTheme="system" storageKey="smartdebtflow-theme">
-            <NextAuthProvider>
-              <AuthAdapter>
-                <SecurityProvider>
-                  <DeviceProvider>
-                    {children}
-                    <Toaster position="top-right" />
-                    <CookieConsent />
-                  </DeviceProvider>
-                </SecurityProvider>
-              </AuthAdapter>
-            </NextAuthProvider>
+            <AuthProvider>
+              <SecurityProvider>
+                <DeviceProvider>
+                  {children}
+                  <Toaster position="top-right" />
+                  <CookieConsent />
+                </DeviceProvider>
+              </SecurityProvider>
+            </AuthProvider>
           </ThemeProvider>
         </ErrorBoundary>
         <Analytics />

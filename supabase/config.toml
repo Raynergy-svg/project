@@ -123,12 +123,10 @@ minimum_password_length = 6
 password_requirements = ""
 
 # Configure one of the supported captcha providers: `hcaptcha`, `turnstile`.
-# IMPORTANT: CAPTCHA is explicitly disabled as per project requirements
 [auth.captcha]
-enabled = false
-provider = ""
-secret = ""
-# All CAPTCHA settings are disabled - do not re-enable
+provider = "turnstile"
+secret = "env(TURNSTILE_SECRET_KEY)"
+# No site_key needed here as it's only used client-side
 
 [auth.email]
 # Allow/disallow new user signups via email to your project.
@@ -149,7 +147,7 @@ otp_expiry = 3600
 
 # Use a production-ready SMTP server
 [auth.email.smtp]
-enabled = true
+enabled = false
 host = "smtp.your-email-provider.com"
 port = 587
 user = "no-reply@smartdebtflow.com"

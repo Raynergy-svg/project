@@ -18,11 +18,12 @@ interface ThemeContextValue {
   systemTheme: "dark" | "light";
 }
 
+// Initialize with safe default values
 const initialState: ThemeContextValue = {
   theme: "system",
   setTheme: () => null,
   isDark: false,
-  systemTheme: "light",
+  systemTheme: "light"
 };
 
 const ThemeContext = createContext<ThemeContextValue>(initialState);
@@ -82,7 +83,7 @@ export function ThemeProvider({
     theme,
     setTheme,
     isDark,
-    systemTheme,
+    systemTheme
   };
   
   return (

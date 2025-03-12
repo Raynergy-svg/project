@@ -1,190 +1,165 @@
-import React, { useEffect, useRef, useState } from 'react';
+'use client';
 
-type TurnstileProps = {
+import React, { useEffect, useRef, useState } from 'react';
+import { TURNSTILE_SITE_KEY, isTurnstileDisabled, generateBypassToken } from '@/utils/turnstile';
+import { IS_DEV } from '@/utils/environment';
+
+interface TurnstileCaptchaProps {
   onVerify: (token: string) => void;
-  onError?: () => void;
-  action?: string;
+  onError?: (error: Error) => void;
+  onExpire?: () => void;
   className?: string;
   theme?: 'light' | 'dark' | 'auto';
   size?: 'normal' | 'compact';
-  tabIndex?: number;
-  cData?: string;
-  execution?: 'render' | 'execute';
-};
-
-declare global {
-  interface Window {
-    turnstile?: {
-      render: (container: string | HTMLElement, options: any) => string;
-      reset: (widgetId: string) => void;
-      remove: (widgetId: string) => void;
-      getResponse: (widgetId: string) => string | undefined;
-      execute: (widgetId?: string) => void;
-      ready: (callback: () => void) => void;
-    };
-  }
 }
 
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || 
-                          window.__TURNSTILE_SITE_KEY__ || 
-                          '0x4AAAAAAAK5LpjT0Jzv4jzl';
-
-const TurnstileCaptcha: React.FC<TurnstileProps> = ({ 
-  onVerify, 
-  onError, 
-  action = 'login', 
+/**
+ * Turnstile Captcha Component
+ * 
+ * This component renders a Cloudflare Turnstile captcha widget
+ * and handles verification callbacks.
+ */
+export default function TurnstileCaptcha({
+  onVerify,
+  onError,
+  onExpire,
   className = '',
   theme = 'auto',
-  size = 'normal',
-  tabIndex = 0,
-  cData,
-  execution = 'render'
-}) => {
-  const [widgetId, setWidgetId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  size = 'normal'
+}: TurnstileCaptchaProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [widgetId, setWidgetId] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isRendered, setIsRendered] = useState(false);
 
+  // Load the Turnstile script
   useEffect(() => {
-    // Check if site key is defined
-    if (!TURNSTILE_SITE_KEY) {
-      console.error('Turnstile site key is not defined');
-      setError('Turnstile configuration error');
-      setIsLoading(false);
-      if (onError) onError();
+    // Skip in development mode if needed
+    if (IS_DEV && isTurnstileDisabled()) {
+      // In development, we can bypass the captcha
+      const bypassToken = generateBypassToken();
+      console.log('🔑 CAPTCHA: Using bypass token in development mode', bypassToken);
+      setTimeout(() => {
+        onVerify(bypassToken);
+      }, 500);
+      return;
+    }
+    
+    // Check if script is already loaded
+    if (typeof window !== 'undefined' && window.turnstile) {
+      setIsLoaded(true);
       return;
     }
 
-    // Check if Turnstile script is loaded
-    const isTurnstileLoaded = () => {
-      return typeof window.turnstile !== 'undefined';
+    // Load the script
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+    script.async = true;
+    script.defer = true;
+    
+    script.onload = () => {
+      setIsLoaded(true);
     };
-
-    // Function to render the widget
-    const renderWidget = () => {
-      if (!containerRef.current || !isTurnstileLoaded()) return;
-      
-      try {
-        // Clear previous widget if it exists
-        if (widgetId) {
-          window.turnstile?.remove(widgetId);
-        }
-        
-        // Render the widget
-        const newWidgetId = window.turnstile?.render(containerRef.current, {
-          sitekey: TURNSTILE_SITE_KEY,
-          callback: (token: string) => {
-            // Called when challenge is successfully solved
-            console.log('Turnstile verification successful');
-            setError(null);
-            onVerify(token);
-          },
-          'error-callback': () => {
-            // Called when there's an error (e.g., network error or challenge failure)
-            console.error('Turnstile verification failed');
-            setError('Verification failed. Please try again.');
-            if (onError) onError();
-          },
-          'expired-callback': () => {
-            // Called when the token expires
-            console.warn('Turnstile token expired');
-            setError('Verification expired. Please try again.');
-            if (onError) onError();
-          },
-          'timeout-callback': () => {
-            console.warn('Turnstile verification timed out');
-            setError('Verification timed out. Please try again.');
-            if (onError) onError();
-          },
-          'unsupported-callback': () => {
-            console.error('Turnstile not supported in this browser');
-            setError('Verification not supported in this browser.');
-            if (onError) onError();
-          },
-          theme,
-          size,
-          tabindex: tabIndex,
-          action,
-          cData,
-          execution,
-        });
-        
-        if (newWidgetId) {
-          setWidgetId(newWidgetId);
-        }
-      } catch (err) {
-        console.error('Error rendering Turnstile widget:', err);
-        setError('Failed to load verification. Please refresh the page.');
-        if (onError) onError();
-      } finally {
-        setIsLoading(false);
+    
+    script.onerror = (error) => {
+      console.error('Failed to load Turnstile script:', error);
+      if (onError) {
+        onError(new Error('Failed to load Turnstile script'));
       }
     };
-
-    // Check if Turnstile is already loaded
-    if (isTurnstileLoaded()) {
-      window.turnstile?.ready(() => {
-        renderWidget();
-      });
-    } else {
-      // Wait for Turnstile to load
-      const checkInterval = setInterval(() => {
-        if (isTurnstileLoaded()) {
-          clearInterval(checkInterval);
-          window.turnstile?.ready(() => {
-            renderWidget();
-          });
-        }
-      }, 100);
-
-      // Set a timeout to stop checking after 10 seconds
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        if (!isTurnstileLoaded()) {
-          console.error('Turnstile script failed to load within timeout');
-          setError('Verification service unavailable. Please refresh the page.');
-          setIsLoading(false);
-          if (onError) onError();
-        }
-      }, 10000);
-    }
-
-    // Cleanup function
+    
+    document.head.appendChild(script);
+    
     return () => {
+      // Cleanup widget if it exists
       if (widgetId && window.turnstile) {
         window.turnstile.remove(widgetId);
       }
     };
-  }, [onVerify, onError, action, theme, size, tabIndex, cData, execution]);
+  }, [onError, onVerify]);
 
-  // Handle manual execution if needed
-  const executeCaptcha = () => {
-    if (execution === 'execute' && widgetId) {
-      window.turnstile?.execute(widgetId);
+  // Render the widget when the script is loaded
+  useEffect(() => {
+    if (!isLoaded || !containerRef.current || isRendered || (IS_DEV && isTurnstileDisabled())) {
+      return;
+    }
+    
+    try {
+      const id = window.turnstile.render(containerRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme,
+        size,
+        callback: (token: string) => {
+          onVerify(token);
+        },
+        'expired-callback': () => {
+          if (onExpire) {
+            onExpire();
+          }
+        },
+        'error-callback': (error: any) => {
+          console.error('Turnstile error:', error);
+          if (onError) {
+            onError(new Error('Turnstile verification failed'));
+          }
+        }
+      });
+      
+      setWidgetId(id);
+      setIsRendered(true);
+    } catch (error) {
+      console.error('Error rendering Turnstile widget:', error);
+      if (onError) {
+        onError(error instanceof Error ? error : new Error('Failed to render Turnstile widget'));
+      }
+    }
+  }, [isLoaded, isRendered, onError, onExpire, onVerify, size, theme]);
+
+  // Reset the widget
+  const reset = () => {
+    if (widgetId && window.turnstile) {
+      window.turnstile.reset(widgetId);
     }
   };
 
-  return (
-    <div className={`turnstile-container ${className}`} data-testid="turnstile-container">
-      {isLoading && <div className="turnstile-loading">Loading verification...</div>}
-      {error && <div className="turnstile-error">{error}</div>}
-      <div 
-        ref={containerRef} 
-        className="turnstile-widget"
-        data-action={action}
-      />
-      {execution === 'execute' && (
-        <button 
-          type="button" 
-          onClick={executeCaptcha}
-          className="hidden-execute-button"
-          style={{ display: 'none' }}
-        >
-          Execute Captcha
-        </button>
-      )}
-    </div>
+  // Expose the reset method
+  React.useImperativeHandle(
+    React.forwardRef((props, ref) => ref),
+    () => ({
+      reset
+    })
   );
-};
 
-export default TurnstileCaptcha; 
+  return (
+    <div 
+      id="turnstile-container" 
+      ref={containerRef} 
+      className={className}
+      data-theme={theme}
+      data-size={size}
+    />
+  );
+}
+
+// Add TypeScript support for the Turnstile global object
+declare global {
+  interface Window {
+    turnstile: {
+      render: (
+        container: HTMLElement | string,
+        options: {
+          sitekey: string;
+          theme?: 'light' | 'dark' | 'auto';
+          size?: 'normal' | 'compact';
+          callback: (token: string) => void;
+          'expired-callback'?: () => void;
+          'error-callback'?: (error: any) => void;
+          [key: string]: any;
+        }
+      ) => string;
+      reset: (widgetId: string) => void;
+      remove: (widgetId: string) => void;
+      getResponse: (widgetId: string) => string | undefined;
+    };
+  }
+} 

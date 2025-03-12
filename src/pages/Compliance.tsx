@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { Shield, Lock, FileCheck, CheckCircle, Clock, Globe, Server, ClipboardList, HelpCircle, Book, Users } from 'lucide-react';
+import { Layout } from '@/components/layout/Layout';
+import Head from 'next/head';
 
 export default function Compliance() {
   const certifications = [
@@ -219,236 +221,241 @@ export default function Compliance() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white py-20 relative">
-      <div className="container mx-auto px-4 relative">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-4xl mx-auto mb-16"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            <span className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
-              Security & Compliance
-            </span>
-          </h1>
-          <p className="text-xl text-gray-300">
-            Our commitment to protecting your data through industry-leading security standards
-          </p>
-        </motion.div>
-
-        {/* Certifications */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">Security Certifications</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {certifications.map((cert) => (
-              <div
-                key={cert.title}
-                className="bg-white/5 rounded-xl border border-white/10 p-6"
-              >
-                <Shield className="w-8 h-8 text-[#88B04B] mb-4" />
-                <h3 className="text-lg font-bold mb-2">{cert.title}</h3>
-                <p className="text-gray-300 text-sm mb-4">{cert.description}</p>
-                <div className="flex items-center gap-2 text-sm text-[#88B04B]">
-                  <Clock className="w-4 h-4" />
-                  <span>Valid until: {cert.validUntil}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Security Measures */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">Security Measures</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {securityMeasures.map((measure) => (
-              <div
-                key={measure.title}
-                className="bg-white/5 rounded-xl border border-white/10 p-6"
-              >
-                <Lock className="w-8 h-8 text-[#88B04B] mb-4" />
-                <h3 className="text-lg font-bold mb-4">{measure.title}</h3>
-                <ul className="space-y-3">
-                  {measure.measures.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-gray-300">
-                      <CheckCircle className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Data Privacy Policies */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">Data Privacy Policies</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {dataPrivacyPolicies.map((policy) => (
-              <div
-                key={policy.title}
-                className="bg-white/5 rounded-xl border border-white/10 p-6"
-              >
-                <Server className="w-8 h-8 text-[#88B04B] mb-4" />
-                <h3 className="text-lg font-bold mb-2">{policy.title}</h3>
-                <p className="text-gray-300 text-sm">{policy.description}</p>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* International Compliance Standards */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">International Compliance Standards</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {internationalStandards.map((region) => (
-              <div
-                key={region.region}
-                className="bg-white/5 rounded-xl border border-white/10 p-6"
-              >
-                <Globe className="w-8 h-8 text-[#88B04B] mb-4" />
-                <h3 className="text-lg font-bold mb-4">{region.region}</h3>
-                <ul className="space-y-3">
-                  {region.standards.map((standard) => (
-                    <li key={standard} className="flex items-start gap-2 text-gray-300">
-                      <CheckCircle className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5" />
-                      <span>{standard}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Compliance Auditing Process */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">Compliance Auditing Process</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            {auditProcess.map((stage) => (
-              <div
-                key={stage.stage}
-                className="bg-white/5 rounded-xl border border-white/10 p-6"
-              >
-                <ClipboardList className="w-8 h-8 text-[#88B04B] mb-4" />
-                <h3 className="text-lg font-bold mb-4">{stage.stage}</h3>
-                <ul className="space-y-3">
-                  {stage.activities.map((activity) => (
-                    <li key={activity} className="flex items-start gap-2 text-gray-300">
-                      <CheckCircle className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5" />
-                      <span>{activity}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Recent Updates */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">Recent Compliance Updates</h2>
-          <div className="space-y-6">
-            {complianceUpdates.map((update) => (
-              <div
-                key={update.title}
-                className="bg-white/5 rounded-xl border border-white/10 p-6"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <FileCheck className="w-6 h-6 text-[#88B04B]" />
-                    <div>
-                      <h3 className="font-bold">{update.title}</h3>
-                      <span className="text-sm text-gray-400">{update.date}</span>
-                    </div>
-                  </div>
-                  <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
-                    {update.status}
-                  </span>
-                </div>
-                <p className="text-gray-300">{update.description}</p>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* FAQs */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-16"
-        >
-          <h2 className="text-2xl font-bold mb-8">Frequently Asked Questions</h2>
-          <div className="space-y-6">
-            {faqs.map((faq, index) => (
-              <div
-                key={index}
-                className="bg-white/5 rounded-xl border border-white/10 p-6"
-              >
-                <div className="flex items-start gap-3 mb-4">
-                  <HelpCircle className="w-6 h-6 text-[#88B04B] flex-shrink-0 mt-1" />
-                  <h3 className="font-bold text-lg">{faq.question}</h3>
-                </div>
-                <p className="text-gray-300 pl-9">{faq.answer}</p>
-              </div>
-            ))}
-          </div>
-        </motion.section>
-
-        {/* Compliance Contact */}
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="bg-white/5 rounded-xl border border-white/10 p-8 text-center">
-            <Users className="w-12 h-12 text-[#88B04B] mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-4">Have Compliance Questions?</h2>
-            <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-              Our dedicated compliance and data protection team is available to address any questions or concerns you may have about our security practices or regulatory compliance.
+    <Layout>
+      <Head>
+        <title>Security & Compliance</title>
+      </Head>
+      <div className="min-h-screen bg-[#0A0A0A] text-white py-20 relative">
+        <div className="container mx-auto px-4 relative">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-4xl mx-auto mb-16"
+          >
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] bg-clip-text text-transparent">
+                Security & Compliance
+              </span>
+            </h1>
+            <p className="text-xl text-gray-300">
+              Our commitment to protecting your data through industry-leading security standards
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a 
-                href="/support?department=compliance" 
-                className="inline-block px-6 py-3 bg-[#88B04B] text-white font-medium rounded-lg hover:bg-[#6A9A2D] transition-colors"
-              >
-                Contact Compliance Team
-              </a>
-              <a 
-                href="tel:+18005551212" 
-                className="inline-block px-6 py-3 bg-white/10 text-white font-medium rounded-lg hover:bg-white/20 transition-colors"
-              >
-                Call Compliance Hotline
-              </a>
+          </motion.div>
+
+          {/* Certifications */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-16"
+          >
+            <h2 className="text-2xl font-bold mb-8">Security Certifications</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {certifications.map((cert) => (
+                <div
+                  key={cert.title}
+                  className="bg-white/5 rounded-xl border border-white/10 p-6"
+                >
+                  <Shield className="w-8 h-8 text-[#88B04B] mb-4" />
+                  <h3 className="text-lg font-bold mb-2">{cert.title}</h3>
+                  <p className="text-gray-300 text-sm mb-4">{cert.description}</p>
+                  <div className="flex items-center gap-2 text-sm text-[#88B04B]">
+                    <Clock className="w-4 h-4" />
+                    <span>Valid until: {cert.validUntil}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        </motion.section>
+          </motion.section>
+
+          {/* Security Measures */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-16"
+          >
+            <h2 className="text-2xl font-bold mb-8">Security Measures</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {securityMeasures.map((measure) => (
+                <div
+                  key={measure.title}
+                  className="bg-white/5 rounded-xl border border-white/10 p-6"
+                >
+                  <Lock className="w-8 h-8 text-[#88B04B] mb-4" />
+                  <h3 className="text-lg font-bold mb-4">{measure.title}</h3>
+                  <ul className="space-y-3">
+                    {measure.measures.map((item) => (
+                      <li key={item} className="flex items-start gap-2 text-gray-300">
+                        <CheckCircle className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* Data Privacy Policies */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-16"
+          >
+            <h2 className="text-2xl font-bold mb-8">Data Privacy Policies</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dataPrivacyPolicies.map((policy) => (
+                <div
+                  key={policy.title}
+                  className="bg-white/5 rounded-xl border border-white/10 p-6"
+                >
+                  <Server className="w-8 h-8 text-[#88B04B] mb-4" />
+                  <h3 className="text-lg font-bold mb-2">{policy.title}</h3>
+                  <p className="text-gray-300 text-sm">{policy.description}</p>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* International Compliance Standards */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-16"
+          >
+            <h2 className="text-2xl font-bold mb-8">International Compliance Standards</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {internationalStandards.map((region) => (
+                <div
+                  key={region.region}
+                  className="bg-white/5 rounded-xl border border-white/10 p-6"
+                >
+                  <Globe className="w-8 h-8 text-[#88B04B] mb-4" />
+                  <h3 className="text-lg font-bold mb-4">{region.region}</h3>
+                  <ul className="space-y-3">
+                    {region.standards.map((standard) => (
+                      <li key={standard} className="flex items-start gap-2 text-gray-300">
+                        <CheckCircle className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5" />
+                        <span>{standard}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* Compliance Auditing Process */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-16"
+          >
+            <h2 className="text-2xl font-bold mb-8">Compliance Auditing Process</h2>
+            <div className="grid md:grid-cols-4 gap-6">
+              {auditProcess.map((stage) => (
+                <div
+                  key={stage.stage}
+                  className="bg-white/5 rounded-xl border border-white/10 p-6"
+                >
+                  <ClipboardList className="w-8 h-8 text-[#88B04B] mb-4" />
+                  <h3 className="text-lg font-bold mb-4">{stage.stage}</h3>
+                  <ul className="space-y-3">
+                    {stage.activities.map((activity) => (
+                      <li key={activity} className="flex items-start gap-2 text-gray-300">
+                        <CheckCircle className="w-5 h-5 text-[#88B04B] flex-shrink-0 mt-0.5" />
+                        <span>{activity}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* Recent Updates */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-16"
+          >
+            <h2 className="text-2xl font-bold mb-8">Recent Compliance Updates</h2>
+            <div className="space-y-6">
+              {complianceUpdates.map((update) => (
+                <div
+                  key={update.title}
+                  className="bg-white/5 rounded-xl border border-white/10 p-6"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <FileCheck className="w-6 h-6 text-[#88B04B]" />
+                      <div>
+                        <h3 className="font-bold">{update.title}</h3>
+                        <span className="text-sm text-gray-400">{update.date}</span>
+                      </div>
+                    </div>
+                    <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">
+                      {update.status}
+                    </span>
+                  </div>
+                  <p className="text-gray-300">{update.description}</p>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* FAQs */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-16"
+          >
+            <h2 className="text-2xl font-bold mb-8">Frequently Asked Questions</h2>
+            <div className="space-y-6">
+              {faqs.map((faq, index) => (
+                <div
+                  key={index}
+                  className="bg-white/5 rounded-xl border border-white/10 p-6"
+                >
+                  <div className="flex items-start gap-3 mb-4">
+                    <HelpCircle className="w-6 h-6 text-[#88B04B] flex-shrink-0 mt-1" />
+                    <h3 className="font-bold text-lg">{faq.question}</h3>
+                  </div>
+                  <p className="text-gray-300 pl-9">{faq.answer}</p>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+
+          {/* Compliance Contact */}
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="bg-white/5 rounded-xl border border-white/10 p-8 text-center">
+              <Users className="w-12 h-12 text-[#88B04B] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-4">Have Compliance Questions?</h2>
+              <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
+                Our dedicated compliance and data protection team is available to address any questions or concerns you may have about our security practices or regulatory compliance.
+              </p>
+              <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <a 
+                  href="/support?department=compliance" 
+                  className="inline-block px-6 py-3 bg-[#88B04B] text-white font-medium rounded-lg hover:bg-[#6A9A2D] transition-colors"
+                >
+                  Contact Compliance Team
+                </a>
+                <a 
+                  href="tel:+18005551212" 
+                  className="inline-block px-6 py-3 bg-white/10 text-white font-medium rounded-lg hover:bg-white/20 transition-colors"
+                >
+                  Call Compliance Hotline
+                </a>
+              </div>
+            </div>
+          </motion.section>
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 } 

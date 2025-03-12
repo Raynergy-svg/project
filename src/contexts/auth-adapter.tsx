@@ -1,10 +1,23 @@
+/**
+ * @deprecated This file is deprecated and will be removed in a future version.
+ * Use the consolidated auth system in src/contexts/AuthContext.tsx and src/utils/auth.ts instead.
+ */
 'use client';
 
-import React, { createContext, useContext } from 'react';
-import { useNextAuth } from './next-auth-context';
+/**
+ * This file is a compatibility adapter to maintain backward compatibility
+ * with components that still expect the original AuthContext.
+ * 
+ * New code should import directly from src/contexts/AuthContext.tsx instead.
+ */
 
-// Define the shape of the original AuthContext
-// This should match your original AuthContext type
+import React from 'react';
+import { useAuth as useAuthOriginal, AuthProvider, UserProfile } from './AuthContext';
+
+// Re-export the useAuth hook for backward compatibility
+export { useAuth } from './AuthContext';
+
+// Define the shape of the original AuthContext to maintain compatibility
 interface User {
   id: string;
   name?: string;
@@ -34,69 +47,65 @@ interface AuthContextType {
   updateUser: (data: Partial<User>) => void;
 }
 
-// Create a context with an undefined default value
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Export the provider that will adapt NextAuthContext to AuthContext
+// Export the adapter that will adapt NextAuthContext to AuthContext
 export function AuthAdapter({ children }: { children: React.ReactNode }) {
-  // Use the Next.js auth context
-  const nextAuth = useNextAuth();
+  // Use our consolidated auth context
+  const auth = useAuthOriginal();
   
-  // Map NextAuth to the original AuthContext interface
-  const adaptedAuth: AuthContextType = {
-    user: nextAuth.user,
-    isLoading: nextAuth.isLoading,
-    isAuthenticated: nextAuth.isAuthenticated,
-    isSubscribed: nextAuth.isSubscribed,
-    subscriptionStatus: nextAuth.user?.subscription?.status || 'free',
-    subscriptionPlan: nextAuth.user?.subscription?.planName,
-    subscriptionEndDate: nextAuth.user?.subscription?.currentPeriodEnd,
-    
-    // Adapt the login function
-    login: async (email, password) => {
-      const result = await nextAuth.login(email, password);
-      return { user: result.user, error: result.error };
-    },
-    
-    // Adapt the logout function
-    logout: nextAuth.logout,
-    
-    // Adapt the signup function
-    signup: async (data) => {
-      const result = await nextAuth.signup(data.email, data.password, data.name);
-      return { 
-        user: result.user, 
-        error: result.error,
-        needsEmailConfirmation: false // Set based on your requirements
-      };
-    },
-    
-    // Stub for resendConfirmationEmail
-    resendConfirmationEmail: async (email) => {
-      console.log('Resend confirmation email not implemented in adapter', email);
-    },
-    
-    // Stub for updateUser - would need to implement this properly
-    updateUser: (data) => {
-      console.log('Update user not implemented in adapter', data);
-    }
+  // Extra properties needed by the legacy interface
+  const subscriptionStatus = auth.user?.subscription?.status || 'free';
+  const subscriptionPlan = auth.user?.subscription?.planName;
+  const subscriptionEndDate = auth.user?.subscription?.currentPeriodEnd;
+  
+  // Legacy functions
+  const resendConfirmationEmail = async (email: string) => {
+    console.warn('resendConfirmationEmail is deprecated. Use the reset password flow instead.');
+    return Promise.resolve();
   };
-
-  // Return the original AuthContext provider with our adapted values
+  
+  const updateUser = (data: Partial<User>) => {
+    console.warn('updateUser through context is deprecated. Use the API or Supabase client directly.');
+  };
+  
+  // Adapt the login function to match legacy signature
+  const adaptedLogin = async (email: string, password: string, options?: Record<string, any>) => {
+    const result = await auth.login(email, password, options);
+    return { 
+      success: result.success,
+      error: result.error || null,
+      user: result.success ? auth.user : null
+    };
+  };
+  
+  // Adapt the signup function to match legacy signature
+  const adaptedSignup = async (data: { email: string; password: string; name?: string }) => {
+    const result = await auth.signup(data.email, data.password, data.name);
+    return {
+      success: result.success,
+      error: result.error || null,
+      user: result.success ? auth.user : null
+    };
+  };
+  
+  // Create the adapted context value
+  const adaptedAuth: AuthContextType = {
+    user: auth.user,
+    isLoading: auth.isLoading,
+    isAuthenticated: auth.isAuthenticated,
+    isSubscribed: auth.isSubscribed,
+    subscriptionStatus,
+    subscriptionPlan,
+    subscriptionEndDate,
+    login: adaptedLogin,
+    logout: auth.logout,
+    signup: adaptedSignup,
+    resendConfirmationEmail,
+    updateUser
+  };
+  
   return (
-    <AuthContext.Provider value={adaptedAuth}>
+    <AuthProvider>
       {children}
-    </AuthContext.Provider>
+    </AuthProvider>
   );
-}
-
-// Export the useAuth hook that will match the original interface
-export function useAuth() {
-  const context = useContext(AuthContext);
-  
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  
-  return context;
 } 

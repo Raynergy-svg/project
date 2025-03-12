@@ -196,90 +196,76 @@ export default function AboutPage() {
 
   const milestones = [
     {
-      year: "2020",
-      title: "Our Beginning",
+      year: "Month 1",
+      title: "The Beginning",
       description:
-        "Smart Debt Flow started when our founders realized how hard it was for regular people to get out of debt without expensive financial advisors.",
+        "Smart Debt Flow began when our founder, David Certan, recognized the need for an AI-powered solution to help people manage their debt efficiently and achieve financial peace of mind.",
     },
     {
-      year: "2021",
-      title: "Testing Our Idea",
+      year: "Month 2",
+      title: "Concept Development",
       description:
-        "We invited 500 people to try our early version. Their feedback helped us make the app better and easier to use.",
+        "Developed the core algorithms that power our AI debt management system, focused on creating tools that anyone could use regardless of their financial background.",
     },
     {
-      year: "2022",
-      title: "Official Launch",
+      year: "Month 3",
+      title: "First Beta Tests",
       description:
-        "We released Smart Debt Flow to the public with tools to help people understand their debt and make plans to pay it off faster.",
-    },
-    {
-      year: "2022",
-      title: "Growing Community",
-      description:
-        "We reached 10,000 users who together were working to pay off over $50 million in debt using our app.",
-    },
-    {
-      year: "2023",
-      title: "New Features",
-      description:
-        "We added AI-powered tools that automatically create payment plans and show you how to save money on interest payments.",
+        "Invited a select group of users to test our initial platform. Their valuable feedback helped shape a more intuitive and powerful debt management experience.",
     },
     {
       year: "Present",
-      title: "Making a Difference",
+      title: "Growing Impact",
       description:
-        "Today, our users are saving an average of 35% on interest and paying off debt 40% faster than they would with minimum payments.",
+        "Today, Smart Debt Flow is helping users take control of their financial future with AI-driven insights and personalized debt repayment strategies.",
     },
   ];
 
   const teamMembers: TeamMember[] = [
     {
-      name: "Sarah Johnson",
-      role: "CEO & Co-Founder",
-      bio: "Former financial advisor with a passion for making financial literacy accessible to everyone.",
-      image: "/assets/team/sarah.jpg",
+      name: "David Certan",
+      role: "Founder & CEO",
+      bio: "Entrepreneur with a passion for using AI technology to help people achieve financial freedom and live stress-free lives.",
+      image: "/avatars/default-avatar.jpg",
       social: {
-        linkedin: "https://linkedin.com/in/sarah-johnson",
-        twitter: "https://twitter.com/sarahjohnson",
+        linkedin: "https://linkedin.com/in/david-certan",
+        twitter: "https://twitter.com/davidcertan",
       },
     },
     {
-      name: "Michael Chen",
-      role: "CTO & Co-Founder",
-      bio: "Tech veteran with experience at major fintech companies, focused on building secure and scalable financial solutions.",
-      image: "/assets/team/michael.jpg",
+      name: "Open Position",
+      role: "Head of Technology",
+      bio: "We're looking for a tech leader passionate about creating innovative financial solutions that make a real difference in people's lives.",
+      image: "/avatars/default-avatar.jpg",
       social: {
-        linkedin: "https://linkedin.com/in/michael-chen",
-        github: "https://github.com/michaelchen",
+        linkedin: "https://linkedin.com/company/smartdebtflow",
       },
     },
     {
-      name: "Aisha Patel",
-      role: "Chief Financial Officer",
-      bio: "Experienced financial strategist who believes in the power of data-driven decisions for financial wellness.",
-      image: "/assets/team/aisha.jpg",
+      name: "Open Position",
+      role: "AI Specialist",
+      bio: "Join us in developing cutting-edge AI algorithms that help people pay off debt faster and achieve financial peace of mind.",
+      image: "/avatars/default-avatar.jpg",
       social: {
-        linkedin: "https://linkedin.com/in/aisha-patel",
+        linkedin: "https://linkedin.com/company/smartdebtflow",
       },
     },
     {
-      name: "James Wilson",
-      role: "Head of Product",
-      bio: "Product leader focused on creating intuitive financial tools that empower people to take control of their debt.",
-      image: "/assets/team/james.jpg",
+      name: "Open Position",
+      role: "Financial Advisor",
+      bio: "Help us create financial strategies that empower users to take control of their debt and build a secure future.",
+      image: "/avatars/default-avatar.jpg",
       social: {
-        linkedin: "https://linkedin.com/in/james-wilson",
-        twitter: "https://twitter.com/jameswilson",
+        linkedin: "https://linkedin.com/company/smartdebtflow",
       },
     },
   ];
 
   const stats = [
-    { label: "Users", value: "50,000+" },
-    { label: "Debt Managed", value: "$250M+" },
-    { label: "Average Savings", value: "$6,200" },
-    { label: "Countries", value: "12" },
+    { label: "Beta Users", value: "100+" },
+    { label: "Debt Insights Generated", value: "$500K+" },
+    { label: "Projected Avg. Savings", value: "$4,300" },
+    { label: "Customer Satisfaction", value: "94%" },
   ];
 
   return (
@@ -288,13 +274,13 @@ export default function AboutPage() {
         <title>About Smart Debt Flow | Our Mission to Help You Become Debt-Free</title>
         <meta
           name="description"
-          content="Learn how Smart Debt Flow is helping thousands of people take control of their finances and break free from debt with AI-powered tools and simple strategies."
+          content="Learn how Smart Debt Flow is using AI to help people achieve financial freedom and live stress-free lives by taking control of their debt."
         />
       </Head>
 
-      <main className="container mx-auto px-4 py-12">
+      <main className="container mx-auto px-4 py-12 pt-24 md:pt-28">
         {/* Hero Section */}
-        <section className="mb-20">
+        <section className="mb-20 mt-8">
           <motion.div
             ref={heroRef}
             initial={{ opacity: 0, y: 20 }}
@@ -302,11 +288,11 @@ export default function AboutPage() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="text-center max-w-3xl mx-auto"
           >
-            <h1 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Breaking Free From The Weight of Debt
+            <h1 className="text-4xl md:text-5xl font-bold mb-6 pt-2 md:pt-0 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              Achieve Financial Peace of Mind
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Smart Debt Flow helps you take control of your finances with easy-to-use tools that make paying off debt simpler and faster.
+              Smart Debt Flow was founded with a single mission: to help people achieve a stress-free life by using AI to take care of their debt.
             </p>
           </motion.div>
         </section>
@@ -326,28 +312,28 @@ export default function AboutPage() {
             <TabsContent value="mission" className="p-6 bg-card rounded-lg">
               <h2 className="text-2xl font-bold mb-4">Our Mission</h2>
               <p className="text-muted-foreground mb-4">
-                We're on a mission to help people break free from debt and build a better financial future. We believe that:
+                Our mission is to leverage AI technology to eliminate the stress of debt management and guide people toward financial freedom. We believe that:
               </p>
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-primary mt-1 flex-shrink-0" />
-                  <span>Everyone deserves to understand their finances without needing a finance degree</span>
+                  <span>Managing debt shouldn't cause anxiety or sleepless nights</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-primary mt-1 flex-shrink-0" />
-                  <span>Smart technology should make managing money easier, not more complicated</span>
+                  <span>AI can transform complex financial decisions into simple, actionable steps</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-primary mt-1 flex-shrink-0" />
-                  <span>Getting out of debt shouldn't require expensive financial advisors</span>
+                  <span>Everyone deserves access to intelligent financial tools, not just the wealthy</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-primary mt-1 flex-shrink-0" />
-                  <span>The path to financial freedom should be clear and achievable for everyone</span>
+                  <span>Technology should serve people by creating meaningful improvements in their daily lives</span>
                 </li>
               </ul>
               <p className="text-muted-foreground">
-                Our users have reduced their debt by an average of 40% in their first year using Smart Debt Flow, and we're just getting started.
+                Our early users are already seeing how AI-driven insights can transform their approach to debt management.
               </p>
             </TabsContent>
             <TabsContent value="vision" className="p-6 bg-card rounded-lg">
@@ -358,26 +344,56 @@ export default function AboutPage() {
               <ul className="space-y-3 mb-6">
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-primary mt-1 flex-shrink-0" />
-                  <span>Financial stress doesn't keep people up at night</span>
+                  <span>People no longer feel overwhelmed by their financial obligations</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-primary mt-1 flex-shrink-0" />
-                  <span>Everyone has the tools they need to make smart money decisions</span>
+                  <span>AI works behind the scenes to optimize your finances while you focus on living your life</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-primary mt-1 flex-shrink-0" />
-                  <span>Debt is a temporary situation, not a lifelong burden</span>
+                  <span>Financial stress is eliminated through intelligent automation and personalized strategies</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <Sparkles className="text-primary mt-1 flex-shrink-0" />
-                  <span>Financial freedom is achievable for everyone, regardless of their starting point</span>
+                  <span>Everyone can access the benefits of AI-powered financial planning, regardless of their background</span>
                 </li>
               </ul>
               <p className="text-muted-foreground">
-                We're building Smart Debt Flow to be the most helpful, easy-to-use financial tool that actually makes a difference in people's lives.
+                Smart Debt Flow is at the forefront of creating this future, where AI transforms financial management from a source of stress to a seamless background process.
               </p>
             </TabsContent>
           </Tabs>
+        </section>
+
+        {/* Founder's Note */}
+        <section className="mb-20">
+          <div className="max-w-3xl mx-auto bg-card rounded-lg p-8 border border-border">
+            <h2 className="text-3xl font-bold mb-6">A Note From Our Founder</h2>
+            <div className="flex flex-col md:flex-row gap-8 items-center">
+              <div className="w-full md:w-1/3">
+                <div className="relative h-64 w-full overflow-hidden rounded-lg">
+                  <Image
+                    src="/avatars/default-avatar.jpg"
+                    alt="David Certan"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              </div>
+              <div className="w-full md:w-2/3">
+                <p className="italic text-muted-foreground mb-4">
+                  "I founded Smart Debt Flow after seeing how many people struggle with the overwhelming burden of debt management. Financial stress shouldn't be a normal part of life. I believe that with the right AI tools, we can transform debt from a source of anxiety to just another aspect of life that's efficiently managed in the background."
+                </p>
+                <p className="italic text-muted-foreground mb-4">
+                  "Our AI technology is designed to take the complexity out of debt repayment strategies, interest management, and financial planning. By putting these powerful tools in everyone's hands, we're working to create a world where financial peace of mind is the norm, not the exception."
+                </p>
+                <p className="font-medium">
+                  - David Certan, Founder & CEO
+                </p>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* How We Help Section */}

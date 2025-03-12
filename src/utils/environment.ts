@@ -1,9 +1,46 @@
 /**
- * Environment utility for checking app environment and configuration
+ * Environment Utility
+ * 
+ * Provides constants and utilities for working with different environments.
  */
 
-// Determine if we're in development mode
-export const IS_DEV = process.env.NODE_ENV === 'development';
+// Check if we're in development mode
+export const IS_DEV = 
+  process.env.NODE_ENV === 'development' || 
+  process.env.NEXT_PUBLIC_VERCEL_ENV === 'development' ||
+  process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
+
+// Check if we're in production mode
+export const IS_PROD = 
+  process.env.NODE_ENV === 'production' && 
+  process.env.NEXT_PUBLIC_VERCEL_ENV === 'production';
+
+// Check if we're in test mode
+export const IS_TEST = process.env.NODE_ENV === 'test';
+
+// Check if we're running on the server
+export const IS_SERVER = typeof window === 'undefined';
+
+// Check if we're running in the browser
+export const IS_BROWSER = typeof window !== 'undefined';
+
+// Get the current environment name
+export const ENV_NAME = process.env.NEXT_PUBLIC_VERCEL_ENV || process.env.NODE_ENV || 'development';
+
+// Log environment information in development
+if (IS_DEV && IS_BROWSER) {
+  console.log('🌎 Environment:', {
+    IS_DEV,
+    IS_PROD,
+    IS_TEST,
+    IS_SERVER,
+    IS_BROWSER,
+    ENV_NAME,
+  });
+}
+
+// Check if captcha should be disabled
+export const DISABLE_CAPTCHA = IS_DEV || IS_TEST;
 
 // Development login credentials that bypass normal auth
 export const DEV_EMAIL = 'dev@example.com';
@@ -75,5 +112,7 @@ export function isProductionMode(): boolean {
   return !IS_DEV;
 }
 
-// For convenience, provide pre-evaluated constants
-export const IS_PROD = !IS_DEV; 
+// Export convenience functions
+export const isTestMode = () => IS_TEST;
+export const isBrowserEnvironment = () => IS_BROWSER;
+export const isServerEnvironment = () => IS_SERVER; 

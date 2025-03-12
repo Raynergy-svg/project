@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { corsHeaders } from '../_shared/cors.ts';
 
 interface ConsentPreferences {
   necessary: boolean;
@@ -16,12 +17,17 @@ interface ConsentRecord extends ConsentPreferences {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
     // Create a Supabase client with the Auth context of the logged in user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized', message: 'No authorization header' }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
@@ -45,7 +51,7 @@ serve(async (req) => {
     
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Invalid token' }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
@@ -66,7 +72,7 @@ serve(async (req) => {
       
       if (error && error.code !== 'PGRST116') { // PGRST116 is the error code for "no rows returned"
         return new Response(JSON.stringify({ error: error.message }), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500,
         });
       }
@@ -91,7 +97,7 @@ serve(async (req) => {
           consentVersion: preferences.consent_version,
         }
       }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     }
@@ -102,7 +108,7 @@ serve(async (req) => {
       
       if (!consentData) {
         return new Response(JSON.stringify({ error: 'Bad Request', message: 'Missing consent data' }), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
         });
       }
@@ -131,7 +137,7 @@ serve(async (req) => {
       
       if (cookiePrefError) {
         return new Response(JSON.stringify({ error: cookiePrefError.message }), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500,
         });
       }
@@ -168,20 +174,20 @@ serve(async (req) => {
         message: 'Consent preferences saved successfully',
         userId: user.id
       }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     }
     
     // If not GET or POST, return method not allowed
     return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 405,
     });
     
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
   }

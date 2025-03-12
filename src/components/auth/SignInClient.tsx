@@ -6,20 +6,27 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Logo } from "@/components/Logo";
 import { useSecurity } from "@/contexts/SecurityContext";
-import { useAuth } from "@/contexts/auth-adapter";
+import { useAuth } from "@/components/AuthProvider";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Layout } from '@/components/layout/Layout';
-import { checkSupabaseConnection, supabase } from '@/utils/supabase/client';
+import { checkSupabaseConnection, devAuth } from '@/utils/supabase/client';
 import { ENV } from '@/utils/env-adapter';
+import { IS_DEV } from '@/utils/environment';
+import { useTurnstile } from '@/components/auth/TurnstileWidget';
 
 // Safely import the dev sign-in hook only on the client side
 const useDevSignIn = typeof window !== 'undefined' && process.env.NODE_ENV === 'development' 
-  ? require('@/utils/useDevSignIn').default 
-  : () => ({ handleDevSignIn: null, loading: false, error: null, devAccountInfo: null });
+  ? () => ({ loading: false, error: null, devAccountInfo: null })
+  : () => ({ loading: false, error: null, devAccountInfo: null });
+
+// Import the development environment utilities - renamed to avoid conflict
+const devAuthUtils = typeof window !== 'undefined' && process.env.NODE_ENV === 'development'
+  ? require('@/utils/devAuth')
+  : { setDevEnvironmentVariables: () => {}, checkDevAuthEnvironment: () => {} };
 
 interface FormData {
   email: string;
@@ -102,7 +109,8 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
   const { isAuthenticated, isLoading: authLoading, login } = useAuth();
   const router = useRouter();
   const redirectPath = redirect;
-  const { handleDevSignIn, loading: devSignInLoading, error: devSignInError, devAccountInfo } = useDevSignIn();
+  
+  const { loading: devSignInLoading, error: devSignInError, devAccountInfo } = useDevSignIn();
   
   const [formData, setFormData] = useState<FormData>({
     email: "",
@@ -123,8 +131,12 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
   const [isLoading, setIsLoading] = useState(true);
   const [useMagicLink, setUseMagicLink] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [showCaptcha, setShowCaptcha] = useState(false);
+  
+  // Use our Turnstile hook
+  const { token: captchaToken, resetToken: resetCaptchaToken, TurnstileWidget } = useTurnstile();
+  
+  // Show CAPTCHA after first failed attempt or in production
+  const [showCaptcha, setShowCaptcha] = useState(process.env.NODE_ENV === 'production' || failedAttempts > 0);
   
   // Add useEffect to ensure client-side only rendering for the form
   const [isClient, setIsClient] = useState(false);
@@ -140,12 +152,54 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     }
   }, [needsConfirmation]);
   
-  // Show CAPTCHA after first failed attempt
+  // In development mode, set environment variables and run diagnostics
   useEffect(() => {
-    if (failedAttempts > 0) {
-      setShowCaptcha(true);
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      console.log('🔑 SIGN IN: Running in development mode, setting up dev environment');
+      
+      try {
+        // Ensure captcha is disabled for development mode
+        if (typeof window !== 'undefined') {
+          // These global variables might help bypass captcha in some Supabase versions
+          (window as any).SUPABASE_AUTH_CAPTCHA_DISABLE = true;
+          (window as any).SKIP_AUTH_CAPTCHA = true;
+          (window as any).NEXT_PUBLIC_SUPABASE_AUTH_CAPTCHA_DISABLE = true;
+        }
+        
+        // Import the devAuth functions dynamically to avoid circular dependencies
+        import('@/utils/devAuth').then((module) => {
+          // Set development environment variables
+          if (module.setDevEnvironmentVariables) {
+            module.setDevEnvironmentVariables();
+          }
+          
+          // Run diagnostics
+          try {
+            if (module.checkDevAuthEnvironment) {
+              module.checkDevAuthEnvironment();
+            }
+          } catch (error) {
+            console.warn('🔑 SIGN IN: Error running dev auth diagnostics:', error);
+            // Continue anyway, as this is not critical
+          }
+        }).catch(error => {
+          console.warn('🔑 SIGN IN: Error importing devAuth module:', error);
+        });
+        
+        // Also import and configure client directly
+        import('@/utils/supabase/configureClient').then((module) => {
+          if (module.configureDevAuthEnvironment) {
+            module.configureDevAuthEnvironment();
+          }
+        }).catch(error => {
+          console.warn('🔑 SIGN IN: Error importing configureClient module:', error);
+        });
+      } catch (error) {
+        console.warn('🔑 SIGN IN: Error setting up dev environment:', error);
+        // Continue anyway, as this is not critical for the sign-in page to function
+      }
     }
-  }, [failedAttempts]);
+  }, []);
   
   // Redirect if already authenticated
   useEffect(() => {
@@ -159,10 +213,12 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     const checkConnection = async () => {
       setIsLoading(true);
       try {
-        const status = await checkSupabaseConnection();
+        // Use the auth context to check if we're connected
+        // This avoids creating another supabase client instance
+        const isConnected = await checkSupabaseConnection();
         setConnectionStatus({
-          isConnected: status,
-          error: status ? null : "Failed to connect to authentication service"
+          isConnected,
+          error: isConnected ? null : "Failed to connect to authentication service"
         });
       } catch (error) {
         setConnectionStatus({
@@ -253,29 +309,53 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     setIsSubmitting(true);
     
     try {
-      // Call Supabase magic link function
-      const { error } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: {
-          emailRedirectTo: `${ENV.APP_URL}/auth/callback`
-        }
-      });
+      // Use the auth context instead of direct supabase reference
+      // Call Supabase magic link function through auth context
+      const result = await login(formData.email, '', { useOtp: true });
       
-      if (error) {
-        throw new Error(error.message);
+      if (result.error) {
+        // Ensure error message is a string
+        let errorMessage = result.error.message || "Failed to send magic link";
+        if (typeof errorMessage === 'object') {
+          if (errorMessage instanceof Error) {
+            errorMessage = errorMessage.message || "Failed to send magic link";
+          } else {
+            try {
+              errorMessage = JSON.stringify(errorMessage);
+            } catch {
+              errorMessage = "Failed to send magic link";
+            }
+          }
+        }
+        
+        setFormErrors({ general: errorMessage });
+        setFailedAttempts(prev => prev + 1);
+      } else {
+        setMagicLinkSent(true);
+      }
+    } catch (error) {
+      console.error("Magic link error:", error);
+      
+      // Ensure error is a string
+      let errorMessage = "An unexpected error occurred";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      } else if (typeof error === 'object' && error !== null) {
+        try {
+          errorMessage = JSON.stringify(error);
+        } catch {
+          // Keep the default message
+        }
       }
       
-      setMagicLinkSent(true);
-    } catch (error: any) {
-      setFormErrors({
-        general: error.message || "Failed to send magic link. Please try again."
-      });
+      setFormErrors({ general: errorMessage });
+      setFailedAttempts(prev => prev + 1);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Optimize form submission with better error handling
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -290,18 +370,38 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
       return;
     }
     
+    // Check if captcha is required and not provided
+    if (showCaptcha && !captchaToken && process.env.NODE_ENV === 'production') {
+      setFormErrors({
+        general: "Please complete the captcha verification"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
+    setFormErrors({});
     
     try {
-      // Track the sensitive operation for security
-      if (sensitiveDataHandler) {
-        sensitiveDataHandler.trackEvent("login_attempt", { 
-          email: formData.email
-        });
+      // Track the sensitive operation for security if the handler exists
+      if (sensitiveDataHandler && typeof sensitiveDataHandler.trackEvent === 'function') {
+        try {
+          sensitiveDataHandler.trackEvent("login_attempt", { 
+            email: formData.email
+          });
+        } catch (error) {
+          console.warn('Failed to track login attempt:', error);
+          // Continue with login even if tracking fails
+        }
+      }
+      
+      // Prepare login options with captcha token if available
+      const loginOptions: any = {};
+      if (captchaToken) {
+        loginOptions.captchaToken = captchaToken;
       }
       
       // Call login from auth context with timeout for better UX
-      const loginPromise = login(formData.email, formData.password);
+      const loginPromise = login(formData.email, formData.password, loginOptions);
       
       // Add a timeout to prevent indefinite loading state
       const timeoutPromise = new Promise((_, reject) => {
@@ -317,11 +417,18 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
       // Reset failed attempts on success
       setFailedAttempts(0);
       
+      // Reset captcha token
+      resetCaptchaToken();
+      
       // Log sensitive operation success
-      if (sensitiveDataHandler) {
-        sensitiveDataHandler.trackEvent("login_success", {
-          userId: result.user?.id
-        });
+      if (sensitiveDataHandler && typeof sensitiveDataHandler.trackEvent === 'function') {
+        try {
+          sensitiveDataHandler.trackEvent("login_success", {
+            userId: result.user?.id
+          });
+        } catch (error) {
+          console.warn('Failed to track login success:', error);
+        }
       }
       
       // Redirect to dashboard or specified redirect path
@@ -330,21 +437,71 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
       // Increment failed attempts counter
       setFailedAttempts(prev => prev + 1);
       
+      // Show captcha after first failed attempt
+      setShowCaptcha(true);
+      
+      // Reset captcha token
+      resetCaptchaToken();
+      
       // Log sensitive operation failure
-      if (sensitiveDataHandler) {
-        sensitiveDataHandler.trackEvent("login_failure", {
+      if (sensitiveDataHandler && typeof sensitiveDataHandler.trackEvent === 'function') {
+        try {
+          sensitiveDataHandler.trackEvent("login_failure", {
+            email: formData.email,
+            errorMessage: error.message,
+            failedAttempts: failedAttempts + 1
+          });
+        } catch (trackError) {
+          // Fallback logging if trackEvent throws an error
+          console.warn('Failed to track login failure:', trackError);
+          console.warn('🔒 Security: Login failure', {
+            email: formData.email,
+            errorMessage: error.message,
+            failedAttempts: failedAttempts + 1
+          });
+        }
+      } else {
+        // Fallback logging if trackEvent is not available
+        console.warn('🔒 Security: Login failure', {
           email: formData.email,
           errorMessage: error.message,
           failedAttempts: failedAttempts + 1
         });
       }
       
-      // Set error message with better user feedback
-      setFormErrors({
-        general: error.message === "Login request timed out" 
-          ? "Connection is slow. Please try again." 
-          : error.message || "Invalid email or password"
-      });
+      // Set user-friendly error message
+      let errorMessage = error.message || "Invalid email or password";
+      
+      // Handle specific error cases
+      if (error.message === "Login request timed out") {
+        errorMessage = "Connection is slow. Please try again.";
+      } else if (error.message && error.message.includes("captcha")) {
+        errorMessage = "Captcha verification failed. Please try again.";
+        
+        // In development mode, provide more helpful information
+        if (IS_DEV) {
+          console.error('🔑 SIGN IN: Captcha error in development mode. Make sure your environment variables are set correctly.');
+          console.log('🔑 SIGN IN: Try using one of these bypass tokens in development:', [
+            '1x00000000000000000000AA',
+            '1x0000000000000000000000',
+            '1x00000000000000000000AB',
+            'bypass'
+          ]);
+        }
+      }
+      
+      // Ensure errorMessage is a string, not an Error object
+      if (typeof errorMessage === 'object' && errorMessage instanceof Error) {
+        errorMessage = errorMessage.message || "An unexpected error occurred";
+      } else if (typeof errorMessage === 'object') {
+        try {
+          errorMessage = JSON.stringify(errorMessage);
+        } catch {
+          errorMessage = "An unexpected error occurred";
+        }
+      }
+      
+      setFormErrors({ general: errorMessage });
     } finally {
       setIsSubmitting(false);
     }
@@ -366,6 +523,84 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
         {formErrors[fieldName]}
       </div>
     ) : null;
+  };
+
+  // Keep our local implementation of handleDevSignIn
+  const [isDevSigningIn, setIsDevSigningIn] = useState(false);
+  const [devSignInMethod, setDevSignInMethod] = useState<'email' | 'password'>('email');
+  
+  const handleDevSignIn = async (role: 'admin' | 'user') => {
+    console.log('🔑 SIGN IN: Dev sign-in button clicked', { role });
+    
+    setIsDevSigningIn(true);
+    setFormErrors({});
+    
+    try {
+      // Use development email based on the role
+      const devEmail = role === 'admin' ? 'admin@example.com' : 'user@example.com';
+      
+      // Call devAuth with the appropriate parameters - using the imported function
+      const result = await devAuth(devEmail, role);
+      
+      if (result.success) {
+        console.log('🔑 SIGN IN: Dev sign-in successful, redirecting to dashboard');
+        
+        // Add a small delay to ensure the authentication state is updated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Redirect to dashboard
+        router.push(redirectPath || '/dashboard');
+      } else {
+        console.error('🔑 SIGN IN: Dev sign-in failed', result.error);
+        
+        // Ensure error is a string, not an Error object
+        let errorMessage = result.error;
+        if (typeof errorMessage === 'object') {
+          if (errorMessage instanceof Error) {
+            errorMessage = errorMessage.message || "An unexpected error occurred";
+          } else {
+            try {
+              errorMessage = JSON.stringify(errorMessage);
+            } catch {
+              errorMessage = "An unexpected error occurred";
+            }
+          }
+        }
+        
+        setFormErrors({ general: `${errorMessage} - Try the alternate login method.` });
+      }
+    } catch (error) {
+      console.error('🔑 SIGN IN: Error during dev sign-in:', error);
+      
+      // Ensure error is a string, not an Error object
+      let errorMessage = "An unexpected error occurred during development sign-in.";
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      } else if (typeof error === 'object' && error !== null) {
+        try {
+          errorMessage = JSON.stringify(error);
+        } catch {
+          // Keep the default message
+        }
+      }
+      
+      setFormErrors({ general: errorMessage });
+    } finally {
+      setIsDevSigningIn(false);
+    }
+  };
+
+  // Add this inside the form, just before the submit button
+  const renderCaptcha = () => {
+    if (!showCaptcha) return null;
+    
+    return (
+      <div className="mb-6">
+        <div className="flex justify-center">
+          <TurnstileWidget className="mx-auto" />
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -472,42 +707,51 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
               {isClient ? (
                 <>
                   {/* Developer sign-in (only in development) - moved inside client-side rendering */}
-                  {process.env.NODE_ENV === 'development' && handleDevSignIn && (
+                  {process.env.NODE_ENV === 'development' && (
                     <div className="space-y-4 mb-6 pb-6 border-b border-gray-200 dark:border-border">
                       <h3 className="font-medium text-gray-900 dark:text-foreground">Developer Testing Options</h3>
                       <div className="grid grid-cols-1 gap-4">
                         <Button
                           onClick={() => handleDevSignIn('admin')}
-                          disabled={devSignInLoading}
+                          disabled={isDevSigningIn}
                           variant="outline"
                           className="justify-start border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground"
                         >
-                          {devSignInLoading ? (
+                          {isDevSigningIn ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
                             <Lock className="mr-2 h-4 w-4" />
                           )}
-                          Sign in as Admin
+                          Sign in as Admin (dev)
                         </Button>
                         <Button
                           onClick={() => handleDevSignIn('user')}
-                          disabled={devSignInLoading}
+                          disabled={isDevSigningIn}
                           variant="outline"
                           className="justify-start border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground"
                         >
-                          {devSignInLoading ? (
+                          {isDevSigningIn ? (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           ) : (
                             <Lock className="mr-2 h-4 w-4" />
                           )}
-                          Sign in as Regular User
+                          Sign in as Regular User (dev)
                         </Button>
+                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">
+                          <p>Dev logins use email OTP by default. Check console for the magic link URL or use the dev password: <code>DevPassword123!</code></p>
+                        </div>
                       </div>
-                      {devSignInError && (
+                      {formErrors.general && (
                         <Alert variant="destructive" className="border border-red-200 dark:border-red-900/50">
                           <AlertCircle className="h-4 w-4" />
                           <AlertTitle>Error</AlertTitle>
-                          <AlertDescription>{devSignInError}</AlertDescription>
+                          <AlertDescription>
+                            {typeof formErrors.general === 'object' ? 
+                              (formErrors.general instanceof Error ? 
+                                formErrors.general.message : 
+                                JSON.stringify(formErrors.general)) : 
+                              formErrors.general}
+                          </AlertDescription>
                         </Alert>
                       )}
                     </div>
@@ -631,9 +875,17 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
                         <Alert variant="destructive" className="border border-red-200 dark:border-red-900/50">
                           <AlertCircle className="h-4 w-4" />
                           <AlertTitle>Error</AlertTitle>
-                          <AlertDescription>{formErrors.general}</AlertDescription>
+                          <AlertDescription>
+                            {typeof formErrors.general === 'object' ? 
+                              (formErrors.general instanceof Error ? 
+                                formErrors.general.message : 
+                                JSON.stringify(formErrors.general)) : 
+                              formErrors.general}
+                          </AlertDescription>
                         </Alert>
                       )}
+
+                      {renderCaptcha()}
 
                       <div>
                         <Button

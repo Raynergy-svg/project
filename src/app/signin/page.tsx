@@ -24,13 +24,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function SignInPage({
+export default async function SignInPage({
   searchParams,
 }: {
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
-  const redirect = searchParams?.redirect as string | undefined;
-  const needsConfirmation = searchParams?.needsConfirmation as string | undefined;
+  // Properly await searchParams before accessing its properties
+  const params = searchParams ? await Promise.resolve(searchParams) : {};
+  const redirect = params.redirect as string | undefined;
+  const needsConfirmation = params.needsConfirmation as string | undefined;
   
   return <SignInClient redirect={redirect} needsConfirmation={needsConfirmation} />;
 } 

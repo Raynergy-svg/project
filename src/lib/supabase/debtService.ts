@@ -1,5 +1,5 @@
 import { supabase } from '@/utils/supabase/client';
-import { checkSupabaseConnection as baseConnectionCheck } from '@/lib/supabase/client';
+import { checkSupabaseConnection as baseConnectionCheck } from '@/utils/supabase/client';
 import type { PostgrestError } from '@supabase/supabase-js';
 
 // Define types for our debt data

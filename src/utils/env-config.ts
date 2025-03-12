@@ -57,9 +57,9 @@ export const ENV = {
   TURNSTILE_SITE_KEY: getEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', getEnv('VITE_TURNSTILE_SITE_KEY', '0x4AAAAAAAK5LpjT0Jzv4jzl')),
   TURNSTILE_SECRET_KEY: getEnv('TURNSTILE_SECRET_KEY', ''),
   
-  // Auth settings
-  SKIP_AUTH_CAPTCHA: getEnv('NEXT_PUBLIC_SKIP_AUTH_CAPTCHA', getEnv('VITE_SKIP_AUTH_CAPTCHA', 'false')) === 'true',
-  SUPABASE_AUTH_CAPTCHA_DISABLE: getEnv('SUPABASE_AUTH_CAPTCHA_DISABLE', getEnv('VITE_SUPABASE_AUTH_CAPTCHA_DISABLE', 'false')) === 'true',
+  // Auth settings - Force disable captcha in development mode
+  SKIP_AUTH_CAPTCHA: IS_DEV ? true : getEnv('NEXT_PUBLIC_SKIP_AUTH_CAPTCHA', getEnv('VITE_SKIP_AUTH_CAPTCHA', 'false')) === 'true',
+  SUPABASE_AUTH_CAPTCHA_DISABLE: IS_DEV ? true : getEnv('SUPABASE_AUTH_CAPTCHA_DISABLE', getEnv('VITE_SUPABASE_AUTH_CAPTCHA_DISABLE', 'false')) === 'true',
   
   // API and app URLs
   API_URL: getEnv('NEXT_PUBLIC_API_URL', getEnv('VITE_API_URL', '')),

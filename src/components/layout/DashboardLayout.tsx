@@ -26,7 +26,7 @@ import {
   DollarSign,
   Brain
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-adapter';
+import { useAuth } from '@/components/AuthProvider';
 import { Logo } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 

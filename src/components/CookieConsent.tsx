@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Settings, Check, X, Info } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/auth-adapter';
+import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/utils/supabase/client';
 
 type ConsentOptions = {
@@ -46,28 +46,57 @@ export function CookieConsent() {
         // For authenticated users, try to fetch consent from backend
         if (isAuthenticated && user) {
           setIsLoading(true);
-          const { data, error } = await supabase.functions.invoke('consent', {
-            method: 'GET',
-          });
           
-          if (error) {
-            console.error('Error fetching consent preferences:', error);
-            // Fall back to localStorage if API fails
-            checkLocalConsent();
-          } else if (data && data.preferences) {
-            setConsent({
-              necessary: data.preferences.necessary,
-              functional: data.preferences.functional,
-              analytics: data.preferences.analytics,
-              marketing: data.preferences.marketing,
-              thirdParty: data.preferences.thirdParty,
-            });
-            // Don't show banner if we have preferences from the backend
-            setShowBanner(false);
-          } else {
-            // If no preferences found in backend, check localStorage
+          try {
+            // Get the current session to ensure we have a valid token
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError || !session || !session.access_token) {
+              console.log('🍪 Cookie Consent: No active session, using local storage for consent preferences');
+              checkLocalConsent();
+              setIsLoading(false);
+              return;
+            }
+            
+            // Use direct fetch for more reliable authentication
+            const response = await fetch(
+              `${supabase.supabaseUrl}/functions/v1/consent`,
+              {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': supabase.supabaseKey,
+                  'Authorization': `Bearer ${session.access_token}`
+                }
+              }
+            );
+            
+            if (!response.ok) {
+              console.warn(`Error fetching consent preferences: ${response.status} ${response.statusText}`);
+              checkLocalConsent();
+            } else {
+              const data = await response.json();
+              
+              if (data && data.preferences) {
+                setConsent({
+                  necessary: data.preferences.necessary,
+                  functional: data.preferences.functional,
+                  analytics: data.preferences.analytics,
+                  marketing: data.preferences.marketing,
+                  thirdParty: data.preferences.thirdParty,
+                });
+                // Don't show banner if we have preferences from the backend
+                setShowBanner(false);
+              } else {
+                // If no preferences found in backend, check localStorage
+                checkLocalConsent();
+              }
+            }
+          } catch (fetchError) {
+            console.error('Error fetching consent preferences:', fetchError);
             checkLocalConsent();
           }
+          
           setIsLoading(false);
         } else {
           // For unauthenticated users, check localStorage
@@ -118,35 +147,59 @@ export function CookieConsent() {
       // For authenticated users, also send to backend
       if (isAuthenticated && user) {
         try {
-          const { data, error } = await supabase.functions.invoke('consent', {
-            method: 'POST',
-            body: { 
-              consentData: {
-                ...options,
-                consentVersion: CURRENT_CONSENT_VERSION,
-                userAgent: navigator.userAgent
-              }
-            },
-          });
+          // Get the current session to ensure we have a valid token
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
           
-          if (error) {
-            console.error('Error saving consent to backend:', error);
+          if (sessionError || !session || !session.access_token) {
+            console.log('🍪 Cookie Consent: No active session, using local storage only for saving consent');
+            // Continue with local storage only
+            setIsLoading(false);
+            return;
+          }
+          
+          try {
+            // Use direct fetch for more reliable authentication
+            const response = await fetch(
+              `${supabase.supabaseUrl}/functions/v1/consent`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': supabase.supabaseKey,
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ 
+                  consentData: {
+                    ...options,
+                    consentVersion: CURRENT_CONSENT_VERSION,
+                    userAgent: navigator.userAgent
+                  }
+                })
+              }
+            );
+            
+            if (!response.ok) {
+              console.warn(`Error saving consent to backend: ${response.status} ${response.statusText}`);
+              // Continue with local storage only
+            }
+          } catch (fetchError) {
+            console.error('Error saving consent to backend:', fetchError);
+            // Continue with local storage only
           }
         } catch (err) {
-          console.error('Error invoking consent function:', err);
-          // Continue even if backend storage fails, as we have localStorage
+          console.error('Error getting session for consent saving:', err);
+          // Continue with local storage only
         }
       }
       
       // Apply consent settings regardless of backend success
       applyConsentSettings(options);
-      
-      // Hide banner
+      setConsent(options);
       setShowBanner(false);
       setShowDetails(false);
+      setIsLoading(false);
     } catch (error) {
       console.error('Error saving consent:', error);
-    } finally {
       setIsLoading(false);
     }
   };

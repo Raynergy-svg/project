@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
-import { useAuth } from './auth-adapter';
+import { useAuth } from '@/components/AuthProvider';
 import { logSecurityEvent, SecurityEventType } from '../services/securityAuditService';
 import { SensitiveDataHandler } from '@/lib/security/sensitiveData';
 
@@ -69,14 +69,36 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     const initSensitiveData = async () => {
       if (auth.user?.id) {
-        await sensitiveDataHandler.initializeCryptoKey(auth.user.id);
-        logSecurityEvent(SecurityEventType.ENCRYPTION_KEY_GENERATED, {
-          userId: auth.user.id,
-        });
+        try {
+          await sensitiveDataHandler.initializeKey();
+          // Only log if we have a user ID
+          if (auth.user?.id) {
+            try {
+              logSecurityEvent(SecurityEventType.ENCRYPTION_KEY_GENERATED, {
+                userId: auth.user.id,
+              });
+            } catch (logError) {
+              console.warn('Failed to log encryption key generation:', logError);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to initialize sensitive data handler:', error);
+          // Log the error but don't throw - we don't want to break the app
+          if (auth.user?.id) {
+            try {
+              logSecurityEvent(SecurityEventType.ENCRYPTION_KEY_ERROR, {
+                userId: auth.user.id,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              });
+            } catch (logError) {
+              console.warn('Failed to log encryption key error:', logError);
+            }
+          }
+        }
       }
     };
 
-    if (auth.isAuthenticated) {
+    if (auth.isAuthenticated && auth.user?.id) {
       initSensitiveData();
     }
   }, [auth.isAuthenticated, auth.user?.id, sensitiveDataHandler]);
@@ -118,7 +140,7 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   
   // Session timeout management
   const checkSessionTimeout = (): boolean => {
-    if (!auth.isAuthenticated) return false;
+    if (!auth.isAuthenticated || !auth.user?.id) return false;
     
     const currentTime = Date.now();
     const timeElapsed = currentTime - lastActivity;
@@ -132,10 +154,14 @@ export const SecurityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // Log the timeout event
       if (auth.user?.id) {
-        logSecurityEvent(SecurityEventType.SESSION_TIMEOUT, {
-          userId: auth.user.id,
-          timeElapsed,
-        });
+        try {
+          logSecurityEvent(SecurityEventType.SESSION_TIMEOUT, {
+            userId: auth.user.id,
+            timeElapsed,
+          });
+        } catch (error) {
+          console.warn('Failed to log session timeout:', error);
+        }
       }
       
       // Force logout

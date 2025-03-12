@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import SkipToContent from '@/components/SkipToContent';
-import { useAuth } from '@/contexts/auth-adapter'; // Using the adapter to maintain compatibility
+import { useAuth } from '@/components/AuthProvider'; // Updated to use the new AuthProvider
 import { useTheme } from '@/components/ThemeProvider';
 import { cn } from '@/lib/utils';
 

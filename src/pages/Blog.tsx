@@ -182,129 +182,193 @@ export default function BlogPage() {
       id: "1",
       slug: "debt-snowball-vs-avalanche",
       title: "Debt Snowball vs. Avalanche: Which Strategy is Right for You?",
-      excerpt: "Compare two popular debt reduction strategies and learn which one might be the best fit for your financial situation and personality.",
+      excerpt: "Compare two popular debt reduction strategies and learn which one might be the best fit for your financial situation and personality. We break down the pros and cons of each approach.",
       date: "June 12, 2023",
       readTime: "8 min",
       category: "debt-strategies",
-      image: "/assets/blog/debt-snowball-vs-avalanche.jpg",
+      image: "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&q=80",
       featured: true,
       author: {
         id: "a1",
         name: "Sarah Johnson",
         role: "Financial Coach",
-        avatar: "/assets/team/sarah.jpg"
+        avatar: "https://randomuser.me/api/portraits/women/44.jpg"
       }
     },
     {
       id: "2",
       slug: "psychology-of-debt",
       title: "The Psychology of Debt: Understanding Your Relationship with Money",
-      excerpt: "Explore the emotional and psychological factors that influence our financial decisions and debt management approaches.",
+      excerpt: "Explore the emotional and psychological factors that influence our financial decisions and debt management approaches. Learn how to overcome mental barriers to achieve financial freedom.",
       date: "May 28, 2023",
       readTime: "10 min",
       category: "financial-tips",
-      image: "/assets/blog/psychology-of-debt.jpg",
+      image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&q=80",
       author: {
         id: "a2",
         name: "Michael Chen",
         role: "Behavioral Economist",
-        avatar: "/assets/team/michael.jpg"
+        avatar: "https://randomuser.me/api/portraits/men/32.jpg"
       }
     },
     {
       id: "3",
       slug: "from-50k-to-debt-free",
       title: "From $50K in Debt to Financial Freedom: Lisa's Journey",
-      excerpt: "Read the inspiring story of how one of our users eliminated $50,000 in debt in just 3 years using Smart Debt Flow.",
+      excerpt: "Read the inspiring story of how one of our users eliminated $50,000 in debt in just 3 years using Smart Debt Flow's AI-powered strategies and consistent financial planning.",
       date: "May 15, 2023",
       readTime: "6 min",
       category: "success-stories",
-      image: "/assets/blog/debt-free-journey.jpg",
+      image: "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80",
       author: {
         id: "a3",
         name: "Aisha Patel",
         role: "Content Director",
-        avatar: "/assets/team/aisha.jpg"
+        avatar: "https://randomuser.me/api/portraits/women/68.jpg"
       }
     },
     {
       id: "4",
       slug: "ai-revolution-in-personal-finance",
       title: "The AI Revolution in Personal Finance Management",
-      excerpt: "Discover how artificial intelligence is transforming debt management and financial planning tools for everyday users.",
+      excerpt: "Discover how artificial intelligence is transforming debt management and financial planning tools for everyday users. Learn how Smart Debt Flow uses AI to create personalized debt reduction plans.",
       date: "April 30, 2023",
       readTime: "7 min",
       category: "technology",
-      image: "/assets/blog/ai-finance.jpg",
+      image: "https://images.unsplash.com/photo-1639322537228-f710d846310a?auto=format&fit=crop&q=80",
       author: {
         id: "a4",
         name: "James Wilson",
         role: "Tech Analyst",
-        avatar: "/assets/team/james.jpg"
+        avatar: "https://randomuser.me/api/portraits/men/22.jpg"
       }
     },
     {
       id: "5",
       slug: "hidden-costs-of-minimum-payments",
       title: "The Hidden Cost of Making Only Minimum Payments",
-      excerpt: "Learn why minimum payments on credit cards can trap you in debt for decades, and strategies to break free from this cycle.",
+      excerpt: "Learn why minimum payments on credit cards can trap you in debt for decades, and strategies to break free from this cycle. We provide a detailed analysis of interest accumulation over time.",
       date: "April 18, 2023",
       readTime: "5 min",
       category: "debt-strategies",
-      image: "/assets/blog/minimum-payments.jpg",
+      image: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80",
       author: {
         id: "a1",
         name: "Sarah Johnson",
         role: "Financial Coach",
-        avatar: "/assets/team/sarah.jpg"
+        avatar: "https://randomuser.me/api/portraits/women/44.jpg"
       }
     },
     {
       id: "6",
       slug: "building-emergency-fund",
       title: "Building an Emergency Fund While Paying Off Debt",
-      excerpt: "Discover the balance between saving for emergencies and aggressively paying down your debt with practical strategies.",
+      excerpt: "Discover the balance between saving for emergencies and aggressively paying down your debt with practical strategies. Learn the optimal approach based on your specific financial situation.",
       date: "April 5, 2023",
       readTime: "9 min",
       category: "financial-tips",
-      image: "/assets/blog/emergency-fund.jpg",
+      image: "https://images.unsplash.com/photo-1579621970795-87facc2f976d?auto=format&fit=crop&q=80",
       author: {
         id: "a2",
         name: "Michael Chen",
         role: "Behavioral Economist",
-        avatar: "/assets/team/michael.jpg"
+        avatar: "https://randomuser.me/api/portraits/men/32.jpg"
       }
     },
     {
       id: "7",
       slug: "debt-consolidation-pros-cons",
       title: "Debt Consolidation: Pros, Cons, and When to Consider It",
-      excerpt: "A comprehensive guide to understanding when debt consolidation makes sense and when it might do more harm than good.",
+      excerpt: "A comprehensive guide to understanding when debt consolidation makes sense and when it might do more harm than good. Includes real case studies and practical decision-making frameworks.",
       date: "March 22, 2023",
       readTime: "11 min",
       category: "debt-strategies",
-      image: "/assets/blog/debt-consolidation.jpg",
+      image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?q=80&w=2070&auto=format&fit=crop",
       author: {
         id: "a3",
         name: "Aisha Patel",
         role: "Content Director",
-        avatar: "/assets/team/aisha.jpg"
+        avatar: "https://randomuser.me/api/portraits/women/68.jpg"
       }
     },
     {
       id: "8",
       slug: "interview-financial-expert",
       title: "Expert Interview: What Most Financial Advisors Get Wrong About Debt",
-      excerpt: "We interview a leading financial expert who shares insights on common misconceptions about debt management.",
+      excerpt: "We interview a leading financial expert who shares insights on common misconceptions about debt management and provides actionable advice for achieving true financial wellness.",
       date: "March 10, 2023",
       readTime: "12 min",
       category: "financial-tips",
-      image: "/assets/blog/financial-expert.jpg",
+      image: "https://images.unsplash.com/photo-1551836022-d5d88e9218df?q=80&w=2070&auto=format&fit=crop",
       author: {
         id: "a4",
         name: "James Wilson",
         role: "Tech Analyst",
-        avatar: "/assets/team/james.jpg"
+        avatar: "https://randomuser.me/api/portraits/men/22.jpg"
+      }
+    },
+    {
+      id: "9",
+      slug: "student-loan-forgiveness-options",
+      title: "Complete Guide to Student Loan Forgiveness Options in 2023",
+      excerpt: "Navigate the complex world of student loan forgiveness programs with our comprehensive guide to federal, state, and employer-based options available this year.",
+      date: "February 28, 2023",
+      readTime: "14 min",
+      category: "debt-strategies",
+      image: "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=2070&auto=format&fit=crop",
+      author: {
+        id: "a1",
+        name: "Sarah Johnson",
+        role: "Financial Coach",
+        avatar: "https://randomuser.me/api/portraits/women/44.jpg"
+      }
+    },
+    {
+      id: "10",
+      slug: "credit-score-improvement",
+      title: "7 Proven Strategies to Improve Your Credit Score While Paying Off Debt",
+      excerpt: "Learn how to simultaneously improve your credit score while reducing your debt burden with these expert-backed strategies that address both short and long-term financial goals.",
+      date: "February 15, 2023",
+      readTime: "8 min",
+      category: "financial-tips",
+      image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=2011&auto=format&fit=crop",
+      author: {
+        id: "a2",
+        name: "Michael Chen",
+        role: "Behavioral Economist",
+        avatar: "https://randomuser.me/api/portraits/men/32.jpg"
+      }
+    },
+    {
+      id: "11",
+      slug: "family-debt-reduction-plan",
+      title: "Creating a Family Debt Reduction Plan That Actually Works",
+      excerpt: "Discover how to create a debt reduction plan that involves the whole family, teaching financial literacy to children while working together toward shared financial goals.",
+      date: "January 30, 2023",
+      readTime: "10 min",
+      category: "debt-strategies",
+      image: "https://images.unsplash.com/photo-1591453089816-0fbb971b454c?q=80&w=2070&auto=format&fit=crop",
+      author: {
+        id: "a3",
+        name: "Aisha Patel",
+        role: "Content Director",
+        avatar: "https://randomuser.me/api/portraits/women/68.jpg"
+      }
+    },
+    {
+      id: "12",
+      slug: "automation-debt-payoff",
+      title: "How Automation Can Accelerate Your Debt Payoff Journey",
+      excerpt: "Learn how to leverage financial automation tools and technologies to streamline your debt payoff process, reduce decision fatigue, and achieve your financial goals faster.",
+      date: "January 18, 2023",
+      readTime: "7 min",
+      category: "technology",
+      image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=2070&auto=format&fit=crop",
+      author: {
+        id: "a4",
+        name: "James Wilson",
+        role: "Tech Analyst",
+        avatar: "https://randomuser.me/api/portraits/men/22.jpg"
       }
     }
   ];

@@ -1,3 +1,13 @@
+/**
+ * DEPRECATED: This file is maintained for backward compatibility only.
+ * Please use the consolidated Supabase files instead:
+ * 
+ * - @/utils/supabase/client.ts (client-side)
+ * - @/utils/supabase/server.ts (server-side)
+ * - @/utils/supabase/admin.ts (admin operations)
+ * - @/types/supabase.types.ts (for types)
+ */
+
 // Import directly from the primary source instead of re-exporting
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './supabase/types';

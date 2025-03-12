@@ -8,7 +8,9 @@ export default function TermsPage() {
 
   useEffect(() => {
     // Redirect to the existing Terms page in the Pages Router
-    router.push('/Terms');
+    // Make sure the path is a string
+    const path = '/Terms';
+    router.push(path);
   }, [router]);
 
   return (

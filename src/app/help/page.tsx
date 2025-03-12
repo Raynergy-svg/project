@@ -8,7 +8,9 @@ export default function HelpPage() {
 
   useEffect(() => {
     // Redirect to the existing Help page in the Pages Router
-    router.push('/Help');
+    // Make sure the path is a string
+    const path = '/Help';
+    router.push(path);
   }, [router]);
 
   return (

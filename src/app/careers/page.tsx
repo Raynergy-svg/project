@@ -8,7 +8,9 @@ export default function CareersPage() {
 
   useEffect(() => {
     // Redirect to the existing Careers page in the Pages Router
-    router.push('/Careers');
+    // Make sure the path is a string
+    const path = '/Careers';
+    router.push(path);
   }, [router]);
 
   return (

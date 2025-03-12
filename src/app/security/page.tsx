@@ -8,7 +8,9 @@ export default function SecurityPage() {
 
   useEffect(() => {
     // Redirect to the existing Security page in the Pages Router
-    router.push('/Security');
+    // Make sure the path is a string
+    const path = '/Security';
+    router.push(path);
   }, [router]);
 
   return (

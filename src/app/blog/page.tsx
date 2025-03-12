@@ -8,7 +8,9 @@ export default function BlogPage() {
 
   useEffect(() => {
     // Redirect to the existing Blog page in the Pages Router
-    router.push('/Blog');
+    // Make sure the path is a string
+    const path = '/Blog';
+    router.push(path);
   }, [router]);
 
   return (

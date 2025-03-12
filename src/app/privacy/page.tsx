@@ -8,7 +8,9 @@ export default function PrivacyPage() {
 
   useEffect(() => {
     // Redirect to the existing Privacy page in the Pages Router
-    router.push('/Privacy');
+    // Make sure the path is a string
+    const path = '/Privacy';
+    router.push(path);
   }, [router]);
 
   return (

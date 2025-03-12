@@ -8,7 +8,9 @@ export default function DocsPage() {
 
   useEffect(() => {
     // Redirect to the existing Docs page in the Pages Router
-    router.push('/Docs');
+    // Make sure the path is a string
+    const path = '/Docs';
+    router.push(path);
   }, [router]);
 
   return (

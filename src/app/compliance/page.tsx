@@ -8,7 +8,9 @@ export default function CompliancePage() {
 
   useEffect(() => {
     // Redirect to the existing Compliance page in the Pages Router
-    router.push('/Compliance');
+    // Make sure the path is a string
+    const path = '/Compliance';
+    router.push(path);
   }, [router]);
 
   return (

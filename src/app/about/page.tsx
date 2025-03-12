@@ -8,7 +8,9 @@ export default function AboutPage() {
 
   useEffect(() => {
     // Redirect to the existing About page in the Pages Router
-    router.push('/About');
+    // Make sure the path is a string
+    const path = '/About';
+    router.push(path);
   }, [router]);
 
   return (

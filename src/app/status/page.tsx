@@ -8,7 +8,9 @@ export default function StatusPage() {
 
   useEffect(() => {
     // Redirect to the existing Status page in the Pages Router
-    router.push('/Status');
+    // Make sure the path is a string
+    const path = '/Status';
+    router.push(path);
   }, [router]);
 
   return (

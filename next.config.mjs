@@ -69,17 +69,31 @@ const nextConfig = {
 
     // Add bundle analyzer in production build
     if (process.env.ANALYZE === "true") {
-      const { BundleAnalyzerPlugin } = await import("webpack-bundle-analyzer");
-      config.plugins.push(
-        new BundleAnalyzerPlugin({
-          analyzerMode: "server",
-          analyzerPort: 8888,
-          openAnalyzer: true,
-        })
-      );
+      // Note: Dynamic imports in non-async functions need a workaround for webpack
+      import("webpack-bundle-analyzer").then(({ BundleAnalyzerPlugin }) => {
+        config.plugins.push(
+          new BundleAnalyzerPlugin({
+            analyzerMode: "server",
+            analyzerPort: 8888,
+            openAnalyzer: true,
+          })
+        );
+      });
     }
 
     return config;
+  },
+
+  // Pass environment variables to the browser
+  env: {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY,
+    NEXT_PUBLIC_ENABLE_ANALYTICS: process.env.NEXT_PUBLIC_ENABLE_ANALYTICS,
+    NEXT_PUBLIC_ENABLE_TURNSTILE: process.env.NEXT_PUBLIC_ENABLE_TURNSTILE,
+    NEXT_PUBLIC_ENABLE_CAPTCHA: process.env.NEXT_PUBLIC_ENABLE_CAPTCHA,
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   },
 
   // Configure headers for better security and performance

@@ -14,9 +14,10 @@ import { isTurnstileDisabled } from '../../utils/turnstile';
 interface SignInFormProps {
   redirectPath?: string;
   onSuccess?: () => void;
+  disableTurnstile?: boolean;
 }
 
-export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFormProps) {
+export function SignInForm({ redirectPath = '/dashboard', onSuccess, disableTurnstile = false }: SignInFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -150,8 +151,8 @@ export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFor
           />
         </div>
         
-        {/* Turnstile Captcha */}
-        {!turnstileDisabled && (
+        {/* Turnstile Captcha - Only render if not disabled */}
+        {!turnstileDisabled && !disableTurnstile && (
           <div className="form-group captcha-container">
             <TurnstileCaptcha
               onVerify={handleTurnstileVerify}
@@ -165,7 +166,7 @@ export function SignInForm({ redirectPath = '/dashboard', onSuccess }: SignInFor
         <button 
           type="submit" 
           className="submit-button" 
-          disabled={isLoading || (!turnstileDisabled && !turnstileToken)}
+          disabled={isLoading || (!turnstileDisabled && !disableTurnstile && !turnstileToken)}
         >
           {isLoading ? 'Signing In...' : 'Sign In'}
         </button>

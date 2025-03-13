@@ -11,6 +11,16 @@ interface EnvVariables {
   
   // Feature flags
   SKIP_AUTH_CAPTCHA: boolean;
+  ENABLE_TURNSTILE: boolean;
+  ENABLE_CAPTCHA: boolean;
+  ENABLE_ANALYTICS: boolean;
+  
+  // Turnstile
+  TURNSTILE_SITE_KEY: string;
+  
+  // URLs
+  APP_URL: string;
+  API_URL: string;
   
   // Build modes
   NODE_ENV: 'development' | 'production' | 'test';
@@ -21,7 +31,16 @@ interface EnvVariables {
 
 // Access environment variables based on platform
 const getEnvValue = (key: string, defaultValue?: any): any => {
-  // Next.js
+  // Access env variables in different contexts
+
+  // Server-side: Use process.env directly
+  if (typeof window === 'undefined') {
+    return process.env[`NEXT_PUBLIC_${key}`] || process.env[key] || defaultValue;
+  }
+  
+  // Client-side: Try multiple sources
+  
+  // 1. Check process.env (for Next.js)
   if (typeof process !== 'undefined' && process.env) {
     // NEXT_PUBLIC_ prefix required for client-side access
     const nextKey = `NEXT_PUBLIC_${key}`;
@@ -32,37 +51,65 @@ const getEnvValue = (key: string, defaultValue?: any): any => {
       return process.env[key];
     }
   }
-
-  // Vite (fallback for compatibility)
-  // @ts-ignore - Vite specific global
-  if (typeof import.meta !== 'undefined' && import.meta.env) {
-    // @ts-ignore - Vite specific environment variables
-    const viteKey = `VITE_${key}`;
-    // @ts-ignore - Vite specific environment variables
-    if (import.meta.env[viteKey] !== undefined) {
-      // @ts-ignore - Vite specific environment variables
-      return import.meta.env[viteKey];
+  
+  // 2. Try to get from Next.js data if available
+  try {
+    if (window && (window as any).__NEXT_DATA__?.props?.pageProps?.env) {
+      const nextKey = `NEXT_PUBLIC_${key}`;
+      const envData = (window as any).__NEXT_DATA__.props.pageProps.env;
+      if (envData[nextKey] !== undefined) {
+        return envData[nextKey];
+      }
+      if (envData[key] !== undefined) {
+        return envData[key];
+      }
     }
-    // @ts-ignore - Vite specific environment variables
-    if (import.meta.env[key] !== undefined) {
-      // @ts-ignore - Vite specific environment variables
-      return import.meta.env[key];
-    }
+  } catch (e) {
+    // Silently fail and continue with other methods
   }
-
-  // Default value as fallback
+  
+  // 3. Check for globally defined variables (sometimes set by the app)
+  if ((window as any)[`NEXT_PUBLIC_${key}`]) {
+    return (window as any)[`NEXT_PUBLIC_${key}`];
+  }
+  if ((window as any)[key]) {
+    return (window as any)[key];
+  }
+  
+  // 4. Check window.__ENV
+  if ((window as any).__ENV && (window as any).__ENV[key] !== undefined) {
+    return (window as any).__ENV[key];
+  }
+  
+  // 5. Return default value if nothing found
   return defaultValue;
 };
 
-// Create an object with all environment variables
+// Parse the environment variables
 export const ENV: EnvVariables = {
-  // Supabase configuration
+  // Supabase
   SUPABASE_URL: getEnvValue('SUPABASE_URL', ''),
   SUPABASE_ANON_KEY: getEnvValue('SUPABASE_ANON_KEY', ''),
   
-  // Feature flags
-  SKIP_AUTH_CAPTCHA: getEnvValue('SKIP_AUTH_CAPTCHA', 'true') === 'true',
+  // URLs
+  APP_URL: getEnvValue('APP_URL', 'http://localhost:3000'),
+  API_URL: getEnvValue('API_URL', ''),
   
-  // Build mode
-  NODE_ENV: (getEnvValue('NODE_ENV', 'development') as 'development' | 'production' | 'test'),
-}; 
+  // Feature flags
+  SKIP_AUTH_CAPTCHA: getEnvValue('SKIP_AUTH_CAPTCHA', 'false') === 'true',
+  ENABLE_TURNSTILE: getEnvValue('ENABLE_TURNSTILE', 'true') === 'true',
+  ENABLE_CAPTCHA: getEnvValue('ENABLE_CAPTCHA', 'true') === 'true',
+  ENABLE_ANALYTICS: getEnvValue('ENABLE_ANALYTICS', 'false') === 'true',
+  
+  // Turnstile
+  TURNSTILE_SITE_KEY: getEnvValue('TURNSTILE_SITE_KEY', ''),
+  
+  // Build modes
+  NODE_ENV: getEnvValue('NODE_ENV', 'development') as 'development' | 'production' | 'test',
+};
+
+// Export the individual getter function for cases where you need dynamic values
+export { getEnvValue };
+
+// Default export
+export default ENV; 

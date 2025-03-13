@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ResponsiveCard, ResponsiveCardGrid } from "@/components/ui/responsive-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowRight, Search, Calendar, Clock, ChevronRight } from "lucide-react";
 
@@ -44,9 +45,14 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
+      className="h-full"
     >
       <Link href={`/blog/${post.slug}`} className="group block h-full">
-        <Card className="h-full overflow-hidden hover:shadow-md transition-all border-border hover:border-primary/20">
+        <ResponsiveCard 
+          className="h-full overflow-hidden hover:shadow-md transition-all border-border hover:border-primary/20"
+          hoverable
+          interactive
+        >
           <CardContent className="p-0">
             <div className="relative aspect-[16/9] overflow-hidden">
               <Image
@@ -55,26 +61,26 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute top-4 left-4">
-                <Badge variant="secondary" className="bg-white/90 text-foreground hover:bg-white">
+              <div className="absolute top-3 sm:top-4 left-3 sm:left-4">
+                <Badge variant="secondary" className="bg-white/90 text-foreground hover:bg-white text-xs sm:text-sm">
                   {post.category}
                 </Badge>
               </div>
             </div>
-            <div className="p-5">
-              <div className="flex items-center text-sm text-muted-foreground mb-3">
-                <Calendar className="h-4 w-4 mr-1" />
-                <span className="mr-4">{post.date}</span>
-                <Clock className="h-4 w-4 mr-1" />
-                <span>{post.readTime} read</span>
+            <div className="p-4 sm:p-5">
+              <div className="flex items-center text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-3">
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                <span className="mr-3 truncate">{post.date}</span>
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+                <span className="truncate">{post.readTime} read</span>
               </div>
-              <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">
+              <h3 className="text-base sm:text-lg md:text-xl font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-2">
                 {post.title}
               </h3>
-              <p className="text-muted-foreground mb-4 text-sm">{post.excerpt}</p>
+              <p className="text-muted-foreground mb-4 text-xs sm:text-sm line-clamp-3">{post.excerpt}</p>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="relative w-8 h-8 rounded-full overflow-hidden mr-3">
+                  <div className="relative w-6 h-6 sm:w-8 sm:h-8 rounded-full overflow-hidden mr-2 sm:mr-3 flex-shrink-0">
                     <Image
                       src={post.author.avatar}
                       alt={post.author.name}
@@ -82,18 +88,19 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
                       className="object-cover"
                     />
                   </div>
-                  <div className="text-sm">
+                  <div className="text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[140px]">
                     <span className="font-medium">{post.author.name}</span>
                   </div>
                 </div>
-                <div className="text-primary text-sm font-medium flex items-center">
-                  <span>Read more</span>
-                  <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                <div className="text-primary text-xs sm:text-sm font-medium flex items-center">
+                  <span className="hidden sm:inline">Read more</span>
+                  <span className="sm:hidden">Read</span>
+                  <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             </div>
           </CardContent>
-        </Card>
+        </ResponsiveCard>
       </Link>
     </motion.div>
   );
@@ -110,25 +117,25 @@ const FeaturedPost = ({ post }: { post: BlogPost }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-xl bg-gradient-to-b from-muted/80 to-muted"
+      className="relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-b from-muted/80 to-muted"
     >
       <div className="relative flex flex-col md:flex-row">
-        <div className="md:w-1/2 order-2 md:order-1 p-8 md:p-10">
-          <Badge className="mb-4">{post.category}</Badge>
-          <h2 className="text-2xl md:text-3xl font-bold mb-3">
+        <div className="md:w-1/2 order-2 md:order-1 p-6 sm:p-8 md:p-10">
+          <Badge className="mb-3 sm:mb-4">{post.category}</Badge>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 leading-tight">
             {post.title}
           </h2>
-          <p className="text-muted-foreground mb-4 md:mb-6">
+          <p className="text-muted-foreground mb-3 sm:mb-4 md:mb-6 text-sm sm:text-base">
             {post.excerpt}
           </p>
-          <div className="flex items-center text-sm text-muted-foreground mb-6">
-            <Calendar className="h-4 w-4 mr-1" />
-            <span className="mr-4">{post.date}</span>
-            <Clock className="h-4 w-4 mr-1" />
+          <div className="flex items-center text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6">
+            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
+            <span className="mr-3">{post.date}</span>
+            <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 flex-shrink-0" />
             <span>{post.readTime} read</span>
           </div>
-          <div className="flex items-center mb-6">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden mr-3">
+          <div className="flex items-center mb-4 sm:mb-6">
+            <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden mr-2 sm:mr-3 flex-shrink-0">
               <Image
                 src={post.author.avatar}
                 alt={post.author.name}
@@ -137,18 +144,18 @@ const FeaturedPost = ({ post }: { post: BlogPost }) => {
               />
             </div>
             <div>
-              <div className="font-medium">{post.author.name}</div>
-              <div className="text-sm text-muted-foreground">{post.author.role}</div>
+              <div className="font-medium text-sm sm:text-base">{post.author.name}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">{post.author.role}</div>
             </div>
           </div>
           <Link href={`/blog/${post.slug}`}>
-            <Button>
+            <Button size="sm" className="sm:h-10">
               Read Full Article
-              <ArrowRight className="ml-2 h-4 w-4" />
+              <ArrowRight className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </Link>
         </div>
-        <div className="md:w-1/2 h-64 md:h-auto order-1 md:order-2 relative">
+        <div className="md:w-1/2 h-48 sm:h-64 md:h-auto order-1 md:order-2 relative">
           <Image
             src={post.image}
             alt={post.title}
@@ -405,15 +412,15 @@ export default function BlogPage() {
       {/* Hero Section */}
       <section
         ref={heroRef}
-        className="py-16 md:py-24 bg-muted/30"
+        className="py-10 sm:py-16 md:py-24 bg-muted/30"
       >
-        <div className="container mx-auto px-4">
+        <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center">
             <motion.h1
               initial={{ opacity: 0, y: -20 }}
               animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
               transition={{ duration: 0.5 }}
-              className="text-4xl md:text-5xl font-bold mb-6"
+              className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 leading-tight"
             >
               Smart Debt Flow Blog
             </motion.h1>
@@ -422,7 +429,7 @@ export default function BlogPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-xl text-muted-foreground mb-8"
+              className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8"
             >
               Insights, guides, and success stories to help you on your path to financial freedom.
             </motion.p>
@@ -433,11 +440,11 @@ export default function BlogPage() {
               transition={{ duration: 0.5, delay: 0.2 }}
               className="relative max-w-lg mx-auto"
             >
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 type="text"
                 placeholder="Search articles..."
-                className="pl-10"
+                className="pl-10 h-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -448,10 +455,10 @@ export default function BlogPage() {
 
       {/* Featured Post */}
       {featuredPost && !searchQuery && selectedCategory === "all" && (
-        <section className="py-12">
-          <div className="container mx-auto px-4">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold">Featured Article</h2>
+        <section className="py-8 sm:py-12">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="mb-6 sm:mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold">Featured Article</h2>
             </div>
             <FeaturedPost post={featuredPost} />
           </div>
@@ -459,21 +466,21 @@ export default function BlogPage() {
       )}
 
       {/* Blog Posts */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="mb-8">
+      <section className="py-8 sm:py-12">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="mb-6 sm:mb-8">
             <Tabs
               defaultValue="all"
               value={selectedCategory}
               onValueChange={setSelectedCategory}
               className="w-full"
             >
-              <TabsList className="mb-8 flex flex-wrap justify-start gap-2">
+              <TabsList className="mb-6 sm:mb-8 flex flex-wrap justify-start gap-2 overflow-x-auto pb-2 -mx-2 px-2">
                 {categories.map((category) => (
                   <TabsTrigger
                     key={category.id}
                     value={category.id}
-                    className="rounded-full"
+                    className="rounded-full text-xs sm:text-sm whitespace-nowrap"
                   >
                     {category.name}
                   </TabsTrigger>
@@ -482,15 +489,15 @@ export default function BlogPage() {
 
               {categories.map((category) => (
                 <TabsContent key={category.id} value={category.id} className="mt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <ResponsiveCardGrid columns={3} gap="default">
                     {filteredPosts.map((post) => (
                       <BlogPostCard key={post.id} post={post} />
                     ))}
-                  </div>
+                  </ResponsiveCardGrid>
 
                   {filteredPosts.length === 0 && (
-                    <div className="text-center py-12">
-                      <p className="text-muted-foreground mb-4">
+                    <div className="text-center py-8 sm:py-12">
+                      <p className="text-muted-foreground mb-4 text-sm sm:text-base">
                         No articles found matching your criteria
                       </p>
                       <Button onClick={() => {
@@ -509,22 +516,22 @@ export default function BlogPage() {
       </section>
 
       {/* Newsletter Section */}
-      <section className="py-16 bg-muted/30">
-        <div className="container mx-auto px-4">
+      <section className="py-10 sm:py-16 bg-muted/30">
+        <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-3 sm:mb-4">
               Subscribe to Our Newsletter
             </h2>
-            <p className="text-muted-foreground mb-8">
+            <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8">
               Get the latest debt management strategies, financial tips, and exclusive content delivered to your inbox.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center max-w-lg mx-auto">
               <Input
                 type="email"
                 placeholder="Your email address"
-                className="sm:flex-1"
+                className="sm:flex-1 h-10"
               />
-              <Button>
+              <Button className="mt-2 sm:mt-0">
                 Subscribe
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>

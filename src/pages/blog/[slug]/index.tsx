@@ -9,6 +9,7 @@ import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import { ResponsiveCard, ResponsiveCardGrid } from "@/components/ui/responsive-card";
 import { Calendar, Clock, ArrowLeft, Share2, Bookmark, ThumbsUp, MessageSquare } from "lucide-react";
 import { NextPage } from "next";
 
@@ -476,8 +477,12 @@ const posts: BlogPost[] = [
 // Related posts component
 const RelatedPostCard = ({ post }: { post: BlogPost }) => {
   return (
-    <Link href={`/blog/${post.slug}`} className="group block">
-      <Card className="overflow-hidden hover:shadow-md transition-all border-border hover:border-primary/20">
+    <Link href={`/blog/${post.slug}`} className="group block h-full">
+      <ResponsiveCard 
+        className="h-full overflow-hidden hover:shadow-md transition-all border-border hover:border-primary/20"
+        hoverable
+        interactive
+      >
         <CardContent className="p-0">
           <div className="relative aspect-video overflow-hidden">
             <Image
@@ -492,14 +497,14 @@ const RelatedPostCard = ({ post }: { post: BlogPost }) => {
               {post.title}
             </h3>
             <div className="flex items-center text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4 mr-1" />
-              <span className="mr-3">{post.date}</span>
-              <Clock className="h-4 w-4 mr-1" />
-              <span>{post.readTime} read</span>
+              <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="mr-3 truncate">{post.date}</span>
+              <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span className="truncate">{post.readTime} read</span>
             </div>
           </div>
         </CardContent>
-      </Card>
+      </ResponsiveCard>
     </Link>
   );
 };
@@ -574,10 +579,10 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({ post: initialPost }) => {
         <meta property="article:section" content={post.category} />
       </Head>
 
-      <article className="py-12 md:py-20">
-        <div className="container mx-auto px-4">
+      <article className="py-8 md:py-12 lg:py-20">
+        <div className="container mx-auto px-4 sm:px-6">
           {/* Back button */}
-          <div className="mb-8">
+          <div className="mb-6 md:mb-8">
             <Button
               variant="ghost"
               size="sm"
@@ -585,27 +590,28 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({ post: initialPost }) => {
               className="group"
             >
               <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-              Back to all articles
+              <span className="hidden sm:inline">Back to all articles</span>
+              <span className="sm:hidden">Back</span>
             </Button>
           </div>
 
           {/* Hero section */}
-          <div className="max-w-4xl mx-auto mb-12">
+          <div className="max-w-4xl mx-auto mb-8 md:mb-12">
             <div className="mb-6">
               <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary mb-4">
                 {post.category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
               </span>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 leading-tight">
                 {post.title}
               </h1>
-              <p className="text-xl text-muted-foreground mb-6">
+              <p className="text-lg md:text-xl text-muted-foreground mb-6">
                 {post.excerpt}
               </p>
               
               {/* Author and metadata */}
-              <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 <div className="flex items-center">
-                  <Avatar className="h-12 w-12 mr-4">
+                  <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mr-3 sm:mr-4 flex-shrink-0">
                     <AvatarImage src={post.author.avatar} alt={post.author.name} />
                     <AvatarFallback>{post.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
@@ -614,17 +620,17 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({ post: initialPost }) => {
                     <div className="text-sm text-muted-foreground">{post.author.role}</div>
                   </div>
                 </div>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Calendar className="h-4 w-4 mr-1" />
+                <div className="flex items-center text-sm text-muted-foreground mt-2 sm:mt-0">
+                  <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
                   <span className="mr-4">{post.date}</span>
-                  <Clock className="h-4 w-4 mr-1" />
+                  <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
                   <span>{post.readTime} read</span>
                 </div>
               </div>
             </div>
             
             {/* Featured image */}
-            <div className="relative aspect-[21/9] rounded-xl overflow-hidden mb-12">
+            <div className="relative aspect-[16/9] sm:aspect-[21/9] rounded-lg sm:rounded-xl overflow-hidden mb-8 sm:mb-12">
               <Image
                 src={post.image}
                 alt={post.title}
@@ -635,31 +641,31 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({ post: initialPost }) => {
             </div>
             
             {/* Article content */}
-            <div className="prose prose-lg max-w-none">
+            <div className="prose prose-sm sm:prose md:prose-lg max-w-none">
               <div dangerouslySetInnerHTML={{ __html: post.content || '' }} />
             </div>
             
             {/* Article footer */}
-            <div className="mt-12 pt-6 border-t border-border">
-              <div className="flex justify-between items-center flex-wrap gap-4">
-                <div className="flex items-center gap-4">
-                  <Button variant="outline" size="sm">
+            <div className="mt-8 md:mt-12 pt-6 border-t border-border">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto justify-center">
                     <ThumbsUp className="mr-2 h-4 w-4" />
-                    Helpful
+                    <span className="hidden sm:inline">Helpful</span>
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto justify-center">
                     <MessageSquare className="mr-2 h-4 w-4" />
-                    Comment
+                    <span className="hidden sm:inline">Comment</span>
                   </Button>
                 </div>
-                <div className="flex items-center gap-4">
-                  <Button variant="outline" size="sm">
+                <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto justify-center">
                     <Bookmark className="mr-2 h-4 w-4" />
-                    Save
+                    <span className="hidden sm:inline">Save</span>
                   </Button>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto justify-center">
                     <Share2 className="mr-2 h-4 w-4" />
-                    Share
+                    <span className="hidden sm:inline">Share</span>
                   </Button>
                 </div>
               </div>
@@ -668,32 +674,32 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({ post: initialPost }) => {
           
           {/* Related articles */}
           {relatedPosts.length > 0 && (
-            <div className="max-w-4xl mx-auto mt-20">
-              <h2 className="text-2xl font-bold mb-8">Related Articles</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="max-w-4xl mx-auto mt-12 md:mt-20">
+              <h2 className="text-xl sm:text-2xl font-bold mb-6 sm:mb-8">Related Articles</h2>
+              <ResponsiveCardGrid columns={3} gap="default" className="mb-8">
                 {relatedPosts.map(relatedPost => (
                   <RelatedPostCard key={relatedPost.id} post={relatedPost} />
                 ))}
-              </div>
+              </ResponsiveCardGrid>
             </div>
           )}
           
           {/* Newsletter */}
-          <div className="max-w-4xl mx-auto mt-20 p-8 bg-muted/30 rounded-xl">
+          <div className="max-w-4xl mx-auto mt-12 md:mt-20 p-6 sm:p-8 bg-muted/30 rounded-lg sm:rounded-xl">
             <div className="text-center">
-              <h3 className="text-xl font-bold mb-4">
+              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
                 Subscribe to Our Newsletter
               </h3>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
                 Get the latest debt management strategies and financial tips delivered to your inbox.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 max-w-md mx-auto">
                 <input
                   type="email"
                   placeholder="Your email address"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
                 />
-                <Button>Subscribe</Button>
+                <Button className="mt-2 sm:mt-0">Subscribe</Button>
               </div>
             </div>
           </div>

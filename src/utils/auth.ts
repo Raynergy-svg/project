@@ -10,21 +10,50 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { createBrowserClient } from '@supabase/ssr';
 import { User, Session, AuthError } from '@supabase/supabase-js';
-
-// Environment variables for Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+import { supabase as supabaseClient, supabaseUrl, supabaseAnonKey } from './supabase/client';
 
 // Helper to check if we're in a browser environment
 export const isBrowser = () => typeof window !== 'undefined';
+
+// Cache for the client to avoid creating multiple instances
+let cachedClient: any = null;
+
+/**
+ * Get the singleton Supabase client
+ * This ensures only one instance is created in the browser
+ */
+function getClient() {
+  // Always use the main client from the client.ts file if available
+  if (isBrowser() && supabaseClient) {
+    return supabaseClient;
+  }
+  
+  // Otherwise, create a client with the right method for the current environment
+  if (isBrowser()) {
+    if (!cachedClient) {
+      // In browser environments, create with createClientComponentClient
+      try {
+        cachedClient = createClientComponentClient();
+      } catch (error) {
+        console.error('Error creating client component client:', error);
+        // Fallback to browser client if needed
+        cachedClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+      }
+    }
+    return cachedClient;
+  }
+  
+  // For server environments (this should be rare in this client-side file)
+  return createClientComponentClient();
+}
 
 /**
  * Get the user from the client side
  */
 export async function getCurrentUser() {
-  const supabase = createClientComponentClient();
+  const client = getClient();
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await client.auth.getUser();
     return user;
   } catch (error) {
     console.error('Error getting current user:', error);
@@ -33,12 +62,12 @@ export async function getCurrentUser() {
 }
 
 /**
- * Get the session from the client side
+ * Get the current session
  */
 export async function getSession() {
-  const supabase = createClientComponentClient();
+  const client = getClient();
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await client.auth.getSession();
     return session;
   } catch (error) {
     console.error('Error getting session:', error);
@@ -50,18 +79,18 @@ export async function getSession() {
  * Sign out the user
  */
 export async function signOut() {
-  const supabase = createClientComponentClient();
+  const client = getClient();
   try {
-    await supabase.auth.signOut();
-    return true;
+    await client.auth.signOut();
   } catch (error) {
     console.error('Error signing out:', error);
-    return false;
+    throw error;
   }
 }
 
 /**
- * Create a browser client for client-side operations
+ * Create a Supabase browser client
+ * This is a legacy function and should be avoided in favor of getClient()
  */
 export function createSupabaseBrowserClient() {
   if (!isBrowser()) {
@@ -76,8 +105,8 @@ export function createSupabaseBrowserClient() {
  */
 export async function signInWithEmail(email: string, password: string, options?: any) {
   try {
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const client = getClient();
+    const { data, error } = await client.auth.signInWithPassword({
       email,
       password,
       ...options
@@ -96,8 +125,8 @@ export async function signInWithEmail(email: string, password: string, options?:
  */
 export async function signUpWithEmail(email: string, password: string, options?: any) {
   try {
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase.auth.signUp({
+    const client = getClient();
+    const { data, error } = await client.auth.signUp({
       email,
       password,
       ...options
@@ -112,14 +141,12 @@ export async function signUpWithEmail(email: string, password: string, options?:
 }
 
 /**
- * Reset password for a user
+ * Reset password
  */
 export async function resetPassword(email: string) {
   try {
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    const client = getClient();
+    const { data, error } = await client.auth.resetPasswordForEmail(email);
     
     if (error) throw error;
     return { data, error: null };
@@ -130,13 +157,13 @@ export async function resetPassword(email: string) {
 }
 
 /**
- * Update the user's password
+ * Update user password
  */
 export async function updatePassword(password: string) {
   try {
-    const supabase = createClientComponentClient();
-    const { data, error } = await supabase.auth.updateUser({
-      password,
+    const client = getClient();
+    const { data, error } = await client.auth.updateUser({
+      password
     });
     
     if (error) throw error;

@@ -175,16 +175,15 @@ export function useAuth() {
     try {
       console.log('Attempting login for:', email);
       
-      // For development, we can bypass captcha
-      const loginOptions = { ...options };
-      
-      if (IS_DEV) {
-        // In development, we can use a bypass token
-        loginOptions.captchaToken = '1x00000000000000000000AA';
+      // Use the captchaToken from options if available
+      if (options?.captchaToken) {
+        console.log('🔑 AUTH: Using provided captcha token for authentication');
+      } else {
+        console.warn('🔑 AUTH: No captcha token provided for authentication');
       }
       
-      // Use our consolidated auth utility
-      const { data, error } = await authUtils.signInWithEmail(email, password, loginOptions);
+      // Use our consolidated auth utility with the captcha token
+      const { data, error } = await authUtils.signInWithEmail(email, password, options);
       
       if (error) {
         console.error('Login error:', error.message);
@@ -203,22 +202,18 @@ export function useAuth() {
   };
 
   // Signup function
-  const signup = async (email: string, password: string, name?: string) => {
+  const signup = async (email: string, password: string, name?: string, options?: any) => {
     try {
       console.log('Attempting signup for:', email);
       
-      // For development, we can bypass captcha
-      const options: any = {
-        data: { name }
+      // Base options with user data
+      const baseOptions: any = {
+        data: { name },
+        ...options
       };
       
-      if (IS_DEV) {
-        // In development, we can use a bypass token
-        options.captchaToken = '1x00000000000000000000AA';
-      }
-      
-      // Use our consolidated auth utility
-      const { data, error } = await authUtils.signUpWithEmail(email, password, options);
+      // Use our consolidated auth utility with the captcha token
+      const { data, error } = await authUtils.signUpWithEmail(email, password, baseOptions);
       
       if (error) {
         console.error('Signup error:', error.message);

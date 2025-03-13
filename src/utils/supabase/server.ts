@@ -10,13 +10,16 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-// Environment variables
+// Environment variables - try multiple sources to ensure we get the values
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // Validate environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables. The server client will not function properly.');
+  console.error('Please ensure these are set in your .env.local file:');
+  console.error('- NEXT_PUBLIC_SUPABASE_URL');
+  console.error('- NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
 /**

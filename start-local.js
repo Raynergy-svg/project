@@ -33,9 +33,63 @@ function loadEnvFiles() {
   // Then load .env.local which will override any duplicates from .env
   if (fs.existsSync(envLocal)) {
     console.log(`Loading env from: ${envLocal}`);
-    dotenv.config({ path: envLocal });
+    dotenv.config({ path: envLocal, override: true });
   } else {
     console.log(`.env.local file not found at: ${envLocal}`);
+  }
+
+  // Set up Next.js environment variable compatibility
+  // Ensure NEXT_PUBLIC_* variables are set from corresponding VITE_* variables and vice-versa
+  const envPrefixMap = {
+    VITE_: "NEXT_PUBLIC_",
+    NEXT_PUBLIC_: "VITE_",
+  };
+
+  // Copy variables between prefixes if needed
+  Object.keys(process.env).forEach((key) => {
+    // Handle VITE_ -> NEXT_PUBLIC_
+    if (key.startsWith("VITE_")) {
+      const nextKey = key.replace("VITE_", "NEXT_PUBLIC_");
+      if (!process.env[nextKey]) {
+        process.env[nextKey] = process.env[key];
+        console.log(`Copied ${key} -> ${nextKey}`);
+      }
+    }
+    // Handle NEXT_PUBLIC_ -> VITE_
+    else if (key.startsWith("NEXT_PUBLIC_")) {
+      const viteKey = key.replace("NEXT_PUBLIC_", "VITE_");
+      if (!process.env[viteKey]) {
+        process.env[viteKey] = process.env[key];
+        console.log(`Copied ${key} -> ${viteKey}`);
+      }
+    }
+  });
+
+  // Ensure critical environment variables are set
+  const criticalVars = [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  ];
+
+  let missingCriticalVars = criticalVars.filter(
+    (varName) => !process.env[varName]
+  );
+
+  // If any critical vars are missing, try to find them in .env.local
+  if (missingCriticalVars.length > 0 && fs.existsSync(envLocal)) {
+    const envContent = fs.readFileSync(envLocal, "utf8");
+    const lines = envContent.split("\n");
+
+    missingCriticalVars.forEach((varName) => {
+      const line = lines.find((l) => l.startsWith(`${varName}=`));
+      if (line) {
+        const value = line.split("=")[1]?.trim();
+        if (value) {
+          process.env[varName] = value;
+          console.log(`Found ${varName} in .env.local and set it manually`);
+        }
+      }
+    });
   }
 
   // Print loaded variables (but hide sensitive values)

@@ -66,7 +66,8 @@ export const createAdminClientWithToken = (jwt: string) => {
 // In development mode, provide a helper function to check admin client
 export const checkAdminConnection = IS_DEV ? async () => {
   try {
-    const { error } = await adminClient.from('health_check').select('*').limit(1);
+    // Check if we can query the profiles table (which should exist in most Supabase setups)
+    const { error } = await adminClient.from('profiles').select('id').limit(1);
     if (error) {
       console.error('Admin client connection check failed:', error.message);
       return { connected: false, error: error.message };

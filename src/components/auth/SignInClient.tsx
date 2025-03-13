@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Layout } from '@/components/layout/Layout';
 import { checkSupabaseConnection, devAuth } from '@/utils/supabase/client';
 import { ENV } from '@/utils/env-adapter';
 import { IS_DEV } from '@/utils/environment';
@@ -129,14 +128,12 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     error: string | null;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [useMagicLink, setUseMagicLink] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
   
   // Use our Turnstile hook
   const { token: captchaToken, resetToken: resetCaptchaToken, TurnstileWidget } = useTurnstile();
   
   // Show CAPTCHA after first failed attempt or in production
-  const [showCaptcha, setShowCaptcha] = useState(process.env.NODE_ENV === 'production' || failedAttempts > 0);
+  const [showCaptcha, setShowCaptcha] = useState(true);
   
   // Add useEffect to ensure client-side only rendering for the form
   const [isClient, setIsClient] = useState(false);
@@ -164,6 +161,31 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
           (window as any).SUPABASE_AUTH_CAPTCHA_DISABLE = true;
           (window as any).SKIP_AUTH_CAPTCHA = true;
           (window as any).NEXT_PUBLIC_SUPABASE_AUTH_CAPTCHA_DISABLE = true;
+          
+          // Import our environment utility
+          import('@/utils/env').then(module => {
+            // Inject environment variables to window
+            if (module.injectEnvToWindow) {
+              module.injectEnvToWindow();
+            }
+            
+            // Get the environment values 
+            const supabaseUrl = module.ENV.SUPABASE_URL;
+            const supabaseAnonKey = module.ENV.SUPABASE_ANON_KEY;
+            
+            // Explicitly set Supabase URL and Anon Key
+            if (!window.NEXT_PUBLIC_SUPABASE_URL) {
+              console.log('🔑 SIGN IN: Setting NEXT_PUBLIC_SUPABASE_URL explicitly', supabaseUrl ? '✅' : '❌');
+              window.NEXT_PUBLIC_SUPABASE_URL = supabaseUrl;
+            }
+            
+            if (!window.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+              console.log('🔑 SIGN IN: Setting NEXT_PUBLIC_SUPABASE_ANON_KEY explicitly', supabaseAnonKey ? '✅' : '❌');
+              window.NEXT_PUBLIC_SUPABASE_ANON_KEY = supabaseAnonKey;
+            }
+          }).catch(error => {
+            console.warn('🔑 SIGN IN: Error importing env module:', error);
+          });
         }
         
         // Import the devAuth functions dynamically to avoid circular dependencies
@@ -184,15 +206,6 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
           }
         }).catch(error => {
           console.warn('🔑 SIGN IN: Error importing devAuth module:', error);
-        });
-        
-        // Also import and configure client directly
-        import('@/utils/supabase/configureClient').then((module) => {
-          if (module.configureDevAuthEnvironment) {
-            module.configureDevAuthEnvironment();
-          }
-        }).catch(error => {
-          console.warn('🔑 SIGN IN: Error importing configureClient module:', error);
         });
       } catch (error) {
         console.warn('🔑 SIGN IN: Error setting up dev environment:', error);
@@ -259,7 +272,7 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
       [name]: value
     }));
     
-    // Clear errors for this field when user types
+    // Clear the error for the field being typed in
     if (formErrors[name as keyof FormErrors]) {
       setFormErrors(prev => ({
         ...prev,
@@ -297,84 +310,23 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     return isValid;
   };
   
-  // Handle magic link flow
-  const handleSendMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
-      setFormErrors({ email: "Please enter a valid email address" });
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      // Use the auth context instead of direct supabase reference
-      // Call Supabase magic link function through auth context
-      const result = await login(formData.email, '', { useOtp: true });
-      
-      if (result.error) {
-        // Ensure error message is a string
-        let errorMessage = result.error.message || "Failed to send magic link";
-        if (typeof errorMessage === 'object') {
-          if (errorMessage instanceof Error) {
-            errorMessage = errorMessage.message || "Failed to send magic link";
-          } else {
-            try {
-              errorMessage = JSON.stringify(errorMessage);
-            } catch {
-              errorMessage = "Failed to send magic link";
-            }
-          }
-        }
-        
-        setFormErrors({ general: errorMessage });
-        setFailedAttempts(prev => prev + 1);
-      } else {
-        setMagicLinkSent(true);
-      }
-    } catch (error) {
-      console.error("Magic link error:", error);
-      
-      // Ensure error is a string
-      let errorMessage = "An unexpected error occurred";
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      } else if (typeof error === 'object' && error !== null) {
-        try {
-          errorMessage = JSON.stringify(error);
-        } catch {
-          // Keep the default message
-        }
-      }
-      
-      setFormErrors({ general: errorMessage });
-      setFailedAttempts(prev => prev + 1);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    // If using magic link, handle that flow instead
-    if (useMagicLink) {
-      await handleSendMagicLink(e);
+    if (formData.email === '') {
+      setFormErrors({ email: 'Email is required' });
       return;
     }
     
-    // Regular email/password flow
-    if (!validateForm()) {
+    if (formData.password === '') {
+      setFormErrors({ password: 'Password is required' });
       return;
     }
     
-    // Check if captcha is required and not provided
-    if (showCaptcha && !captchaToken && process.env.NODE_ENV === 'production') {
-      setFormErrors({
-        general: "Please complete the captcha verification"
-      });
+    // Check for captcha token only if turnstile is enabled and we're showing captcha
+    if (showCaptcha && !captchaToken) {
+      setFormErrors({ general: 'Please complete the CAPTCHA challenge to continue' });
       return;
     }
     
@@ -511,11 +463,6 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     setShowPassword(!showPassword);
   };
   
-  const toggleLoginMethod = () => {
-    setUseMagicLink(!useMagicLink);
-    setFormErrors({});
-  };
-  
   // Render error message for a field
   const renderErrorMessage = (fieldName: keyof FormErrors) => {
     return formErrors[fieldName] ? (
@@ -527,7 +474,6 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
 
   // Keep our local implementation of handleDevSignIn
   const [isDevSigningIn, setIsDevSigningIn] = useState(false);
-  const [devSignInMethod, setDevSignInMethod] = useState<'email' | 'password'>('email');
   
   const handleDevSignIn = async (role: 'admin' | 'user') => {
     console.log('🔑 SIGN IN: Dev sign-in button clicked', { role });
@@ -590,8 +536,9 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     }
   };
 
-  // Add this inside the form, just before the submit button
+  // This is our modified renderCaptcha function to only use the hook version
   const renderCaptcha = () => {
+    // Only show captcha if it's enabled
     if (!showCaptcha) return null;
     
     return (
@@ -599,341 +546,277 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
         <div className="flex justify-center">
           <TurnstileWidget className="mx-auto" />
         </div>
+        {showCaptcha && !captchaToken && (
+          <div className="text-center mt-2 text-sm text-red-500">
+            Please complete the CAPTCHA above to continue
+          </div>
+        )}
       </div>
     );
   };
 
   return (
-    <Layout showNavbar={false}>
-      <div className="min-h-screen flex flex-col md:flex-row">
-        {/* Left side - Brand section */}
-        <div className="bg-gray-900 dark:bg-white md:w-1/2 flex flex-col justify-center p-8 md:p-12 lg:p-16 border-r border-gray-800 dark:border-gray-200">
-          <div className="max-w-md mx-auto text-center">
-            <Link href="/" className="inline-block mb-8 mx-auto">
-              <Logo className="h-12 w-auto" isLink={false} />
-            </Link>
-            
-            <h1 className="text-4xl md:text-5xl font-bold text-white dark:text-gray-900 mb-6">
-              Welcome back
-            </h1>
-            
-            <p className="text-lg text-gray-300 dark:text-gray-700 mb-8">
-              Sign in to your Smart Debt Flow account to continue your journey to financial freedom.
-            </p>
-            
-            <div className="mb-8">
-              <div className="bg-gray-800 dark:bg-gray-100 shadow-md p-6 rounded-lg border border-gray-700 dark:border-gray-300">
-                <h3 className="font-medium text-white dark:text-gray-900 mb-4">Why Smart Debt Flow?</h3>
-                <ul className="space-y-3 text-gray-300 dark:text-gray-700">
-                  <li className="flex items-start justify-center">
-                    <Check className="h-5 w-5 text-[#1DB954] mr-2 flex-shrink-0 mt-0.5" />
-                    <span>AI-powered debt reduction strategies</span>
-                  </li>
-                  <li className="flex items-start justify-center">
-                    <Check className="h-5 w-5 text-[#1DB954] mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Visual debt payoff tracking</span>
-                  </li>
-                  <li className="flex items-start justify-center">
-                    <Check className="h-5 w-5 text-[#1DB954] mr-2 flex-shrink-0 mt-0.5" />
-                    <span>Personalized financial insights</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-            
-            {/* News section */}
-            <div className="bg-gray-800/70 dark:bg-gray-100/70 p-4 rounded-lg border border-[#1DB954]/30 shadow-inner">
-              <div className="inline-block bg-[#1DB954] text-white text-xs font-bold px-2 py-1 rounded mb-2">
-                COMING SOON
-              </div>
-              <h3 className="text-lg font-semibold text-white dark:text-gray-900 mb-2">
-                Mobile App Launch
-              </h3>
-              <p className="text-gray-300 dark:text-gray-700 text-sm">
-                Take Smart Debt Flow with you everywhere. Our mobile app is launching next month with exclusive features.
-              </p>
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
+      {/* Left side - Brand section */}
+      <div className="bg-gray-900 dark:bg-white md:w-1/2 flex flex-col justify-center p-8 md:p-12 lg:p-16 border-r border-gray-800 dark:border-gray-200">
+        <div className="max-w-md mx-auto text-center">
+          <Link href="/" className="inline-block mb-8 mx-auto">
+            <Logo className="h-12 w-auto" isLink={false} />
+          </Link>
+          
+          <h1 className="text-4xl md:text-5xl font-bold text-white dark:text-gray-900 mb-6">
+            Welcome back
+          </h1>
+          
+          <p className="text-lg text-gray-300 dark:text-gray-700 mb-8">
+            Sign in to your Smart Debt Flow account to continue your journey to financial freedom.
+          </p>
+          
+          <div className="mb-8">
+            <div className="bg-gray-800 dark:bg-gray-100 shadow-md p-6 rounded-lg border border-gray-700 dark:border-gray-300">
+              <h3 className="font-medium text-white dark:text-gray-900 mb-4">Why Smart Debt Flow?</h3>
+              <ul className="space-y-3 text-gray-300 dark:text-gray-700">
+                <li className="flex items-start justify-center">
+                  <Check className="h-5 w-5 text-[#1DB954] mr-2 flex-shrink-0 mt-0.5" />
+                  <span>AI-powered debt reduction strategies</span>
+                </li>
+                <li className="flex items-start justify-center">
+                  <Check className="h-5 w-5 text-[#1DB954] mr-2 flex-shrink-0 mt-0.5" />
+                  <span>Visual debt payoff tracking</span>
+                </li>
+                <li className="flex items-start justify-center">
+                  <Check className="h-5 w-5 text-[#1DB954] mr-2 flex-shrink-0 mt-0.5" />
+                  <span>Personalized financial insights</span>
+                </li>
+              </ul>
             </div>
           </div>
-        </div>
-        
-        {/* Right side - Form section */}
-        <div className="md:w-1/2 flex flex-col justify-center p-8 md:p-12 lg:p-16 bg-white dark:bg-background">
-          <div className="max-w-md mx-auto md:mx-0 md:mr-auto w-full">
-            <div className="flex flex-col mb-8">
-              <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-foreground mb-2">
-                {useMagicLink 
-                  ? magicLinkSent 
-                    ? "Check your email" 
-                    : "Sign in with magic link"
-                  : "Sign in to your account"}
-              </h2>
+          
+          {/* News section */}
+          <div className="bg-gray-800/70 dark:bg-gray-100/70 p-4 rounded-lg border border-[#1DB954]/30 shadow-inner">
+            <div className="inline-block bg-[#1DB954] text-white text-xs font-bold px-2 py-1 rounded mb-2">
+              COMING SOON
             </div>
-            
-            {/* Display connection error if any */}
-            {connectionStatus?.error && (
-              <Alert variant="destructive" className="mb-6 border border-red-200 dark:border-red-900/50">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Connection Error</AlertTitle>
-                <AlertDescription>
-                  {connectionStatus.error}. Please try again later or contact support.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Display confirmation alert if needed */}
-            {showConfirmationAlert && (
-              <Alert className="mb-6 bg-green-50 dark:bg-green-500/10 text-green-800 dark:text-green-500 border-green-200 dark:border-green-500/20">
-                <Check className="h-4 w-4" />
-                <AlertTitle>Email Confirmation Required</AlertTitle>
-                <AlertDescription>
-                  Please check your email to confirm your account before signing in.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Display security message if any */}
-            {securityMessage && (
-              <Alert className="mb-6 bg-yellow-50 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20">
-                <Shield className="h-4 w-4" />
-                <AlertTitle>Security Notice</AlertTitle>
-                <AlertDescription>
-                  {securityMessage}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Wrap the conditional rendering in a client-side only div */}
-            <div className="space-y-6">
-              {isClient ? (
-                <>
-                  {/* Developer sign-in (only in development) - moved inside client-side rendering */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="space-y-4 mb-6 pb-6 border-b border-gray-200 dark:border-border">
-                      <h3 className="font-medium text-gray-900 dark:text-foreground">Developer Testing Options</h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        <Button
-                          onClick={() => handleDevSignIn('admin')}
-                          disabled={isDevSigningIn}
-                          variant="outline"
-                          className="justify-start border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground"
-                        >
-                          {isDevSigningIn ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Lock className="mr-2 h-4 w-4" />
-                          )}
-                          Sign in as Admin (dev)
-                        </Button>
-                        <Button
-                          onClick={() => handleDevSignIn('user')}
-                          disabled={isDevSigningIn}
-                          variant="outline"
-                          className="justify-start border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground"
-                        >
-                          {isDevSigningIn ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Lock className="mr-2 h-4 w-4" />
-                          )}
-                          Sign in as Regular User (dev)
-                        </Button>
-                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">
-                          <p>Dev logins use email OTP by default. Check console for the magic link URL or use the dev password: <code>DevPassword123!</code></p>
-                        </div>
-                      </div>
-                      {formErrors.general && (
-                        <Alert variant="destructive" className="border border-red-200 dark:border-red-900/50">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertTitle>Error</AlertTitle>
-                          <AlertDescription>
-                            {typeof formErrors.general === 'object' ? 
-                              (formErrors.general instanceof Error ? 
-                                formErrors.general.message : 
-                                JSON.stringify(formErrors.general)) : 
-                              formErrors.general}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-                    </div>
-                  )}
-                  
-                  {magicLinkSent ? (
-                    <div className="space-y-4">
-                      <Alert className="bg-green-50 dark:bg-green-500/10 text-green-800 dark:text-green-500 border-green-200 dark:border-green-500/20">
-                        <Check className="h-4 w-4" />
-                        <AlertTitle>Check Your Email</AlertTitle>
-                        <AlertDescription>
-                          We've sent a magic link to <strong>{formData.email}</strong>. 
-                          Click the link in the email to sign in.
-                        </AlertDescription>
-                      </Alert>
-                      <div className="flex flex-col space-y-4">
-                        <Button 
-                          onClick={() => {
-                            setMagicLinkSent(false);
-                            setFormData({ ...formData, email: "" });
-                          }}
-                          variant="outline"
-                          className="border-gray-300 dark:border-border"
-                        >
-                          Use a different email
-                        </Button>
-                        <Button 
-                          onClick={() => {
-                            setUseMagicLink(false);
-                            setMagicLinkSent(false);
-                          }}
-                          variant="link"
-                          className="text-[#1DB954] hover:text-[#1DB954]/90"
-                        >
-                          Sign in with password instead
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    /* Login Form */
-                    <form className="space-y-6" onSubmit={handleSubmit}>
-                      {/* Email field */}
-                      <div>
-                        <Label htmlFor="email" className="text-gray-900 dark:text-foreground">Email address</Label>
-                        <div className="mt-1">
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            autoComplete="email"
-                            required
-                            value={formData.email}
-                            onChange={handleInputChange}
-                            className={`bg-white dark:bg-card border-gray-300 dark:border-border ${formErrors.email ? "border-red-500" : ""}`}
-                          />
-                          {renderErrorMessage('email')}
-                        </div>
-                      </div>
-
-                      {/* Password field */}
-                      <div>
-                        <div className="flex items-center justify-between">
-                          <Label htmlFor="password" className="text-gray-900 dark:text-foreground">Password</Label>
-                          <Link href="/forgot-password" className="text-sm font-medium text-[#1DB954] hover:text-[#1DB954]/90 transition-colors">
-                            Forgot password?
-                          </Link>
-                        </div>
-                        <div className="mt-1 relative">
-                          <Input
-                            id="password"
-                            name="password"
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="current-password"
-                            required
-                            value={formData.password}
-                            onChange={handleInputChange}
-                            className={`bg-white dark:bg-card border-gray-300 dark:border-border pr-10 ${formErrors.password ? "border-red-500" : ""}`}
-                          />
-                          <button
-                            type="button"
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                            onClick={togglePasswordVisibility}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-gray-500 dark:text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-gray-500 dark:text-muted-foreground" />
-                            )}
-                          </button>
-                          {renderErrorMessage('password')}
-                        </div>
-                      </div>
-
-                      {/* Remember me checkbox */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Checkbox
-                            id="remember-me"
-                            checked={rememberMe}
-                            onCheckedChange={(checked) => handleRememberMeChange(checked as boolean)}
-                            className="border-gray-300 dark:border-border text-[#1DB954] focus:ring-[#1DB954]"
-                          />
-                          <Label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-muted-foreground">
-                            Remember me
-                          </Label>
-                        </div>
-                        
-                        <div className="text-sm">
-                          <button
-                            type="button"
-                            onClick={toggleLoginMethod}
-                            className="font-medium text-[#1DB954] hover:text-[#1DB954]/90 transition-colors"
-                          >
-                            {useMagicLink ? "Use password" : "Use magic link"}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* General error message */}
-                      {formErrors.general && (
-                        <Alert variant="destructive" className="border border-red-200 dark:border-red-900/50">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertTitle>Error</AlertTitle>
-                          <AlertDescription>
-                            {typeof formErrors.general === 'object' ? 
-                              (formErrors.general instanceof Error ? 
-                                formErrors.general.message : 
-                                JSON.stringify(formErrors.general)) : 
-                              formErrors.general}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      {renderCaptcha()}
-
-                      <div>
-                        <Button
-                          type="submit"
-                          className="w-full flex justify-center py-2 bg-[#1DB954] hover:bg-[#1DB954]/90 text-white"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Signing in...
-                            </>
-                          ) : (
-                            <>
-                              Sign in
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                      
-                      {/* Create account link - moved below sign in button */}
-                      <div className="text-center pt-4 border-t border-gray-200 dark:border-border mt-6">
-                        <div className="flex flex-col items-center">
-                          <span className="text-gray-700 dark:text-muted-foreground mb-2">New to Smart Debt Flow?</span>
-                          <Link href="/signup" className="font-medium text-[#1DB954] hover:text-[#1DB954]/90 transition-colors">
-                            Create an account
-                          </Link>
-                        </div>
-                      </div>
-                    </form>
-                  )}
-                </>
-              ) : (
-                // Server-side placeholder with the same structure
-                <div className="space-y-6">
-                  {/* This will be replaced by the client-side content after hydration */}
-                  <div className="animate-pulse">
-                    <div className="h-10 bg-gray-200 dark:bg-muted rounded mb-4"></div>
-                    <div className="h-10 bg-gray-200 dark:bg-muted rounded mb-4"></div>
-                    <div className="h-10 bg-[#1DB954]/30 rounded"></div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <h3 className="text-lg font-semibold text-white dark:text-gray-900 mb-2">
+              Mobile App Launch
+            </h3>
+            <p className="text-gray-300 dark:text-gray-700 text-sm">
+              Take Smart Debt Flow with you everywhere. Our mobile app is launching next month with exclusive features.
+            </p>
           </div>
         </div>
       </div>
-    </Layout>
+      
+      {/* Right side - Form section */}
+      <div className="md:w-1/2 flex flex-col justify-center p-8 md:p-12 lg:p-16 bg-white dark:bg-background">
+        <div className="max-w-md mx-auto md:mx-0 md:mr-auto w-full">
+          <div className="flex flex-col mb-8">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-foreground mb-2">
+              Sign in to your account
+            </h2>
+          </div>
+          
+          {/* Display connection error if any */}
+          {connectionStatus?.error && (
+            <Alert variant="destructive" className="mb-6 border border-red-200 dark:border-red-900/50">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Connection Error</AlertTitle>
+              <AlertDescription>
+                {connectionStatus.error}. Please try again later or contact support.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Display confirmation alert if needed */}
+          {showConfirmationAlert && (
+            <Alert className="mb-6 bg-green-50 dark:bg-green-500/10 text-green-800 dark:text-green-500 border-green-200 dark:border-green-500/20">
+              <Check className="h-4 w-4" />
+              <AlertTitle>Email Confirmation Required</AlertTitle>
+              <AlertDescription>
+                Please check your email to confirm your account before signing in.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Display security message if any */}
+          {securityMessage && (
+            <Alert className="mb-6 bg-yellow-50 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20">
+              <Shield className="h-4 w-4" />
+              <AlertTitle>Security Notice</AlertTitle>
+              <AlertDescription>
+                {securityMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {/* Wrap the conditional rendering in a client-side only div */}
+          <div className="space-y-6">
+            {isClient ? (
+              <>
+                {/* Developer sign-in (only in development) - moved inside client-side rendering */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="space-y-4 mb-6 pb-6 border-b border-gray-200 dark:border-border">
+                    <h3 className="font-medium text-gray-900 dark:text-foreground">Developer Testing</h3>
+                    <div className="flex flex-row gap-4">
+                      <Button
+                        onClick={() => handleDevSignIn('admin')}
+                        disabled={isDevSigningIn}
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground"
+                      >
+                        Admin Login
+                      </Button>
+                      <Button
+                        onClick={() => handleDevSignIn('user')}
+                        disabled={isDevSigningIn}
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground"
+                      >
+                        User Login
+                      </Button>
+                    </div>
+                    {isDevSigningIn && (
+                      <div className="flex items-center text-sm text-gray-500">
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Signing in...
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Login Form */}
+                <form className="space-y-6" onSubmit={handleSubmit}>
+                  {/* Email field */}
+                  <div>
+                    <Label htmlFor="email" className="text-gray-900 dark:text-foreground">Email address</Label>
+                    <div className="mt-1">
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className={`bg-white dark:bg-card border-gray-300 dark:border-border ${formErrors.email ? "border-red-500" : ""}`}
+                      />
+                      {renderErrorMessage('email')}
+                    </div>
+                  </div>
+
+                  {/* Password field */}
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-gray-900 dark:text-foreground">Password</Label>
+                      <Link href="/forgot-password" className="text-sm font-medium text-[#1DB954] hover:text-[#1DB954]/90 transition-colors">
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <div className="mt-1 relative">
+                      <Input
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="current-password"
+                        required
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className={`bg-white dark:bg-card border-gray-300 dark:border-border pr-10 ${formErrors.password ? "border-red-500" : ""}`}
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={togglePasswordVisibility}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-500 dark:text-muted-foreground" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-500 dark:text-muted-foreground" />
+                        )}
+                      </button>
+                      {renderErrorMessage('password')}
+                    </div>
+                  </div>
+
+                  {/* Remember me checkbox */}
+                  <div className="flex items-center">
+                    <div className="flex items-center">
+                      <Checkbox
+                        id="remember-me"
+                        checked={rememberMe}
+                        onCheckedChange={(checked) => handleRememberMeChange(checked as boolean)}
+                        className="border-gray-300 dark:border-border text-[#1DB954] focus:ring-[#1DB954]"
+                      />
+                      <Label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-muted-foreground">
+                        Remember me
+                      </Label>
+                    </div>
+                  </div>
+
+                  {/* General error message */}
+                  {formErrors.general && (
+                    <Alert variant="destructive" className="border border-red-200 dark:border-red-900/50">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>
+                        {typeof formErrors.general === 'object' ? 
+                          (formErrors.general instanceof Error ? 
+                            formErrors.general.message : 
+                            JSON.stringify(formErrors.general)) : 
+                          formErrors.general}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {renderCaptcha()}
+
+                  <div>
+                    <Button
+                      type="submit"
+                      className="w-full flex justify-center py-2 bg-[#1DB954] hover:bg-[#1DB954]/90 text-white"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          Sign in
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  {/* Create account link - moved below sign in button */}
+                  <div className="text-center pt-4 border-t border-gray-200 dark:border-border mt-6">
+                    <div className="flex flex-col items-center">
+                      <span className="text-gray-700 dark:text-muted-foreground mb-2">New to Smart Debt Flow?</span>
+                      <Link href="/signup" className="font-medium text-[#1DB954] hover:text-[#1DB954]/90 transition-colors">
+                        Create an account
+                      </Link>
+                    </div>
+                  </div>
+                </form>
+              </>
+            ) : (
+              // Server-side placeholder with the same structure
+              <div className="space-y-6">
+                {/* This will be replaced by the client-side content after hydration */}
+                <div className="animate-pulse">
+                  <div className="h-10 bg-gray-200 dark:bg-muted rounded mb-4"></div>
+                  <div className="h-10 bg-gray-200 dark:bg-muted rounded mb-4"></div>
+                  <div className="h-10 bg-[#1DB954]/30 rounded"></div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 } 

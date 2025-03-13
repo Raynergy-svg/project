@@ -14,6 +14,7 @@ import { Inter, Poppins } from 'next/font/google';
 import ThemeProvider from '@/components/ThemeProvider';
 import analytics from '@/utils/analytics';
 import { initPolyfills } from '@/utils/polyfills';
+import { injectEnvToWindow } from '@/utils/env';
 import '@/index.css';
 import '@/styles/globals.css';
 import '@/styles/animation-effects.css';
@@ -22,6 +23,11 @@ import Head from 'next/head';
 // Initialize polyfills as early as possible
 if (typeof window !== 'undefined') {
   initPolyfills();
+  
+  // Inject environment variables in development mode
+  if (process.env.NODE_ENV === 'development') {
+    injectEnvToWindow();
+  }
 }
 
 // Load fonts properly
@@ -47,6 +53,12 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     // Initialize polyfills again on the client side
     initPolyfills();
+    
+    // Initialize environment variables again on client side
+    if (process.env.NODE_ENV === 'development') {
+      injectEnvToWindow();
+    }
+    
     setMounted(true);
     
     // Remove initial loader if it exists (migrated from main.tsx)

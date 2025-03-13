@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { checkSupabaseConnection, devAuth } from '@/utils/supabase/client';
 import { ENV } from '@/utils/env-adapter';
 import { IS_DEV } from '@/utils/environment';
-import { useTurnstile } from '@/components/auth/TurnstileWidget';
+import { useTurnstile, clearTurnstileWidgets } from '@/components/auth/TurnstileWidget';
 
 // Safely import the dev sign-in hook only on the client side
 const useDevSignIn = typeof window !== 'undefined' && process.env.NODE_ENV === 'development' 
@@ -536,6 +536,29 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     }
   };
 
+  // Add this effect to clean up Turnstile widgets when the component mounts/unmounts
+  useEffect(() => {
+    // Clear any existing Turnstile widgets when this component mounts
+    clearTurnstileWidgets();
+    
+    // Create a key to force re-render of Turnstile only when actually needed
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && showCaptcha) {
+        // If page becomes visible and captcha should be shown, force cleanup and refresh
+        clearTurnstileWidgets();
+      }
+    };
+    
+    // Handle visibility changes (switching tabs, etc.)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      // Clean up when component unmounts
+      clearTurnstileWidgets();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [showCaptcha]);
+
   // This is our modified renderCaptcha function to only use the hook version
   const renderCaptcha = () => {
     // Only show captcha if it's enabled
@@ -544,7 +567,11 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     return (
       <div className="mb-6">
         <div className="flex justify-center">
-          <TurnstileWidget className="mx-auto" />
+          <TurnstileWidget 
+            className="mx-auto" 
+            // Use a memo-friendly key that only changes when we actually need to re-render
+            key={`turnstile-widget-${Math.floor(Date.now() / 600000)}`}
+          />
         </div>
         {showCaptcha && !captchaToken && (
           <div className="text-center mt-2 text-sm text-red-500">

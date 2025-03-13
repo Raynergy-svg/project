@@ -9,6 +9,7 @@ import {
   onTurnstileLoad,
   resetTurnstileState
 } from '@/utils/turnstileLoader';
+import { clearTurnstileWidgets } from '@/components/auth/TurnstileWidget';
 
 interface TurnstileCaptchaProps {
   onVerify: (token: string) => void;
@@ -19,6 +20,12 @@ interface TurnstileCaptchaProps {
   size?: 'normal' | 'compact';
   action?: string; // For analytics
 }
+
+// Global widget registry to avoid duplicates
+const captchaWidgetRegistry: Record<string, boolean> = {};
+
+// Track widget IDs for proper cleanup
+const captchaWidgetIdRegistry: Record<string, string> = {};
 
 // Function to safely render the Turnstile widget
 const renderSafely = (
@@ -32,6 +39,50 @@ const renderSafely = (
       throw new Error('Turnstile not loaded');
     }
     
+    // Get a unique identifier for this container
+    const containerKey = container.id || container.getAttribute('data-turnstile-container');
+    
+    // Check if this container already has a widget
+    if (containerKey && captchaWidgetRegistry[containerKey]) {
+      console.log(`🔑 CAPTCHA: Container ${containerKey} already has a widget. Handling duplicate render.`);
+      
+      // Get the existing widget ID from our registry
+      const existingWidgetId = captchaWidgetIdRegistry[containerKey];
+      
+      // If we already have a widget ID, reuse it instead of re-rendering
+      if (existingWidgetId) {
+        console.log(`🔑 CAPTCHA: Reusing existing widget ${existingWidgetId} for container ${containerKey}`);
+        onSuccess(existingWidgetId);
+        return;
+      }
+      
+      // If we don't have the widget ID cached, try to clean up any existing widget
+      try {
+        const widgetId = container.getAttribute('data-widget-id');
+        if (widgetId && window.turnstile) {
+          window.turnstile.remove(widgetId);
+          console.log(`🔑 CAPTCHA: Removed existing widget ${widgetId} from container ${containerKey}`);
+          
+          // Clear the container
+          container.innerHTML = '';
+          
+          // Remove from registry to allow re-rendering
+          delete captchaWidgetRegistry[containerKey];
+          delete captchaWidgetIdRegistry[containerKey];
+        }
+      } catch (e) {
+        console.error(`🔑 CAPTCHA: Error cleaning up existing widget in container ${containerKey}`, e);
+        onFail(new Error(`Container ${containerKey} already has a widget and cleanup failed`));
+        return;
+      }
+    }
+    
+    // Register this container before rendering
+    if (containerKey) {
+      captchaWidgetRegistry[containerKey] = true;
+      console.log(`🔑 CAPTCHA: Registered container ${containerKey} for widget rendering`);
+    }
+    
     // Use our safer onTurnstileLoad helper - do NOT use turnstile.ready directly
     // This avoids the error about calling turnstile.ready() before script is loaded
     onTurnstileLoad(() => {
@@ -41,21 +92,71 @@ const renderSafely = (
           throw new Error('Turnstile unexpectedly undefined after load');
         }
         
+        // Double check the container is still in the DOM before rendering
+        if (!document.body.contains(container)) {
+          console.warn(`🔑 CAPTCHA: Container ${containerKey} is no longer in the DOM`);
+          if (containerKey) {
+            delete captchaWidgetRegistry[containerKey];
+            delete captchaWidgetIdRegistry[containerKey];
+          }
+          onFail(new Error('Container is no longer in the DOM'));
+          return;
+        }
+        
+        // If this container already has a data-widget-id attribute, 
+        // the widget may have been rendered already by React StrictMode
+        const existingWidgetId = container.getAttribute('data-widget-id');
+        if (existingWidgetId) {
+          console.log(`🔑 CAPTCHA: Found existing widget ID ${existingWidgetId} in container ${containerKey}`);
+          
+          // Store the widget ID in our registry
+          if (containerKey) {
+            captchaWidgetIdRegistry[containerKey] = existingWidgetId;
+          }
+          
+          onSuccess(existingWidgetId);
+          return;
+        }
+        
         // Now render the widget directly without ready()
         const widgetId = window.turnstile.render(container, options);
         if (widgetId) {
+          console.log(`🔑 CAPTCHA: Successfully rendered widget ${widgetId} in container ${containerKey}`);
+          
+          // Store the widget ID in our registry
+          if (containerKey) {
+            captchaWidgetIdRegistry[containerKey] = widgetId;
+          }
+          
           onSuccess(widgetId);
         } else {
           onFail(new Error('Failed to get widget ID from Turnstile'));
+          // Unregister on failure
+          if (containerKey) {
+            delete captchaWidgetRegistry[containerKey];
+            delete captchaWidgetIdRegistry[containerKey];
+          }
         }
       } catch (error) {
         console.error('🔑 CAPTCHA: Error rendering in callback', error);
         onFail(error);
+        // Unregister on failure
+        if (containerKey) {
+          delete captchaWidgetRegistry[containerKey];
+          delete captchaWidgetIdRegistry[containerKey];
+        }
       }
     });
   } catch (error) {
     console.error('🔑 CAPTCHA: Error setting up rendering', error);
     onFail(error);
+    
+    // Unregister on failure
+    const containerKey = container.id || container.getAttribute('data-turnstile-container');
+    if (containerKey) {
+      delete captchaWidgetRegistry[containerKey];
+      delete captchaWidgetIdRegistry[containerKey];
+    }
   }
 };
 
@@ -87,18 +188,27 @@ export default function TurnstileCaptcha({
   const [renderAttempts, setRenderAttempts] = useState(0);
   const [containerId] = useState(generateUniqueId());
   
-  // Reset on unmount to prevent ghost widgets
+  // Call clearTurnstileWidgets on initial mount to clean up any leftover widgets
   useEffect(() => {
+    // Clear any leftover widgets from previous renders
+    clearTurnstileWidgets();
     return () => {
+      // Cleanup this specific widget on unmount
       if (widgetId && window.turnstile) {
         try {
+          console.log(`🔑 CAPTCHA: Removing widget ${widgetId} on component unmount`);
           window.turnstile.remove(widgetId);
+          
+          // Remove from registry
+          delete captchaWidgetRegistry[containerId];
+          delete captchaWidgetIdRegistry[containerId];
+          console.log(`🔑 CAPTCHA: Unregistered container ${containerId} on unmount`);
         } catch (e) {
           console.warn('🔑 CAPTCHA: Error removing widget on unmount', e);
         }
       }
     };
-  }, [widgetId]);
+  }, [containerId, widgetId]);
 
   // Load the Turnstile script
   useEffect(() => {
@@ -145,6 +255,19 @@ export default function TurnstileCaptcha({
   // Render the widget when the script is loaded
   useEffect(() => {
     if (!componentScriptLoaded || !containerRef.current || isRendered || (IS_DEV && isTurnstileDisabled())) {
+      return;
+    }
+    
+    // Check if there's already a widget ID stored for this container
+    // This helps handle React StrictMode's double rendering
+    const containerElement = containerRef.current;
+    const containerIdValue = containerElement.id || containerElement.getAttribute('data-turnstile-container');
+    const existingWidgetId = containerIdValue ? captchaWidgetIdRegistry[containerIdValue] : null;
+    
+    if (existingWidgetId) {
+      console.log(`🔑 CAPTCHA: Reusing existing widget ${existingWidgetId} for ${containerIdValue} during re-render`);
+      setWidgetId(existingWidgetId);
+      setIsRendered(true);
       return;
     }
     
@@ -216,6 +339,11 @@ export default function TurnstileCaptcha({
           if (containerRef.current) {
             containerRef.current.setAttribute('data-widget-id', newWidgetId);
           }
+          
+          // Also store in our registry
+          if (containerIdValue) {
+            captchaWidgetIdRegistry[containerIdValue] = newWidgetId;
+          }
         },
         (error) => {
           console.error('🔑 CAPTCHA: Error rendering widget:', error);
@@ -242,11 +370,21 @@ export default function TurnstileCaptcha({
     }
 
     return () => {
-      // Cleanup widget if it exists
+      // Cleanup widget if it exists, but only if it's not in our registry
+      // This prevents cleaning up during StrictMode's double-run
       if (widgetId && window.turnstile) {
         try {
-          window.turnstile.remove(widgetId);
-          setWidgetId(null);
+          // Don't actually remove the widget if it's in our registry
+          // This helps with React StrictMode double rendering
+          const shouldRemove = !containerIdValue || !captchaWidgetIdRegistry[containerIdValue];
+          
+          if (shouldRemove) {
+            console.log(`🔑 CAPTCHA: Removing widget ${widgetId} on cleanup`);
+            window.turnstile.remove(widgetId);
+            setWidgetId(null);
+          } else {
+            console.log(`🔑 CAPTCHA: Skipping removal of widget ${widgetId} during StrictMode render`);
+          }
         } catch (e) {
           console.warn('🔑 CAPTCHA: Error removing widget on cleanup', e);
         }
@@ -284,13 +422,15 @@ export default function TurnstileCaptcha({
   );
 
   return (
-    <div 
-      id={containerId} 
-      ref={containerRef} 
-      className={className}
+    <div
+      ref={containerRef}
+      id={containerId}
+      data-turnstile-container={containerId}
+      className={`turnstile-captcha ${className}`}
+      data-testid="turnstile-captcha"
+      data-state={isRendered ? 'rendered' : 'loading'}
       data-theme={theme}
       data-size={size}
-      data-state={isRendered ? 'loaded' : 'loading'}
     />
   );
 }

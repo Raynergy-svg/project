@@ -124,6 +124,12 @@ const nextConfig = {
             key: "Referrer-Policy",
             value: "origin-when-cross-origin",
           },
+          // Content Security Policy to allow Cloudflare Turnstile, Vercel Analytics, and Supabase
+          {
+            key: "Content-Security-Policy",
+            value:
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://*.vercel-scripts.com; connect-src 'self' https://challenges.cloudflare.com https://*.supabase.co https://*.vercel-scripts.com; frame-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; object-src 'none';",
+          },
           // Preconnect to Cloudflare to speed up Turnstile loading
           {
             key: "Link",

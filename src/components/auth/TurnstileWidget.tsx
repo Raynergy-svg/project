@@ -13,6 +13,53 @@ import {
 // Global registry to track which containers have Turnstile widgets
 const widgetRegistry: Record<string, boolean> = {};
 
+// Track rendered widgets with their IDs to properly clean up
+const widgetIdRegistry: Record<string, string> = {};
+
+/**
+ * Clear all Turnstile widgets and reset the registry.
+ * This is useful when navigating between pages or when we want to force a fresh start.
+ */
+export function clearTurnstileWidgets() {
+  try {
+    if (typeof window !== 'undefined' && window.turnstile) {
+      // First clean up any existing widgets using the registry
+      Object.keys(widgetRegistry).forEach(containerId => {
+        try {
+          const container = document.getElementById(containerId);
+          if (container) {
+            // Get widget ID from registry or data attribute
+            const widgetId = widgetIdRegistry[containerId] || container.getAttribute('data-widget-id');
+            if (widgetId) {
+              window.turnstile.remove(widgetId);
+              console.log(`🔒 Turnstile: Removed widget ${widgetId} from container ${containerId}`);
+            }
+            
+            // Clear container content
+            container.innerHTML = '';
+            container.removeAttribute('data-widget-id');
+          }
+        } catch (e) {
+          console.warn(`🔒 Turnstile: Error removing widget for container ${containerId}`, e);
+        }
+      });
+    }
+    
+    // Reset the registries
+    Object.keys(widgetRegistry).forEach(key => {
+      delete widgetRegistry[key];
+    });
+    
+    Object.keys(widgetIdRegistry).forEach(key => {
+      delete widgetIdRegistry[key];
+    });
+    
+    console.log('🔒 Turnstile: Cleared all widget registrations');
+  } catch (e) {
+    console.error('🔒 Turnstile: Error clearing widgets', e);
+  }
+}
+
 interface TurnstileWidgetProps {
   onVerify: (token: string) => void;
   onError?: (error: any) => void;
@@ -46,14 +93,43 @@ const renderTurnstileWidget = (
     
     // Check if this container already has a widget
     if (containerKey && widgetRegistry[containerKey]) {
-      console.warn(`🔒 Turnstile: Container ${containerKey} already has a widget registered. Skipping render.`);
-      onFail(new Error(`Container ${containerKey} already has a widget`));
-      return;
+      console.log(`🔒 Turnstile: Container ${containerKey} already has a widget registered. Preventing duplicate render.`);
+      
+      // Get the existing widget ID from our registry
+      const existingWidgetId = widgetIdRegistry[containerKey];
+      
+      // If we already have a widget ID, reuse it instead of re-rendering
+      if (existingWidgetId) {
+        console.log(`🔒 Turnstile: Reusing existing widget ${existingWidgetId} for container ${containerKey}`);
+        onSuccess(existingWidgetId);
+        return;
+      }
+      
+      // If we don't have the widget ID cached, try to clean up any existing widget
+      try {
+        const widgetId = container.getAttribute('data-widget-id');
+        if (widgetId && window.turnstile) {
+          window.turnstile.remove(widgetId);
+          console.log(`🔒 Turnstile: Removed existing widget ${widgetId} from container ${containerKey}`);
+          
+          // Clear the container
+          container.innerHTML = '';
+          
+          // Remove from registry to allow re-rendering
+          delete widgetRegistry[containerKey];
+          delete widgetIdRegistry[containerKey];
+        }
+      } catch (e) {
+        console.error(`🔒 Turnstile: Error cleaning up existing widget in container ${containerKey}`, e);
+        onFail(new Error(`Container ${containerKey} already has a widget and cleanup failed`));
+        return;
+      }
     }
     
     // Register this container before rendering
     if (containerKey) {
       widgetRegistry[containerKey] = true;
+      console.log(`🔒 Turnstile: Registered container ${containerKey} for widget rendering`);
     }
     
     // Instead of using turnstile.ready, use our safer onTurnstileLoad helper
@@ -65,15 +141,49 @@ const renderTurnstileWidget = (
           throw new Error('Turnstile unexpectedly undefined after load');
         }
         
+        // Double check the container is still in the DOM before rendering
+        if (!document.body.contains(container)) {
+          console.warn(`🔒 Turnstile: Container ${containerKey} is no longer in the DOM`);
+          if (containerKey) {
+            delete widgetRegistry[containerKey];
+            delete widgetIdRegistry[containerKey];
+          }
+          onFail(new Error('Container is no longer in the DOM'));
+          return;
+        }
+        
+        // If this container already has a data-widget-id attribute, 
+        // the widget may have been rendered already by React StrictMode
+        const existingWidgetId = container.getAttribute('data-widget-id');
+        if (existingWidgetId) {
+          console.log(`🔒 Turnstile: Found existing widget ID ${existingWidgetId} in container ${containerKey}`);
+          
+          // Store the widget ID in our registry
+          if (containerKey) {
+            widgetIdRegistry[containerKey] = existingWidgetId;
+          }
+          
+          onSuccess(existingWidgetId);
+          return;
+        }
+        
         // Now we can safely render the widget
         const widgetId = window.turnstile.render(container, options);
         if (widgetId) {
+          console.log(`🔒 Turnstile: Successfully rendered widget ${widgetId} in container ${containerKey}`);
+          
+          // Store the widget ID in our registry
+          if (containerKey) {
+            widgetIdRegistry[containerKey] = widgetId;
+          }
+          
           onSuccess(widgetId);
         } else {
           onFail(new Error('Failed to get widget ID from Turnstile'));
           // Unregister on failure
           if (containerKey) {
             delete widgetRegistry[containerKey];
+            delete widgetIdRegistry[containerKey];
           }
         }
       } catch (error) {
@@ -82,6 +192,7 @@ const renderTurnstileWidget = (
         // Unregister on failure
         if (containerKey) {
           delete widgetRegistry[containerKey];
+          delete widgetIdRegistry[containerKey];
         }
       }
     });
@@ -93,6 +204,7 @@ const renderTurnstileWidget = (
     const containerKey = container.id || container.getAttribute('data-turnstile-container');
     if (containerKey) {
       delete widgetRegistry[containerKey];
+      delete widgetIdRegistry[containerKey];
     }
   }
 };
@@ -123,16 +235,22 @@ const InternalTurnstileWidget = React.forwardRef<
     return () => {
       if (widgetIdRef.current && window.turnstile) {
         try {
+          console.log(`🔒 Turnstile: Removing widget ${widgetIdRef.current} on component unmount`);
           window.turnstile.remove(widgetIdRef.current);
           
           // Unregister this container from the registry
           const containerKey = containerId;
           if (containerKey) {
             delete widgetRegistry[containerKey];
+            delete widgetIdRegistry[containerKey];
+            console.log(`🔒 Turnstile: Unregistered container ${containerKey} on unmount`);
           }
         } catch (e) {
           console.warn('🔒 Turnstile: Error removing widget on unmount', e);
         }
+        
+        // Reset the ref
+        widgetIdRef.current = null;
       }
     };
   }, [containerId]);
@@ -190,6 +308,19 @@ const InternalTurnstileWidget = React.forwardRef<
       process.env.SKIP_AUTH_CAPTCHA === 'true' || 
       process.env.SUPABASE_AUTH_CAPTCHA_DISABLE === 'true'
     )) {
+      return;
+    }
+
+    // Check if there's already a widget ID stored for this container
+    // This helps handle React StrictMode's double rendering
+    const containerElement = containerRef.current;
+    const containerId = containerElement.id || containerElement.getAttribute('data-turnstile-container');
+    const existingWidgetId = containerId ? widgetIdRegistry[containerId] : null;
+    
+    if (existingWidgetId) {
+      console.log(`�� Turnstile: Reusing existing widget ${existingWidgetId} for ${containerId} during re-render`);
+      widgetIdRef.current = existingWidgetId;
+      setIsLoaded(true);
       return;
     }
 
@@ -257,6 +388,11 @@ const InternalTurnstileWidget = React.forwardRef<
           if (containerRef.current) {
             containerRef.current.setAttribute('data-widget-id', widgetId);
           }
+          
+          // Also store in our registry
+          if (containerId) {
+            widgetIdRegistry[containerId] = widgetId;
+          }
         },
         (error) => {
           console.error('🔒 Turnstile: Error rendering widget', error);
@@ -279,11 +415,21 @@ const InternalTurnstileWidget = React.forwardRef<
     }
 
     return () => {
-      // Clean up widget when effect reruns
+      // Clean up widget when effect reruns but only if widgetId isn't in registry
+      // This prevents cleaning up during StrictMode's double-run
       if (widgetIdRef.current && window.turnstile) {
         try {
-          window.turnstile.remove(widgetIdRef.current);
-          widgetIdRef.current = null;
+          // Don't actually remove the widget if it's in our registry
+          // This helps with React StrictMode double rendering
+          const shouldRemove = !containerId || !widgetIdRegistry[containerId];
+          
+          if (shouldRemove) {
+            console.log(`🔒 Turnstile: Removing widget ${widgetIdRef.current} on cleanup`);
+            window.turnstile.remove(widgetIdRef.current);
+            widgetIdRef.current = null;
+          } else {
+            console.log(`🔒 Turnstile: Skipping removal of widget ${widgetIdRef.current} during StrictMode render`);
+          }
         } catch (e) {
           console.warn('🔒 Turnstile: Error removing widget on cleanup', e);
         }

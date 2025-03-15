@@ -349,77 +349,116 @@ export default function HelpPage() {
                 <div>
                   <h2 className="text-2xl font-bold mb-6">Video Tutorials</h2>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card>
-                      <CardContent className="p-0 overflow-hidden">
+                    <Card className="group overflow-hidden hover:shadow-md transition-all duration-300 hover:border-primary/50">
+                      <CardContent className="p-0">
                         <div className="relative aspect-video bg-muted">
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="rounded-full bg-primary text-primary-foreground w-12 h-12 flex items-center justify-center">
-                              <Video className="h-5 w-5" />
+                          <div className="absolute inset-0 z-10 flex items-center justify-center group-hover:opacity-0 transition-opacity duration-300">
+                            <div className="rounded-full bg-[#1DB954] text-white w-16 h-16 flex items-center justify-center shadow-lg">
+                              <Video className="h-6 w-6" />
                             </div>
                           </div>
-                          <Image
-                            src="/assets/help/tutorial-1.jpg"
-                            alt="Getting Started with Smart Debt Flow"
-                            fill
-                            className="object-cover opacity-80"
-                          />
+                          <video 
+                            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+                            poster="/assets/help/thumbnails/dashboard-overview.svg"
+                            controls
+                            preload="none"
+                          >
+                            <source src="/assets/help/getting-started.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                          </video>
                         </div>
                         <div className="p-5">
-                          <h3 className="font-semibold mb-2">Getting Started Tutorial</h3>
-                          <p className="text-sm text-muted-foreground">
+                          <h3 className="font-semibold mb-2 group-hover:text-[#1DB954] transition-colors">Getting Started Tutorial</h3>
+                          <p className="text-sm text-muted-foreground mb-3">
                             Learn how to set up your account and start managing your debt in under 10 minutes.
                           </p>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Duration: 8:45</span>
+                            <span className="flex items-center">
+                              <span className="inline-block w-2 h-2 rounded-full bg-[#1DB954] mr-1"></span>
+                              Beginner
+                            </span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                     
-                    <Card>
-                      <CardContent className="p-0 overflow-hidden">
+                    <Card className="group overflow-hidden hover:shadow-md transition-all duration-300 hover:border-primary/50">
+                      <CardContent className="p-0">
                         <div className="relative aspect-video bg-muted">
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="rounded-full bg-primary text-primary-foreground w-12 h-12 flex items-center justify-center">
-                              <Video className="h-5 w-5" />
+                          <div className="absolute inset-0 z-10 flex items-center justify-center group-hover:opacity-0 transition-opacity duration-300">
+                            <div className="rounded-full bg-[#1DB954] text-white w-16 h-16 flex items-center justify-center shadow-lg">
+                              <Video className="h-6 w-6" />
                             </div>
                           </div>
-                          <Image
-                            src="/assets/help/tutorial-2.jpg"
-                            alt="Creating a Debt Payoff Plan"
-                            fill
-                            className="object-cover opacity-80"
-                          />
+                          <video 
+                            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+                            poster="/assets/help/thumbnails/debt-payoff-plan.svg"
+                            controls
+                            preload="none"
+                          >
+                            <source src="/assets/help/debt-payoff-plan.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                          </video>
                         </div>
                         <div className="p-5">
-                          <h3 className="font-semibold mb-2">Creating a Debt Payoff Plan</h3>
-                          <p className="text-sm text-muted-foreground">
-                            A detailed walkthrough of creating a customized debt payment strategy.
+                          <h3 className="font-semibold mb-2 group-hover:text-[#1DB954] transition-colors">Creating a Debt Payoff Plan</h3>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            A detailed walkthrough of creating a customized debt payment strategy for your specific situation.
                           </p>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Duration: 12:20</span>
+                            <span className="flex items-center">
+                              <span className="inline-block w-2 h-2 rounded-full bg-yellow-500 mr-1"></span>
+                              Intermediate
+                            </span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                     
-                    <Card>
-                      <CardContent className="p-0 overflow-hidden">
+                    <Card className="group overflow-hidden hover:shadow-md transition-all duration-300 hover:border-primary/50">
+                      <CardContent className="p-0">
                         <div className="relative aspect-video bg-muted">
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="rounded-full bg-primary text-primary-foreground w-12 h-12 flex items-center justify-center">
-                              <Video className="h-5 w-5" />
+                          <div className="absolute inset-0 z-10 flex items-center justify-center group-hover:opacity-0 transition-opacity duration-300">
+                            <div className="rounded-full bg-[#1DB954] text-white w-16 h-16 flex items-center justify-center shadow-lg">
+                              <Video className="h-6 w-6" />
                             </div>
                           </div>
-                          <Image
-                            src="/assets/help/tutorial-3.jpg"
-                            alt="Advanced Features"
-                            fill
-                            className="object-cover opacity-80"
-                          />
+                          <video 
+                            className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-300"
+                            poster="/assets/help/thumbnails/ai-insights.svg"
+                            controls
+                            preload="none"
+                          >
+                            <source src="/assets/help/advanced-features.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                          </video>
                         </div>
                         <div className="p-5">
-                          <h3 className="font-semibold mb-2">Advanced Features</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Explore powerful tools for optimization, scenario planning, and tracking.
+                          <h3 className="font-semibold mb-2 group-hover:text-[#1DB954] transition-colors">Advanced Features & Optimization</h3>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            Explore powerful tools for scenario planning, optimization algorithms, and progress tracking.
                           </p>
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Duration: 15:50</span>
+                            <span className="flex items-center">
+                              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                              Advanced
+                            </span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
+                  </div>
+                  
+                  <div className="mt-8 text-center">
+                    <Link href="/assets/help/videos/index.html" target="_blank">
+                      <Button variant="outline" className="bg-background hover:bg-accent text-foreground">
+                        View All Video Tutorials
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </div>

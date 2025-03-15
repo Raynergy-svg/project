@@ -7,8 +7,8 @@
  * in both client and server contexts.
  */
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase as supabaseClient, supabaseUrl, supabaseAnonKey } from './supabase/client';
 
@@ -23,40 +23,57 @@ let cachedClient: any = null;
  * This ensures only one instance is created in the browser
  */
 function getClient() {
-  // Always use the main client from the client.ts file if available
-  if (isBrowser() && supabaseClient) {
-    return supabaseClient;
-  }
-  
-  // Otherwise, create a client with the right method for the current environment
-  if (isBrowser()) {
-    if (!cachedClient) {
-      // In browser environments, create with createClientComponentClient
-      try {
-        cachedClient = createClientComponentClient();
-      } catch (error) {
-        console.error('Error creating client component client:', error);
-        // Fallback to browser client if needed
-        cachedClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
-      }
+  try {
+    // Always use the main client from the client.ts file if available
+    if (isBrowser() && supabaseClient) {
+      return supabaseClient;
     }
-    return cachedClient;
+    
+    // Otherwise, create a client with the right method for the current environment
+    if (isBrowser()) {
+      if (!cachedClient) {
+        // In browser environments, create with createBrowserClient
+        try {
+          cachedClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+        } catch (error) {
+          console.error('Error creating browser client:', error);
+          // Fallback to browser client if needed
+          cachedClient = createClient(supabaseUrl, supabaseAnonKey);
+        }
+      }
+      return cachedClient;
+    }
+    
+    // For server environments (this should be rare in this client-side file)
+    return createClient(supabaseUrl, supabaseAnonKey);
+  } catch (error) {
+    console.error('Failed to get Supabase client:', error);
+    // Return a minimal client that won't throw errors when methods are called
+    return createClient(supabaseUrl || '', supabaseAnonKey || '');
   }
-  
-  // For server environments (this should be rare in this client-side file)
-  return createClientComponentClient();
 }
 
 /**
  * Get the user from the client side
  */
 export async function getCurrentUser() {
-  const client = getClient();
   try {
-    const { data: { user } } = await client.auth.getUser();
-    return user;
+    const client = getClient();
+    if (!client || !client.auth) {
+      console.error('Supabase client or auth is not available');
+      return null;
+    }
+    
+    const { data, error } = await client.auth.getUser();
+    
+    if (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+    
+    return data?.user || null;
   } catch (error) {
-    console.error('Error getting current user:', error);
+    console.error('Unexpected error getting current user:', error);
     return null;
   }
 }
@@ -65,12 +82,23 @@ export async function getCurrentUser() {
  * Get the current session
  */
 export async function getSession() {
-  const client = getClient();
   try {
-    const { data: { session } } = await client.auth.getSession();
-    return session;
+    const client = getClient();
+    if (!client || !client.auth) {
+      console.error('Supabase client or auth is not available');
+      return null;
+    }
+    
+    const { data, error } = await client.auth.getSession();
+    
+    if (error) {
+      console.error('Error getting session:', error);
+      return null;
+    }
+    
+    return data?.session || null;
   } catch (error) {
-    console.error('Error getting session:', error);
+    console.error('Unexpected error getting session:', error);
     return null;
   }
 }
@@ -79,12 +107,24 @@ export async function getSession() {
  * Sign out the user
  */
 export async function signOut() {
-  const client = getClient();
   try {
-    await client.auth.signOut();
+    const client = getClient();
+    if (!client || !client.auth) {
+      console.error('Supabase client or auth is not available');
+      return { error: new Error('Authentication service unavailable') };
+    }
+    
+    const { error } = await client.auth.signOut();
+    
+    if (error) {
+      console.error('Error signing out:', error);
+      return { error };
+    }
+    
+    return { error: null };
   } catch (error) {
-    console.error('Error signing out:', error);
-    throw error;
+    console.error('Unexpected error signing out:', error);
+    return { error };
   }
 }
 
@@ -97,7 +137,12 @@ export function createSupabaseBrowserClient() {
     return null; // Don't create a browser client on the server
   }
   
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  try {
+    return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  } catch (error) {
+    console.error('Error creating browser client:', error);
+    return null;
+  }
 }
 
 /**
@@ -106,17 +151,37 @@ export function createSupabaseBrowserClient() {
 export async function signInWithEmail(email: string, password: string, options?: any) {
   try {
     const client = getClient();
+    if (!client || !client.auth) {
+      console.error('Supabase client or auth is not available');
+      return { data: null, error: new Error('Authentication service unavailable') };
+    }
+    
+    // Validate inputs
+    if (!email || !password) {
+      return { 
+        data: null, 
+        error: new Error('Email and password are required') 
+      };
+    }
+    
     const { data, error } = await client.auth.signInWithPassword({
       email,
       password,
       ...options
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error signing in with email:', error);
+      return { data: null, error };
+    }
+    
     return { data, error: null };
   } catch (error) {
-    console.error('Error signing in with email:', error);
-    return { data: null, error };
+    console.error('Unexpected error signing in with email:', error);
+    return { 
+      data: null, 
+      error: error instanceof Error ? error : new Error('An unexpected error occurred during sign in') 
+    };
   }
 }
 
@@ -126,17 +191,37 @@ export async function signInWithEmail(email: string, password: string, options?:
 export async function signUpWithEmail(email: string, password: string, options?: any) {
   try {
     const client = getClient();
+    if (!client || !client.auth) {
+      console.error('Supabase client or auth is not available');
+      return { data: null, error: new Error('Authentication service unavailable') };
+    }
+    
+    // Validate inputs
+    if (!email || !password) {
+      return { 
+        data: null, 
+        error: new Error('Email and password are required') 
+      };
+    }
+    
     const { data, error } = await client.auth.signUp({
       email,
       password,
       ...options
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error signing up with email:', error);
+      return { data: null, error };
+    }
+    
     return { data, error: null };
   } catch (error) {
-    console.error('Error signing up with email:', error);
-    return { data: null, error };
+    console.error('Unexpected error signing up with email:', error);
+    return { 
+      data: null, 
+      error: error instanceof Error ? error : new Error('An unexpected error occurred during sign up') 
+    };
   }
 }
 
@@ -146,13 +231,33 @@ export async function signUpWithEmail(email: string, password: string, options?:
 export async function resetPassword(email: string) {
   try {
     const client = getClient();
+    if (!client || !client.auth) {
+      console.error('Supabase client or auth is not available');
+      return { data: null, error: new Error('Authentication service unavailable') };
+    }
+    
+    // Validate input
+    if (!email) {
+      return { 
+        data: null, 
+        error: new Error('Email is required') 
+      };
+    }
+    
     const { data, error } = await client.auth.resetPasswordForEmail(email);
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error resetting password:', error);
+      return { data: null, error };
+    }
+    
     return { data, error: null };
   } catch (error) {
-    console.error('Error resetting password:', error);
-    return { data: null, error };
+    console.error('Unexpected error resetting password:', error);
+    return { 
+      data: null, 
+      error: error instanceof Error ? error : new Error('An unexpected error occurred during password reset') 
+    };
   }
 }
 
@@ -162,14 +267,34 @@ export async function resetPassword(email: string) {
 export async function updatePassword(password: string) {
   try {
     const client = getClient();
+    if (!client || !client.auth) {
+      console.error('Supabase client or auth is not available');
+      return { data: null, error: new Error('Authentication service unavailable') };
+    }
+    
+    // Validate input
+    if (!password) {
+      return { 
+        data: null, 
+        error: new Error('Password is required') 
+      };
+    }
+    
     const { data, error } = await client.auth.updateUser({
       password
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating password:', error);
+      return { data: null, error };
+    }
+    
     return { data, error: null };
   } catch (error) {
-    console.error('Error updating password:', error);
-    return { data: null, error };
+    console.error('Unexpected error updating password:', error);
+    return { 
+      data: null, 
+      error: error instanceof Error ? error : new Error('An unexpected error occurred during password update') 
+    };
   }
 } 

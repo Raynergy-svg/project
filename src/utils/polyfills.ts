@@ -44,12 +44,47 @@ export function btoa(input: string): string {
 export function createDOMException(message: string, name: string): Error {
   if (isBrowser && typeof DOMException !== 'undefined') {
     // Use browser's native DOMException
-    return new DOMException(message, name);
+    return createDOMException(message, name);
   } else {
     // In Node.js, create a custom error that mimics DOMException
     const error = new Error(message);
     error.name = name;
     return error;
+  }
+}
+
+/**
+ * Polyfill for the deprecated StorageType.persistent API
+ * This replaces it with modern navigator.storage APIs
+ */
+export function polyfillStorageAPI(): void {
+  if (!isBrowser) return;
+  
+  // @ts-ignore - Define StorageType if it doesn't exist
+  if (!window.StorageType) {
+    // @ts-ignore
+    window.StorageType = {
+      get persistent() {
+        console.warn('StorageType.persistent is deprecated. Please use standardized navigator.storage instead.');
+        // Attempt to use the modern API if available
+        if (navigator && navigator.storage && typeof navigator.storage.persist === 'function') {
+          navigator.storage.persist().catch(err => {
+            console.warn('Error requesting persistent storage:', err);
+          });
+        }
+        return 'persistent';
+      }
+    };
+  }
+  
+  // Add navigator.storage polyfill if not available
+  if (window.navigator && !window.navigator.storage) {
+    // @ts-ignore - Add minimal implementation
+    window.navigator.storage = {
+      persist: () => Promise.resolve(false),
+      persisted: () => Promise.resolve(false),
+      estimate: () => Promise.resolve({ usage: 0, quota: 0 }),
+    };
   }
 }
 
@@ -77,6 +112,11 @@ export function initPolyfills(): void {
           this.code = 0; // Basic implementation
         }
       };
+    }
+
+    // Initialize storage API polyfills for browser environment
+    if (isBrowser) {
+      polyfillStorageAPI();
     }
   }
 } 

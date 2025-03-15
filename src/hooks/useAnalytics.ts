@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { supabase } from '@/utils/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 
 interface AnalyticsEvent {
   name: string;

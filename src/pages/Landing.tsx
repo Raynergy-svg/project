@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDeviceContext } from "@/contexts/DeviceContext";
 import Navbar from "@/components/layout/Navbar";
 import { useMediaQuery } from "../hooks/useMediaQuery";
+import ScrollToTop from '@/components/ScrollToTop';
 
 interface FeaturesProps {
   onFeatureClick?: (featureId: string) => void;
@@ -333,28 +334,41 @@ const Landing = () => {
     const preloadAssets = async () => {
       const imageWidth = deviceType === 'mobile' ? 400 : 800;
       
+      // Only preload images that will actually be used in the component
       const imagesToPreload = [
         `/pwa-192x192.png`,
         `/pwa-512x512.png`,
-        `/logo.svg`
+        // Only include logo.svg if it's not already being preloaded elsewhere
+        !document.querySelector('link[rel="preload"][href="/logo.svg"]') ? `/logo.svg` : null
       ].filter(Boolean);
 
       try {
         await Promise.all(
           imagesToPreload.map(src => {
             return new Promise((resolve) => {
-              const img = new Image();
-              img.onload = () => resolve(undefined);
-              img.onerror = () => {
-                console.warn(`Failed to preload image: ${src}`);
-                resolve(undefined); // Don't reject on individual image load failure
-              };
-              img.src = src;
+              if (src && src.endsWith('.svg')) {
+                // For SVGs, use fetch instead of Image for better handling
+                fetch(src)
+                  .then(() => resolve(undefined))
+                  .catch(() => {
+                    console.warn(`Failed to preload SVG: ${src}`);
+                    resolve(undefined);
+                  });
+              } else {
+                // For regular images, use Image object
+                const img = new Image();
+                img.onload = () => resolve(undefined);
+                img.onerror = () => {
+                  console.warn(`Failed to preload image: ${src}`);
+                  resolve(undefined);
+                };
+                img.src = src || '';
+              }
             });
           })
         );
-      } catch (error) {
-        console.warn('Image preloading encountered some issues:', error);
+      } catch (err) {
+        console.error("Error preloading assets:", err);
       } finally {
         setIsLoading(false);
       }
@@ -464,7 +478,7 @@ const Landing = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 onClick={() => navigate('/signup')}
-                className="bg-gradient-to-r from-[#88B04B] to-[#6A9A2D] text-white px-8 py-3 rounded-lg text-lg group transition-transform hover:scale-105"
+                className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white px-8 py-3 rounded-lg text-lg group transition-transform hover:scale-105"
               >
                 Start Your Journey
               </Button>
@@ -634,6 +648,9 @@ const Landing = () => {
       <Suspense fallback={<SectionLoader />}>
         <Footer />
       </Suspense>
+
+      {/* Add ScrollToTop button */}
+      <ScrollToTop position="bottom-right" />
     </div>
   );
 };

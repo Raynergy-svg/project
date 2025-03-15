@@ -1,68 +1,91 @@
-'use client';
-
 import { ReactNode, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { usePathname } from 'next/navigation';
-import { useAuth } from '@/contexts/auth-adapter';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Shield, AlertCircle } from 'lucide-react';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/utils/supabase/client';
 
 interface ProtectedRouteProps {
   children: ReactNode;
-  requireSubscription?: boolean;
 }
 
-export function ProtectedRoute({ children, requireSubscription = false }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, isSubscribed, user } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
-  const [isChecking, setIsChecking] = useState(true);
-  
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+  const [hasSubscription, setHasSubscription] = useState<boolean | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    if (!isLoading) {
-      // If not authenticated, redirect to sign in
-      if (!isAuthenticated) {
-        router.push(`/signin?redirect=${encodeURIComponent(currentPath)}&reason=auth_required`);
+    async function checkSubscription() {
+      // Always bypass subscription check in development mode
+      if (window.location.hostname === 'localhost' || 
+          import.meta.env.MODE === 'development') {
+        console.log('Development mode detected - bypassing subscription check');
+        setHasSubscription(true);
+        setIsLoading(false);
         return;
       }
       
-      // If subscription is required but user doesn't have one
-      if (requireSubscription && !isSubscribed) {
-        router.push(`/settings/subscription?required=true&redirect=${encodeURIComponent(currentPath)}`);
+      if (!isAuthenticated || !user) {
+        setIsLoading(false);
         return;
       }
-      
-      setIsChecking(false);
+
+      try {
+        // Query the user's subscription status from Supabase
+        const { data, error } = await supabase
+          .from('user_subscriptions')
+          .select('status, subscription_id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error checking subscription:', error);
+          // If we can't check the subscription (API error, etc.), allow access in development
+          // but block in production
+          if (import.meta.env.MODE === 'development') {
+            console.warn('Development mode - allowing access despite subscription check error');
+            setHasSubscription(true);
+          } else {
+            setHasSubscription(false);
+          }
+        } else {
+          // Check if subscription is active
+          setHasSubscription(data && data.status === 'active');
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        // Same fallback behavior as above
+        if (import.meta.env.MODE === 'development') {
+          console.warn('Development mode - allowing access despite error');
+          setHasSubscription(true);
+        } else {
+          setHasSubscription(false);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [isAuthenticated, isLoading, isSubscribed, requireSubscription, router, currentPath]);
-  
-  if (isLoading || isChecking) {
+
+    checkSubscription();
+  }, [isAuthenticated, user]);
+
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6">
-        <LoadingSpinner size="lg" />
-        <p className="mt-4 text-gray-600">Verifying your access...</p>
+      <div className="flex items-center justify-center h-screen">
+        <LoadingSpinner />
       </div>
     );
   }
-  
-  // Additional permission check if needed (based on user roles, etc.)
-  const hasPermission = true; // Replace with actual permission check
-  
-  if (!hasPermission) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You don't have permission to access this resource.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
+
+  if (!isAuthenticated) {
+    // Redirect to sign in if not authenticated
+    return <Navigate to="/signin" state={{ returnTo: location.pathname }} replace />;
   }
-  
+
+  if (!hasSubscription) {
+    // Redirect to pricing section of the landing page if no active subscription
+    return <Navigate to="/?pricing=true" replace />;
+  }
+
   return <>{children}</>;
 }

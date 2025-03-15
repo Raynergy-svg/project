@@ -1,47 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="70" height="50" viewBox="0 0 70 50" fill="none"
+<svg width="70" height="70" viewBox="0 0 70 70" fill="none"
     xmlns="http://www.w3.org/2000/svg">
     <defs>
-        <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="1">
+        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#88B04B"/>
             <stop offset="100%" stop-color="#6A9A2D"/>
         </linearGradient>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
-            <feOffset dx="0" dy="1"/>
-            <feComponentTransfer>
-                <feFuncA type="linear" slope="0.1"/>
-            </feComponentTransfer>
-            <feMerge>
-                <feMergeNode/>
-                <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-        </filter>
     </defs>
-    <g transform="translate(35, 25) perspective(500) rotateX(-10) translate(-35, -25)">
-        <!-- Bar 1 (30px) -->
-        <g filter="url(#shadow)">
-            <rect x="8" y="19" width="12" height="30" fill="url(#gradient)"/>
-            <rect x="20" y="19" width="2" height="30" fill="#4A7A2A"/>
-            <rect x="8" y="17" width="12" height="2" fill="#A8D06B"/>
-        </g>
-        <!-- Bar 2 (45px) -->
-        <g filter="url(#shadow)">
-            <rect x="22" y="4" width="12" height="45" fill="url(#gradient)"/>
-            <rect x="34" y="4" width="2" height="45" fill="#4A7A2A"/>
-            <rect x="22" y="2" width="12" height="2" fill="#A8D06B"/>
-        </g>
-        <!-- Bar 3 (35px) -->
-        <g filter="url(#shadow)">
-            <rect x="36" y="14" width="12" height="35" fill="url(#gradient)"/>
-            <rect x="48" y="14" width="2" height="35" fill="#4A7A2A"/>
-            <rect x="36" y="12" width="12" height="2" fill="#A8D06B"/>
-        </g>
-        <!-- Bar 4 (55px) -->
-        <g filter="url(#shadow)">
-            <rect x="50" y="-5" width="12" height="55" fill="url(#gradient)"/>
-            <rect x="62" y="-5" width="2" height="55" fill="#4A7A2A"/>
-            <rect x="50" y="-7" width="12" height="2" fill="#A8D06B"/>
-        </g>
-    </g>
+    <!-- Circle background -->
+    <circle cx="35" cy="35" r="33" fill="url(#gradient)" stroke="#4A7A2A" stroke-width="1"/>
+
+    <!-- Dollar sign -->
+    <path d="M35 15C34.4477 15 34 15.4477 34 16V19H29C28.4477 19 28 19.4477 28 20C28 20.5523 28.4477 21 29 21H34V30H31C26.5817 30 23 33.5817 23 38C23 42.4183 26.5817 46 31 46H34V54C34 54.5523 34.4477 55 35 55C35.5523 55 36 54.5523 36 54V46H41C41.5523 46 42 45.5523 42 45C42 44.4477 41.5523 44 41 44H36V35H39C43.4183 35 47 31.4183 47 27C47 22.5817 43.4183 19 39 19H36V16C36 15.4477 35.5523 15 35 15ZM31 32H34V44H31C27.6863 44 25 41.3137 25 38C25 34.6863 27.6863 32 31 32ZM36 21H39C42.3137 21 45 23.6863 45 27C45 30.3137 42.3137 33 39 33H36V21Z" fill="white"/>
+
+    <!-- Flow lines representing debt reduction -->
+    <path d="M13 40C13 39.4477 13.4477 39 14 39H25C25.5523 39 26 39.4477 26 40C26 40.5523 25.5523 41 25 41H14C13.4477 41 13 40.5523 13 40Z" fill="white"/>
+    <path d="M44 40C44 39.4477 44.4477 39 45 39H56C56.5523 39 57 39.4477 57 40C57 40.5523 56.5523 41 56 41H45C44.4477 41 44 40.5523 44 40Z" fill="white"/>
+
+    <path d="M20 30C20 29.4477 20.4477 29 21 29H25C25.5523 29 26 29.4477 26 30C26 30.5523 25.5523 31 25 31H21C20.4477 31 20 30.5523 20 30Z" fill="white"/>
+    <path d="M44 30C44 29.4477 44.4477 29 45 29H49C49.5523 29 50 29.4477 50 30C50 30.5523 49.5523 31 49 31H45C44.4477 31 44 30.5523 44 30Z" fill="white"/>
 </svg> 

@@ -21,7 +21,7 @@ const floatingVariants = {
 
 // Background elements with visibility optimization
 const BackgroundElements = () => {
-  const { prefersReducedMotion } = useReducedMotion();
+  const prefersReducedMotion = useReducedMotion();
   const isMobile = useMediaQuery("(max-width: 768px)");
   const elementRef = useRef(null);
   const isInView = useInView(elementRef, { margin: "-10%" });

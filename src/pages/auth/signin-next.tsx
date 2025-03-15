@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import { useRouter } from 'next/router';
-import { signInWithEmail } from '@/lib/supabase-auth';
-import Link from 'next/link';
+import React, { useState } from "react";
+import { useRouter } from "next/router";
+import { signInWithEmail } from "@/lib/supabase-auth";
+import Link from "next/link";
 
 export default function SignInNext() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -17,10 +17,12 @@ export default function SignInNext() {
 
     try {
       await signInWithEmail(email, password);
-      router.push('/dashboard');
+      router.push("/dashboard");
     } catch (err: any) {
-      console.error('Sign in error:', err);
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      console.error("Sign in error:", err);
+      setError(
+        err.message || "Failed to sign in. Please check your credentials."
+      );
     } finally {
       setLoading(false);
     }
@@ -34,8 +36,11 @@ export default function SignInNext() {
             Sign in to your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+            Or{" "}
+            <Link
+              href="/signup"
+              className="font-medium text-blue-600 hover:text-blue-500"
+            >
               create a new account
             </Link>
           </p>
@@ -84,19 +89,29 @@ export default function SignInNext() {
                 type="checkbox"
                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-600"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+              <label
+                htmlFor="remember-me"
+                className="ml-2 block text-sm text-gray-900"
+              >
                 Remember me
               </label>
             </div>
 
             <div className="text-sm">
-              <Link href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+              <Link
+                href="/forgot-password"
+                className="font-medium text-blue-600 hover:text-blue-500"
+              >
                 Forgot your password?
               </Link>
             </div>
           </div>
 
-          {error && <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">{error}</div>}
+          {error && (
+            <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
           <div>
             <button
@@ -104,11 +119,11 @@ export default function SignInNext() {
               disabled={loading}
               className="group relative flex w-full justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-70"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </div>
         </form>
       </div>
     </div>
   );
-} 
+}

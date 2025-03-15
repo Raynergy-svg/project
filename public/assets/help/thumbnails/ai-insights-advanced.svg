@@ -1,0 +1,369 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Definitions for gradients, masks, patterns and filters -->
+    <defs>
+        <!-- Background gradient -->
+        <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+            <stop offset="0%" stop-color="#1E293B" />
+            <stop offset="100%" stop-color="#0F172A" />
+        </radialGradient>
+
+        <!-- Brand gradient -->
+        <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1DB954" />
+            <stop offset="100%" stop-color="#0D8C3E" />
+        </linearGradient>
+
+        <!-- Purple gradient for AI elements -->
+        <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#8B5CF6" />
+            <stop offset="100%" stop-color="#6D28D9" />
+        </linearGradient>
+
+        <!-- Card inner shadow -->
+        <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+            <feOffset dy="4" dx="0" in="blur" result="offsetBlur" />
+            <feComposite in="SourceAlpha" in2="offsetBlur" operator="over" result="innerShadow" />
+        </filter>
+
+        <!-- Outer glow filter -->
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+
+        <!-- Purple glow filter -->
+        <filter id="purpleGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+            <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.545 0 0 0 0 0.361 0 0 0 0 0.965 0 0 0 1 0" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+
+        <!-- Subtle drop shadow -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="140%">
+            <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000" flood-opacity="0.3" />
+        </filter>
+
+        <!-- Card highlight effect -->
+        <linearGradient id="cardHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.1" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </linearGradient>
+
+        <!-- Progress line animation -->
+        <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#1DB954" />
+            <stop offset="50%" stop-color="#4ADE80" />
+            <stop offset="100%" stop-color="#1DB954" />
+            <animate attributeName="x1" from="0%" to="100%" dur="3s" repeatCount="indefinite" />
+            <animate attributeName="x2" from="100%" to="200%" dur="3s" repeatCount="indefinite" />
+        </linearGradient>
+
+        <!-- Purple progress line animation -->
+        <linearGradient id="purpleProgressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#8B5CF6" />
+            <stop offset="50%" stop-color="#A78BFA" />
+            <stop offset="100%" stop-color="#8B5CF6" />
+            <animate attributeName="x1" from="0%" to="100%" dur="3s" repeatCount="indefinite" />
+            <animate attributeName="x2" from="100%" to="200%" dur="3s" repeatCount="indefinite" />
+        </linearGradient>
+
+        <!-- Alert gradient -->
+        <linearGradient id="alertGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#EF4444" />
+            <stop offset="100%" stop-color="#B91C1C" />
+        </linearGradient>
+
+        <!-- Opportunity gradient -->
+        <linearGradient id="opportunityGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#10B981" />
+            <stop offset="100%" stop-color="#047857" />
+        </linearGradient>
+
+        <!-- Prediction gradient -->
+        <linearGradient id="predictionGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#3B82F6" />
+            <stop offset="100%" stop-color="#1D4ED8" />
+        </linearGradient>
+
+        <!-- Bar chart gradient -->
+        <linearGradient id="barGradGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#1DB954" />
+            <stop offset="100%" stop-color="#0D8C3E" />
+        </linearGradient>
+
+        <!-- AI Circuit Pattern -->
+        <pattern id="circuitPattern" patternUnits="userSpaceOnUse" width="200" height="200">
+            <rect width="200" height="200" fill="#0F172A" />
+            <!-- Circuit Lines -->
+            <path d="M0,20 L200,20 M0,60 L200,60 M0,100 L200,100 M0,140 L200,140 M0,180 L200,180" stroke="#8B5CF620" stroke-width="1" />
+            <path d="M20,0 L20,200 M60,0 L60,200 M100,0 L100,200 M140,0 L140,200 M180,0 L180,200" stroke="#8B5CF620" stroke-width="1" />
+            <!-- Circuit Nodes -->
+            <circle cx="20" cy="20" r="4" fill="#8B5CF630" />
+            <circle cx="60" cy="60" r="4" fill="#8B5CF630" />
+            <circle cx="100" cy="100" r="4" fill="#8B5CF630" />
+            <circle cx="140" cy="140" r="4" fill="#8B5CF630" />
+            <circle cx="180" cy="180" r="4" fill="#8B5CF630" />
+            <circle cx="20" cy="140" r="4" fill="#8B5CF630" />
+            <circle cx="60" cy="180" r="4" fill="#8B5CF630" />
+            <circle cx="100" cy="20" r="4" fill="#8B5CF630" />
+            <circle cx="140" cy="60" r="4" fill="#8B5CF630" />
+            <circle cx="180" cy="100" r="4" fill="#8B5CF630" />
+        </pattern>
+
+        <!-- Data flow animation -->
+        <linearGradient id="dataFlowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#8B5CF6" stop-opacity="0" />
+            <stop offset="50%" stop-color="#8B5CF6" stop-opacity="1" />
+            <stop offset="100%" stop-color="#8B5CF6" stop-opacity="0" />
+            <animate attributeName="x1" from="0%" to="100%" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="x2" from="100%" to="200%" dur="2s" repeatCount="indefinite" />
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1280" height="720" fill="url(#bgGrad)" />
+    <rect width="1280" height="720" fill="url(#circuitPattern)" opacity="0.1" />
+    <g transform="translate(640, 360)">
+        <circle cx="0" cy="0" r="300" fill="url(#purpleGrad)" opacity="0.05" filter="url(#glow)" />
+    </g>
+
+    <!-- Animated grid lines for background effect -->
+    <g opacity="0.1">
+        <line x1="0" y1="120" x2="1280" y2="120" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="0" y1="240" x2="1280" y2="240" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="0" y1="360" x2="1280" y2="360" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="0" y1="480" x2="1280" y2="480" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="0" y1="600" x2="1280" y2="600" stroke="#FFFFFF" stroke-width="1" />
+
+        <line x1="213" y1="0" x2="213" y2="720" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="426" y1="0" x2="426" y2="720" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="640" y1="0" x2="640" y2="720" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="854" y1="0" x2="854" y2="720" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="1068" y1="0" x2="1068" y2="720" stroke="#FFFFFF" stroke-width="1" />
+    </g>
+
+    <!-- Main Title with Glow Effect -->
+    <g filter="url(#purpleGlow)">
+        <text x="640" y="100" font-family="'SF Pro Display', Arial, sans-serif" font-size="54" font-weight="bold" fill="#FFFFFF" text-anchor="middle">AI-Powered Insights Tutorial</text>
+    </g>
+
+    <!-- Animated Subtitle -->
+    <g>
+        <text x="640" y="160" font-family="'SF Pro Display', Arial, sans-serif" font-size="32" fill="#8B5CF6" text-anchor="middle" opacity="0.9">Smart Recommendations for Your Finances</text>
+        <rect x="440" y="170" width="400" height="2" fill="url(#purpleProgressGrad)" />
+    </g>
+
+    <!-- Main AI Dashboard UI -->
+    <g transform="translate(190, 200)" filter="url(#shadow)">
+        <!-- Main Container - Glass Morphism Effect -->
+        <rect x="0" y="0" width="900" height="350" rx="16" fill="#1A1E2E" opacity="0.9" />
+        <rect x="0" y="0" width="900" height="350" rx="16" fill="url(#cardHighlight)" opacity="0.1" />
+
+        <!-- Header with AI Badge -->
+        <rect x="0" y="0" width="900" height="60" rx="16 16 0 0" fill="#151929" />
+        <text x="450" y="38" font-family="'SF Pro Display', Arial, sans-serif" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="middle">AI Financial Insights</text>
+
+        <!-- AI Badge -->
+        <g transform="translate(820, 30)">
+            <rect x="-50" y="-15" width="80" height="30" rx="15" fill="#8B5CF620" />
+            <text x="-10" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" font-weight="bold" fill="#8B5CF6" text-anchor="middle">AI</text>
+        </g>
+
+        <!-- Left Panel - Smart Insights -->
+        <g transform="translate(30, 80)">
+            <rect x="0" y="0" width="400" height="250" rx="12" fill="#1F2937" />
+            <rect x="0" y="0" width="400" height="250" rx="12" fill="url(#cardHighlight)" opacity="0.1" />
+
+            <text x="20" y="30" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF">Smart Insights</text>
+
+            <!-- Opportunity Insight -->
+            <g transform="translate(20, 60)">
+                <rect x="0" y="0" width="360" height="80" rx="8" fill="#132F21" opacity="0.3" />
+                <rect x="0" y="0" width="8" height="80" rx="4 0 0 4" fill="url(#opportunityGrad)" />
+
+                <text x="20" y="20" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" font-weight="bold" fill="#10B981">OPPORTUNITY</text>
+                <text x="20" y="45" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF">Refinance potential savings of $3,200</text>
+                <text x="20" y="65" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Current auto loan rate is 2.1% above market avg</text>
+
+                <!-- Icon -->
+                <g transform="translate(330, 40)">
+                    <circle cx="0" cy="0" r="15" fill="#10B98120" />
+                    <path d="M-5,-5 L0,5 L8,-8" stroke="#10B981" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                </g>
+            </g>
+
+            <!-- Alert Insight -->
+            <g transform="translate(20, 150)">
+                <rect x="0" y="0" width="360" height="80" rx="8" fill="#2C1C1C" opacity="0.3" />
+                <rect x="0" y="0" width="8" height="80" rx="4 0 0 4" fill="url(#alertGrad)" />
+
+                <text x="20" y="20" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" font-weight="bold" fill="#EF4444">ALERT</text>
+                <text x="20" y="45" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF">Credit card interest spike detected</text>
+                <text x="20" y="65" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Rate increased from 19.99% to 24.99% last statement</text>
+
+                <!-- Icon -->
+                <g transform="translate(330, 40)">
+                    <circle cx="0" cy="0" r="15" fill="#EF444420" />
+                    <text x="0" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" font-weight="bold" fill="#EF4444" text-anchor="middle">!</text>
+                </g>
+            </g>
+        </g>
+
+        <!-- Right Panel - Spending Analysis with AI -->
+        <g transform="translate(450, 80)">
+            <rect x="0" y="0" width="420" height="250" rx="12" fill="#1F2937" />
+            <rect x="0" y="0" width="420" height="250" rx="12" fill="url(#cardHighlight)" opacity="0.1" />
+
+            <text x="20" y="30" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF">AI Spending Analysis</text>
+
+            <!-- Chart Title -->
+            <text x="20" y="60" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Category Spending vs. Recommendations</text>
+
+            <!-- Spending Categories -->
+            <g transform="translate(20, 80)">
+                <!-- Housing -->
+                <text x="0" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#FFFFFF">Housing</text>
+                <rect x="120" y="5" width="200" height="10" rx="5" fill="#374151" />
+                <rect x="120" y="5" width="160" height="10" rx="5" fill="url(#barGradGreen)" />
+                <rect x="120" y="5" width="130" height="10" rx="5" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="2 2" fill="none" />
+                <text x="330" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#FFFFFF">$1,600</text>
+                <text x="380" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#10B981">-18%</text>
+
+                <!-- Transportation -->
+                <text x="0" y="40" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#FFFFFF">Transportation</text>
+                <rect x="120" y="35" width="200" height="10" rx="5" fill="#374151" />
+                <rect x="120" y="35" width="60" height="10" rx="5" fill="url(#barGradGreen)" />
+                <rect x="120" y="35" width="70" height="10" rx="5" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="2 2" fill="none" />
+                <text x="330" y="40" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#FFFFFF">$600</text>
+                <text x="380" y="40" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#10B981">+17%</text>
+
+                <!-- Food -->
+                <text x="0" y="70" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#FFFFFF">Food</text>
+                <rect x="120" y="65" width="200" height="10" rx="5" fill="#374151" />
+                <rect x="120" y="65" width="90" height="10" rx="5" fill="url(#barGradGreen)" />
+                <rect x="120" y="65" width="65" height="10" rx="5" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="2 2" fill="none" />
+                <text x="330" y="70" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#FFFFFF">$900</text>
+                <text x="380" y="70" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#EF4444">-28%</text>
+
+                <!-- Entertainment -->
+                <text x="0" y="100" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#FFFFFF">Entertainment</text>
+                <rect x="120" y="95" width="200" height="10" rx="5" fill="#374151" />
+                <rect x="120" y="95" width="45" height="10" rx="5" fill="url(#barGradGreen)" />
+                <rect x="120" y="95" width="25" height="10" rx="5" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="2 2" fill="none" />
+                <text x="330" y="100" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#FFFFFF">$450</text>
+                <text x="380" y="100" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#EF4444">-44%</text>
+
+                <!-- Debt Repayment -->
+                <text x="0" y="130" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#FFFFFF">Debt Repayment</text>
+                <rect x="120" y="125" width="200" height="10" rx="5" fill="#374151" />
+                <rect x="120" y="125" width="95" height="10" rx="5" fill="url(#barGradGreen)" />
+                <rect x="120" y="125" width="160" height="10" rx="5" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="2 2" fill="none" />
+                <text x="330" y="130" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#FFFFFF">$950</text>
+                <text x="380" y="130" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#10B981">+68%</text>
+            </g>
+
+            <!-- Legend -->
+            <g transform="translate(20, 220)">
+                <rect x="0" y="0" width="12" height="4" rx="2" fill="url(#barGradGreen)" />
+                <text x="20" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#8B9CB0">Current</text>
+
+                <rect x="90" y="0" width="12" height="4" rx="2" stroke="#8B5CF6" stroke-width="2" stroke-dasharray="2 2" fill="none" />
+                <text x="110" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#8B9CB0">AI Recommended</text>
+            </g>
+
+            <!-- AI Prediction Badge -->
+            <g transform="translate(320, 215)">
+                <rect x="0" y="0" width="80" height="25" rx="12.5" fill="#1E1A3B" />
+                <text x="40" y="16" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#8B5CF6" text-anchor="middle">AI OPTIMIZED</text>
+            </g>
+        </g>
+    </g>
+
+    <!-- AI Data Network Visualization -->
+    <g transform="translate(640, 570)" filter="url(#shadow)">
+        <!-- Network Container -->
+        <rect x="-350" y="-50" width="700" height="150" rx="16" fill="#1F2937" opacity="0.9" />
+        <rect x="-350" y="-50" width="700" height="150" rx="16" fill="url(#cardHighlight)" opacity="0.1" />
+
+        <!-- Network Title -->
+        <text x="0" y="-25" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Financial Data Network</text>
+
+        <!-- Network Visualization -->
+        <g>
+            <!-- Central Node -->
+            <circle cx="0" cy="25" r="20" fill="url(#purpleGrad)" />
+            <text x="0" y="30" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#FFFFFF" text-anchor="middle">AI</text>
+
+            <!-- Connected Nodes -->
+            <circle cx="-250" cy="25" r="15" fill="#1F2937" stroke="#8B5CF6" stroke-width="2" />
+            <text x="-250" y="30" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#FFFFFF" text-anchor="middle">Accounts</text>
+
+            <circle cx="-150" cy="-15" r="15" fill="#1F2937" stroke="#8B5CF6" stroke-width="2" />
+            <text x="-150" y="-10" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#FFFFFF" text-anchor="middle">Income</text>
+
+            <circle cx="-80" cy="65" r="15" fill="#1F2937" stroke="#8B5CF6" stroke-width="2" />
+            <text x="-80" y="70" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#FFFFFF" text-anchor="middle">Bills</text>
+
+            <circle cx="80" cy="65" r="15" fill="#1F2937" stroke="#8B5CF6" stroke-width="2" />
+            <text x="80" y="70" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#FFFFFF" text-anchor="middle">Debts</text>
+
+            <circle cx="150" cy="-15" r="15" fill="#1F2937" stroke="#8B5CF6" stroke-width="2" />
+            <text x="150" y="-10" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#FFFFFF" text-anchor="middle">Goals</text>
+
+            <circle cx="250" cy="25" r="15" fill="#1F2937" stroke="#8B5CF6" stroke-width="2" />
+            <text x="250" y="30" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#FFFFFF" text-anchor="middle">Market</text>
+
+            <!-- Connection Lines with Data Flow -->
+            <line x1="-235" y1="25" x2="-20" y2="25" stroke="url(#dataFlowGrad)" stroke-width="2" />
+            <line x1="-135" y1="-10" x2="-15" y2="15" stroke="url(#dataFlowGrad)" stroke-width="2" />
+            <line x1="-65" y1="60" x2="-15" y2="30" stroke="url(#dataFlowGrad)" stroke-width="2" />
+            <line x1="65" y1="60" x2="15" y2="30" stroke="url(#dataFlowGrad)" stroke-width="2" />
+            <line x1="135" y1="-10" x2="15" y2="15" stroke="url(#dataFlowGrad)" stroke-width="2" />
+            <line x1="235" y1="25" x2="20" y2="25" stroke="url(#dataFlowGrad)" stroke-width="2" />
+        </g>
+    </g>
+
+    <!-- Play Button with Animated Effects -->
+    <g transform="translate(640, 390)" filter="url(#shadow)">
+        <circle cx="0" cy="0" r="60" fill="url(#purpleGrad)">
+            <animate attributeName="r" values="60;62;60" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="0" cy="0" r="70" fill="none" stroke="#8B5CF6" stroke-width="2" opacity="0.5">
+            <animate attributeName="r" values="70;80;70" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <polygon points="-15,-30 30,0 -15,30" fill="white" />
+    </g>
+
+    <!-- Duration Badge with Glass Effect -->
+    <g transform="translate(640, 650)">
+        <rect x="-100" y="-20" width="200" height="40" rx="20" fill="#1F2937" opacity="0.8" />
+        <rect x="-100" y="-20" width="200" height="40" rx="20" fill="url(#cardHighlight)" opacity="0.1" />
+        <text x="0" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" fill="#FFFFFF" text-anchor="middle">Duration: 15:50</text>
+    </g>
+
+    <!-- Brand Logo with Animated Glow -->
+    <g transform="translate(60, 60)" filter="url(#glow)">
+        <text x="0" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="28" font-weight="bold" fill="#1DB954">SmartDebtFlow</text>
+    </g>
+
+    <!-- Advanced Badge with Animated Pulse -->
+    <g transform="translate(1160, 60)">
+        <rect x="-100" y="-20" width="100" height="40" rx="20" fill="#8B5CF633">
+            <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite" />
+        </rect>
+        <circle cx="-85" cy="0" r="8" fill="#8B5CF6" />
+        <text x="-70" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF">Advanced</text>
+    </g>
+
+    <!-- Decorative Elements -->
+    <g opacity="0.1" transform="translate(100, 500)">
+        <rect x="0" y="0" width="150" height="150" rx="20" fill="#8B5CF6" transform="rotate(15)" />
+    </g>
+    <g opacity="0.1" transform="translate(1100, 200)">
+        <rect x="0" y="0" width="100" height="100" rx="15" fill="#8B5CF6" transform="rotate(45)" />
+    </g>
+</svg> 

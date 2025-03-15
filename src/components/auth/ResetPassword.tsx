@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InfoIcon, ArrowLeftIcon, CheckCircleIcon, AlertCircle, Lock, Eye, EyeOff } from "lucide-react";
+import { ENV } from "@/utils/env-config";
 
 interface ResetPasswordResponse {
   message?: string;
@@ -39,7 +40,7 @@ export function ResetPassword() {
       }
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/functions/v1/validate-reset-token`, {
+        const response = await fetch(`${ENV.API_URL}/functions/v1/validate-reset-token`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -146,7 +147,7 @@ export function ResetPassword() {
 
     try {
       // Call the reset password endpoint
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/functions/v1/reset-password`, {
+      const response = await fetch(`${ENV.API_URL}/functions/v1/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

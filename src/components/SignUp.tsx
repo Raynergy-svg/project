@@ -1,7 +1,20 @@
 import React, { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { TextField, Button, Typography, Box, Paper, Grid, Radio, RadioGroup, FormControlLabel, FormControl, Alert, Divider } from "@mui/material";
+import {
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Paper,
+  Grid,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  Alert,
+  Divider,
+} from "@mui/material";
 import { Check, ArrowRight } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 
@@ -23,8 +36,8 @@ const subscriptionTiers: SubscriptionTier[] = [
       "Debt tracking dashboard",
       "Basic debt payoff calculator",
       "Payment reminders",
-      "Email support"
-    ]
+      "Email support",
+    ],
   },
   {
     id: "pro",
@@ -37,9 +50,9 @@ const subscriptionTiers: SubscriptionTier[] = [
       "Debt optimization tools",
       "Priority support",
       "Custom payment schedules",
-      "Detailed progress reports"
-    ]
-  }
+      "Detailed progress reports",
+    ],
+  },
 ];
 
 export const SignUp = () => {
@@ -47,7 +60,7 @@ export const SignUp = () => {
     name: "",
     email: "",
     password: "",
-    selectedTier: "basic"
+    selectedTier: "basic",
   });
   const [error, setError] = useState("");
   const router = useRouter();
@@ -56,7 +69,7 @@ export const SignUp = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await signup(formData);
+      await signup(formData.email, formData.password, formData.name);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -71,38 +84,38 @@ export const SignUp = () => {
   };
 
   return (
-    <Box 
-      sx={{ 
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
         py: 4,
         px: 2,
-        background: 'linear-gradient(to bottom, #1E1E1E, #121212)'
+        background: "linear-gradient(to bottom, #1E1E1E, #121212)",
       }}
     >
-      <Paper 
+      <Paper
         elevation={3}
         sx={{
           maxWidth: 1000,
-          width: '100%',
+          width: "100%",
           p: 4,
-          background: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(136, 176, 75, 0.1)',
-          borderRadius: 3
+          background: "rgba(255, 255, 255, 0.05)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(136, 176, 75, 0.1)",
+          borderRadius: 3,
         }}
       >
-        <Typography 
-          variant="h4" 
-          component="h1" 
+        <Typography
+          variant="h4"
+          component="h1"
           gutterBottom
-          sx={{ 
-            color: 'white',
-            textAlign: 'center',
+          sx={{
+            color: "white",
+            textAlign: "center",
             mb: 3,
-            fontWeight: 600
+            fontWeight: 600,
           }}
         >
           Start Your Debt-Free Journey
@@ -117,7 +130,7 @@ export const SignUp = () => {
         <Grid container spacing={4}>
           {/* Subscription Tiers */}
           <Grid item xs={12} md={7}>
-            <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+            <Typography variant="h6" sx={{ color: "white", mb: 2 }}>
               Choose Your Plan
             </Typography>
             <RadioGroup
@@ -131,53 +144,83 @@ export const SignUp = () => {
                     <Paper
                       sx={{
                         p: 2,
-                        border: '1px solid',
-                        borderColor: formData.selectedTier === tier.id ? '#88B04B' : 'rgba(255, 255, 255, 0.1)',
-                        background: formData.selectedTier === tier.id ? 'rgba(136, 176, 75, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                        border: "1px solid",
+                        borderColor:
+                          formData.selectedTier === tier.id
+                            ? "#88B04B"
+                            : "rgba(255, 255, 255, 0.1)",
+                        background:
+                          formData.selectedTier === tier.id
+                            ? "rgba(136, 176, 75, 0.1)"
+                            : "rgba(255, 255, 255, 0.05)",
                         borderRadius: 2,
-                        transition: 'all 0.2s',
-                        cursor: 'pointer',
-                        '&:hover': {
-                          borderColor: '#88B04B',
-                          transform: 'translateY(-2px)'
-                        }
+                        transition: "all 0.2s",
+                        cursor: "pointer",
+                        "&:hover": {
+                          borderColor: "#88B04B",
+                          transform: "translateY(-2px)",
+                        },
                       }}
                     >
                       <FormControlLabel
                         value={tier.id}
                         control={
-                          <Radio 
+                          <Radio
                             sx={{
-                              color: '#88B04B',
-                              '&.Mui-checked': {
-                                color: '#88B04B',
-                              }
+                              color: "#88B04B",
+                              "&.Mui-checked": {
+                                color: "#88B04B",
+                              },
                             }}
                           />
                         }
                         label={
                           <Box>
-                            <Typography variant="h6" sx={{ color: 'white', fontWeight: 600 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{ color: "white", fontWeight: 600 }}
+                            >
                               {tier.name}
                             </Typography>
-                            <Typography variant="h5" sx={{ color: '#88B04B', fontWeight: 600, my: 1 }}>
+                            <Typography
+                              variant="h5"
+                              sx={{ color: "#88B04B", fontWeight: 600, my: 1 }}
+                            >
                               {tier.price}
                             </Typography>
-                            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{ color: "rgba(255, 255, 255, 0.7)", mb: 2 }}
+                            >
                               {tier.description}
                             </Typography>
-                            <Divider sx={{ my: 2, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+                            <Divider
+                              sx={{
+                                my: 2,
+                                borderColor: "rgba(255, 255, 255, 0.1)",
+                              }}
+                            />
                             {tier.features.map((feature, index) => (
-                              <Box key={index} sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                              <Box
+                                key={index}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  mb: 1,
+                                }}
+                              >
                                 <Check size={16} color="#88B04B" />
-                                <Typography variant="body2" sx={{ color: 'white', ml: 1 }}>
+                                <Typography
+                                  variant="body2"
+                                  sx={{ color: "white", ml: 1 }}
+                                >
                                   {feature}
                                 </Typography>
                               </Box>
                             ))}
                           </Box>
                         }
-                        sx={{ width: '100%', m: 0 }}
+                        sx={{ width: "100%", m: 0 }}
                       />
                     </Paper>
                   </Grid>
@@ -189,10 +232,10 @@ export const SignUp = () => {
           {/* Sign Up Form */}
           <Grid item xs={12} md={5}>
             <Box component="form" onSubmit={handleSubmit}>
-              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: "white", mb: 2 }}>
                 Your Details
               </Typography>
-              
+
               <TextField
                 fullWidth
                 margin="normal"
@@ -202,22 +245,22 @@ export const SignUp = () => {
                 onChange={handleChange}
                 required
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.23)',
+                  "& .MuiOutlinedInput-root": {
+                    color: "white",
+                    "& fieldset": {
+                      borderColor: "rgba(255, 255, 255, 0.23)",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#88B04B',
+                    "&:hover fieldset": {
+                      borderColor: "#88B04B",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#88B04B',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#88B04B",
                     },
                   },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#88B04B',
+                  "& .MuiInputLabel-root": {
+                    color: "rgba(255, 255, 255, 0.7)",
+                    "&.Mui-focused": {
+                      color: "#88B04B",
                     },
                   },
                 }}
@@ -233,22 +276,22 @@ export const SignUp = () => {
                 onChange={handleChange}
                 required
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.23)',
+                  "& .MuiOutlinedInput-root": {
+                    color: "white",
+                    "& fieldset": {
+                      borderColor: "rgba(255, 255, 255, 0.23)",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#88B04B',
+                    "&:hover fieldset": {
+                      borderColor: "#88B04B",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#88B04B',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#88B04B",
                     },
                   },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#88B04B',
+                  "& .MuiInputLabel-root": {
+                    color: "rgba(255, 255, 255, 0.7)",
+                    "&.Mui-focused": {
+                      color: "#88B04B",
                     },
                   },
                 }}
@@ -264,49 +307,55 @@ export const SignUp = () => {
                 onChange={handleChange}
                 required
                 sx={{
-                  '& .MuiOutlinedInput-root': {
-                    color: 'white',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 255, 255, 0.23)',
+                  "& .MuiOutlinedInput-root": {
+                    color: "white",
+                    "& fieldset": {
+                      borderColor: "rgba(255, 255, 255, 0.23)",
                     },
-                    '&:hover fieldset': {
-                      borderColor: '#88B04B',
+                    "&:hover fieldset": {
+                      borderColor: "#88B04B",
                     },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#88B04B',
+                    "&.Mui-focused fieldset": {
+                      borderColor: "#88B04B",
                     },
                   },
-                  '& .MuiInputLabel-root': {
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-focused': {
-                      color: '#88B04B',
+                  "& .MuiInputLabel-root": {
+                    color: "rgba(255, 255, 255, 0.7)",
+                    "&.Mui-focused": {
+                      color: "#88B04B",
                     },
                   },
                 }}
               />
 
-              <Button 
-                type="submit" 
-                fullWidth 
-                variant="contained" 
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
                 endIcon={<ArrowRight />}
-                sx={{ 
-                  mt: 3, 
+                sx={{
+                  mt: 3,
                   mb: 2,
-                  bgcolor: '#88B04B',
-                  color: 'white',
+                  bgcolor: "#88B04B",
+                  color: "white",
                   py: 1.5,
-                  '&:hover': {
-                    bgcolor: '#7a9d43',
+                  "&:hover": {
+                    bgcolor: "#7a9d43",
                   },
                 }}
               >
                 Start Your Journey
               </Button>
 
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', textAlign: 'center' }}>
-                Already have an account?{' '}
-                <Link href="/signin" style={{ color: '#88B04B', textDecoration: 'none' }}>
+              <Typography
+                variant="body2"
+                sx={{ color: "rgba(255, 255, 255, 0.7)", textAlign: "center" }}
+              >
+                Already have an account?{" "}
+                <Link
+                  href="/signin"
+                  style={{ color: "#88B04B", textDecoration: "none" }}
+                >
                   Sign In
                 </Link>
               </Typography>

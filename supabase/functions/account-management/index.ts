@@ -1,23 +1,31 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
+import { corsHeaders } from '../_shared/cors.ts';
 
-interface AccountDeletionRequest {
-  reason?: string;
-  metadata?: Record<string, any>;
-}
-
-interface DataExportRequest {
-  format: 'json' | 'csv';
-  metadata?: Record<string, any>;
-}
-
+/**
+ * Account Management Edge Function
+ * 
+ * This function provides API endpoints for managing user account data
+ * in compliance with GDPR and other data protection regulations:
+ * 
+ * - GET /account-management/export: Get status of data export requests
+ * - POST /account-management/export: Request a data export
+ * - GET /account-management/deletion: Get status of account deletion request
+ * - POST /account-management/deletion: Request account deletion
+ * - DELETE /account-management/deletion/{id}: Cancel account deletion request
+ */
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
     // Create a Supabase client with the Auth context of the logged in user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Unauthorized', message: 'No authorization header' }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
@@ -41,319 +49,277 @@ serve(async (req) => {
     
     if (userError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized', message: 'Invalid token' }), {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 401,
       });
     }
     
+    const { method } = req;
     const url = new URL(req.url);
     const path = url.pathname.split('/').pop();
     
-    // Handle requests for account deletion
-    if (path === 'delete-account') {
-      if (req.method === 'POST') {
-        const { deletionRequest } = await req.json() as { deletionRequest: AccountDeletionRequest };
-        
-        // Calculate 30 days from now for scheduled deletion
-        const scheduledDeletionDate = new Date();
-        scheduledDeletionDate.setDate(scheduledDeletionDate.getDate() + 30);
-        
-        // Insert into account_deletion_requests table
+    // Data Export Endpoints
+    if (path === 'export') {
+      // Get export request status
+      if (method === 'GET') {
         const { data, error } = await supabaseClient
-          .from('account_deletion_requests')
-          .insert({
-            user_id: user.id,
-            scheduled_deletion_date: scheduledDeletionDate.toISOString(),
-            reason: deletionRequest.reason || null,
-            status: 'pending',
-            metadata: deletionRequest.metadata || {},
-            updated_at: new Date().toISOString(),
-          });
+          .from('data_export_requests')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(1);
         
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
-            headers: { 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
           });
         }
         
-        // Mark the user as deactivated in the profiles table
-        const { error: profileError } = await supabaseClient
-          .from('profiles')
-          .update({ 
-            status: 'deactivated',
-            updated_at: new Date().toISOString(),
-            deactivated_at: new Date().toISOString()
-          })
-          .eq('id', user.id);
-        
-        if (profileError) {
-          console.error('Error updating profile status:', profileError);
-        }
-        
-        // Return success response
         return new Response(JSON.stringify({ 
-          message: 'Account deletion request submitted successfully',
-          scheduledDeletionDate: scheduledDeletionDate.toISOString(),
+          success: true,
+          data: data.length > 0 ? data[0] : null,
+          message: data.length > 0 ? 'Export request found' : 'No export requests found'
         }), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
         });
       }
       
-      if (req.method === 'GET') {
-        // Check if there's an existing deletion request
+      // Create new export request
+      if (method === 'POST') {
+        const requestBody = await req.json();
+        const exportFormat = requestBody.format || 'json';
+        
+        // Get client IP address for audit trail
+        const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+        
+        const { data, error } = await supabaseClient
+          .from('data_export_requests')
+          .insert({
+            user_id: user.id,
+            export_format: exportFormat,
+            status: 'pending',
+            metadata: {
+              request_source: requestBody.source || 'api',
+              ip_address: ipAddress,
+              user_agent: requestBody.userAgent || null,
+            },
+          })
+          .select();
+        
+        if (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 500,
+          });
+        }
+        
+        // Queue the actual export job (would be implemented separately)
+        // This could trigger a background worker or serverless function to
+        // collect and package the user's data
+        
+        return new Response(JSON.stringify({ 
+          success: true,
+          data: data[0],
+          message: 'Data export request submitted successfully'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 201,
+        });
+      }
+    }
+    
+    // Account Deletion Endpoints
+    if (path === 'deletion' || path?.startsWith('deletion/')) {
+      // Get deletion request status
+      if (method === 'GET') {
         const { data, error } = await supabaseClient
           .from('account_deletion_requests')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(1);
         
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
-            headers: { 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
           });
         }
         
         return new Response(JSON.stringify({ 
-          deletionRequest: data || null
+          success: true,
+          data: data.length > 0 ? data[0] : null,
+          message: data.length > 0 ? 'Deletion request found' : 'No deletion requests found'
         }), {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
         });
       }
       
-      if (req.method === 'DELETE') {
-        // Cancel an existing deletion request
+      // Create new deletion request
+      if (method === 'POST') {
+        const requestBody = await req.json();
+        
+        // Calculate scheduled deletion date (default 30 days from now, or custom)
+        const daysUntilDeletion = requestBody.daysUntilDeletion || 30;
+        const scheduledDeletionDate = new Date();
+        scheduledDeletionDate.setDate(scheduledDeletionDate.getDate() + daysUntilDeletion);
+        
+        // Get client IP address for audit trail
+        const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
+        
         const { data, error } = await supabaseClient
           .from('account_deletion_requests')
-          .update({
-            status: 'canceled',
-            updated_at: new Date().toISOString(),
+          .insert({
+            user_id: user.id,
+            status: 'pending',
+            scheduled_deletion_date: scheduledDeletionDate.toISOString(),
+            reason: requestBody.reason || 'User requested account deletion',
+            metadata: {
+              request_source: requestBody.source || 'api',
+              ip_address: ipAddress,
+              user_agent: requestBody.userAgent || null,
+            },
           })
-          .eq('user_id', user.id)
-          .eq('status', 'pending');
+          .select();
         
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
-            headers: { 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500,
           });
-        }
-        
-        // Reactivate the user's profile
-        const { error: profileError } = await supabaseClient
-          .from('profiles')
-          .update({ 
-            status: 'active',
-            updated_at: new Date().toISOString(),
-            deactivated_at: null
-          })
-          .eq('id', user.id);
-        
-        if (profileError) {
-          console.error('Error updating profile status:', profileError);
         }
         
         return new Response(JSON.stringify({ 
-          message: 'Account deletion request canceled successfully'
+          success: true,
+          data: data[0],
+          message: `Account scheduled for deletion in ${daysUntilDeletion} days`
         }), {
-          headers: { 'Content-Type': 'application/json' },
-          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 201,
         });
       }
-    }
-    
-    // Handle requests for data export
-    if (path === 'export-data') {
-      if (req.method === 'POST') {
-        const { exportRequest } = await req.json() as { exportRequest: DataExportRequest };
+      
+      // Cancel deletion request
+      if (method === 'DELETE') {
+        // Extract the deletion request ID from the path
+        const deletionRequestId = path?.replace('deletion/', '');
         
-        // Create a data export request
-        const { data, error } = await supabaseClient
-          .from('data_export_requests')
-          .insert({
-            user_id: user.id,
-            export_format: exportRequest.format || 'json',
-            status: 'pending',
-            metadata: exportRequest.metadata || {},
-            updated_at: new Date().toISOString(),
-          });
-        
-        if (error) {
-          return new Response(JSON.stringify({ error: error.message }), {
-            headers: { 'Content-Type': 'application/json' },
-            status: 500,
-          });
-        }
-        
-        // The actual data export is processed asynchronously by a background job
-        // For immediate exports of smaller datasets, we can handle it directly here:
-        
-        try {
-          // Collect user data from various tables
-          const [
-            profileData, 
-            consentData, 
-            debtData,
-            transactionData
-          ] = await Promise.all([
-            supabaseClient.from('profiles').select('*').eq('id', user.id).single(),
-            supabaseClient.from('user_consent_records').select('*').eq('user_id', user.id),
-            supabaseClient.from('debts').select('*').eq('user_id', user.id),
-            supabaseClient.from('transaction_history').select('*').eq('user_id', user.id),
-          ]);
+        if (!deletionRequestId || deletionRequestId === 'deletion') {
+          // If no ID provided, attempt to cancel the most recent request
+          const { data: existingRequests, error: fetchError } = await supabaseClient
+            .from('account_deletion_requests')
+            .select('id, status')
+            .eq('user_id', user.id)
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(1);
           
-          // Compile the exported data
-          const exportedData = {
-            userInfo: {
-              id: user.id,
-              email: user.email,
-              createdAt: user.created_at,
-              profile: profileData.data || null,
-            },
-            consentRecords: consentData.data || [],
-            financialData: {
-              debts: debtData.data || [],
-              transactions: transactionData.data || [],
-            },
-            exportTimestamp: new Date().toISOString(),
-          };
-          
-          // Format the data based on the requested format
-          let formattedData: string;
-          let contentType: string;
-          
-          if (exportRequest.format === 'csv') {
-            formattedData = convertToCSV(exportedData);
-            contentType = 'text/csv';
-          } else {
-            formattedData = JSON.stringify(exportedData, null, 2);
-            contentType = 'application/json';
+          if (fetchError) {
+            return new Response(JSON.stringify({ error: fetchError.message }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+            });
           }
           
-          // Update the export request to completed status
-          await supabaseClient
-            .from('data_export_requests')
-            .update({
-              status: 'completed',
-              completed_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              exported_file_size: formattedData.length,
-            })
-            .eq('user_id', user.id)
-            .eq('status', 'pending');
+          if (existingRequests.length === 0) {
+            return new Response(JSON.stringify({ 
+              success: false,
+              message: 'No pending deletion request found to cancel'
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 404,
+            });
+          }
           
-          // Return the data directly for smaller datasets
-          return new Response(formattedData, {
-            headers: { 
-              'Content-Type': contentType,
-              'Content-Disposition': `attachment; filename="data-export-${user.id}.${exportRequest.format}"` 
-            },
-            status: 200,
-          });
-        } catch (exportError) {
-          console.error('Error processing data export:', exportError);
+          // Use the most recent pending request
+          const requestId = existingRequests[0].id;
           
-          // Update the export request to failed status
-          await supabaseClient
-            .from('data_export_requests')
+          const { error: updateError } = await supabaseClient
+            .from('account_deletion_requests')
             .update({
-              status: 'failed',
+              status: 'canceled',
               updated_at: new Date().toISOString(),
-              metadata: { error: exportError.message },
+              metadata: {
+                canceled_at: new Date().toISOString(),
+                canceled_by: user.id,
+                canceled_via: 'api',
+              },
             })
-            .eq('user_id', user.id)
-            .eq('status', 'pending');
+            .eq('id', requestId)
+            .eq('user_id', user.id); // Ensure the user can only cancel their own requests
+          
+          if (updateError) {
+            return new Response(JSON.stringify({ error: updateError.message }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+            });
+          }
           
           return new Response(JSON.stringify({ 
-            message: 'Data export request submitted but processing failed',
-            error: exportError.message
+            success: true,
+            message: 'Account deletion request canceled successfully'
           }), {
-            headers: { 'Content-Type': 'application/json' },
-            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          });
+        } else {
+          // Cancel a specific deletion request by ID
+          const { error } = await supabaseClient
+            .from('account_deletion_requests')
+            .update({
+              status: 'canceled',
+              updated_at: new Date().toISOString(),
+              metadata: {
+                canceled_at: new Date().toISOString(),
+                canceled_by: user.id,
+                canceled_via: 'api',
+              },
+            })
+            .eq('id', deletionRequestId)
+            .eq('user_id', user.id); // Ensure the user can only cancel their own requests
+          
+          if (error) {
+            return new Response(JSON.stringify({ error: error.message }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 500,
+            });
+          }
+          
+          return new Response(JSON.stringify({ 
+            success: true,
+            message: 'Account deletion request canceled successfully'
+          }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
           });
         }
-      }
-      
-      if (req.method === 'GET') {
-        // Check status of pending exports
-        const { data, error } = await supabaseClient
-          .from('data_export_requests')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-        
-        if (error) {
-          return new Response(JSON.stringify({ error: error.message }), {
-            headers: { 'Content-Type': 'application/json' },
-            status: 500,
-          });
-        }
-        
-        return new Response(JSON.stringify({ 
-          exportRequests: data || []
-        }), {
-          headers: { 'Content-Type': 'application/json' },
-          status: 200,
-        });
       }
     }
     
-    // If not handled by any of the above paths/methods
-    return new Response(JSON.stringify({ error: 'Method Not Allowed or Invalid Path' }), {
-      headers: { 'Content-Type': 'application/json' },
+    // If no matching endpoint
+    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 405,
     });
     
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
   }
 });
 
-// Utility function to convert JSON data to CSV format
-function convertToCSV(data: any): string {
-  // Flatten the object structure for CSV format
-  const flattenedData = flattenObject(data);
-  
-  // Get all column headers
-  const headers = Object.keys(flattenedData);
-  
-  // Create CSV rows
-  const csvRows = [
-    headers.join(','), // Header row
-    headers.map(header => {
-      const value = flattenedData[header];
-      // Handle strings with commas, quotes, etc. by wrapping in quotes
-      if (typeof value === 'string') {
-        return `"${value.replace(/"/g, '""')}"`;
-      }
-      return value ?? '';
-    }).join(',')
-  ];
-  
-  return csvRows.join('\n');
-}
+/* To invoke locally:
 
-// Helper function to flatten a nested object structure
-function flattenObject(obj: any, prefix = ''): Record<string, any> {
-  return Object.keys(obj).reduce((acc, key) => {
-    const pre = prefix.length ? `${prefix}.` : '';
-    if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
-      Object.assign(acc, flattenObject(obj[key], pre + key));
-    } else if (Array.isArray(obj[key])) {
-      // For arrays, serialize to JSON string
-      acc[pre + key] = JSON.stringify(obj[key]);
-    } else {
-      acc[pre + key] = obj[key];
-    }
-    return acc;
-  }, {} as Record<string, any>);
-} 
+  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
+  2. Make an HTTP request:
+
+  curl -i --location --request GET 'http://127.0.0.1:54321/functions/v1/account-management/export' \
+    --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
+    --header 'Content-Type: application/json'
+
+*/ 

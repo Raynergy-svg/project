@@ -6,15 +6,112 @@
  * 
  * NOTE: For database types, you can use the Supabase CLI to generate types:
  * ```
- * npx supabase gen types typescript --project-id your-project-id > src/types/supabase.types.ts
+ * npx supabase gen types typescript --project-id your-project-id > src/types/supabase-generated.ts
  * ```
  */
 
-import { Database as GeneratedDatabase } from './supabase-generated';
+// Define Database type inline instead of importing
+// import { Database as GeneratedDatabase } from './supabase-generated.js';
 import { User, Session, SupabaseClient } from '@supabase/supabase-js';
 
-// Re-export the generated Database type
-export type Database = GeneratedDatabase;
+// Define the JSON type
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+// Define the Database type inline
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string
+          created_at?: string
+          updated_at?: string
+          name?: string
+          email?: string
+          avatar_url?: string
+          is_subscribed?: boolean
+        }
+        Insert: {
+          id: string
+          created_at?: string
+          updated_at?: string
+          name?: string
+          email?: string
+          avatar_url?: string
+          is_subscribed?: boolean
+        }
+        Update: {
+          id?: string
+          created_at?: string
+          updated_at?: string
+          name?: string
+          email?: string
+          avatar_url?: string
+          is_subscribed?: boolean
+        }
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          status: string
+          plan_id?: string
+          current_period_end?: string
+          cancel_at?: string
+          canceled_at?: string
+          trial_end?: string
+          trial_start?: string
+          created_at: string
+          updated_at?: string
+        }
+        Insert: {
+          id: string
+          user_id: string
+          status: string
+          plan_id?: string
+          current_period_end?: string
+          cancel_at?: string
+          canceled_at?: string
+          trial_end?: string
+          trial_start?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          status?: string
+          plan_id?: string
+          current_period_end?: string
+          cancel_at?: string
+          canceled_at?: string
+          trial_end?: string
+          trial_start?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
 
 // Common response type for service functions
 export interface ServiceResponse<T> {

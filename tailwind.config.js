@@ -1,5 +1,30 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+
+// Handle both ESM and CommonJS environments
+const loadPlugin = async () => {
+  try {
+    // Try ESM import first
+    const animate = await import("tailwindcss-animate");
+    return animate.default;
+  } catch (e) {
+    // Fallback to CommonJS require
+    return require("tailwindcss-animate");
+  }
+};
+
+// Create plugins array - will be populated before use
+const plugins = [];
+
+// Immediately add plugin if in CommonJS context
+if (typeof require !== "undefined") {
+  try {
+    plugins.push(require("tailwindcss-animate"));
+  } catch (e) {
+    console.warn("Could not load tailwindcss-animate plugin via require");
+  }
+}
+
+export default {
   darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
@@ -72,5 +97,5 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins,
 };

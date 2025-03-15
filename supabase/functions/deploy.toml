@@ -9,11 +9,12 @@
 # Account management API (deletion and data export)
 [functions.account-management]
   verify_jwt = true
-  method = "GET,POST,DELETE"
+  method = "GET,POST,DELETE,OPTIONS"
   path = "/account-management/*"
 
 # Scheduled tasks for processing deletion requests
 [functions.scheduled-tasks]
   schedule = "@daily"
   # This function runs on a schedule and is triggered by Supabase
-  verify_jwt = false 
+  verify_jwt = false
+  # No path needed as this is triggered by schedule, not HTTP requests 

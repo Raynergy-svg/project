@@ -1,21 +1,7 @@
-'use client';
-
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+// We're switching from client to server component for proper redirects
+import { redirect } from 'next/navigation';
 
 export default function CompliancePage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    // Redirect to the existing Compliance page in the Pages Router
-    // Make sure the path is a string
-    const path = '/Compliance';
-    router.push(path);
-  }, [router]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>
-  );
+  // Redirect to the Security page
+  redirect('/security');
 } 

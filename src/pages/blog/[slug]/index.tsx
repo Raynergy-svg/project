@@ -479,7 +479,7 @@ const RelatedPostCard = ({ post }: { post: BlogPost }) => {
   return (
     <Link href={`/blog/${post.slug}`} className="group block h-full">
       <ResponsiveCard 
-        className="h-full overflow-hidden hover:shadow-md transition-all border-border hover:border-primary/20"
+        className="h-full overflow-hidden hover:shadow-md transition-all border-border bg-card hover:border-primary/20"
         hoverable
         interactive
       >
@@ -493,14 +493,23 @@ const RelatedPostCard = ({ post }: { post: BlogPost }) => {
             />
           </div>
           <div className="p-4">
-            <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-2">
+            <div className="flex items-center text-xs text-muted-foreground mb-2">
+              <Calendar className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span>{post.date}</span>
+            </div>
+            <h3 className="text-sm font-semibold mb-2 group-hover:text-primary transition-colors line-clamp-2 text-foreground">
               {post.title}
             </h3>
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="mr-3 truncate">{post.date}</span>
-              <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span className="truncate">{post.readTime} read</span>
+            <div className="flex items-center text-xs">
+              <div className="relative w-5 h-5 rounded-full overflow-hidden mr-2 flex-shrink-0">
+                <Image
+                  src={post.author.avatar}
+                  alt={post.author.name}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <span className="text-muted-foreground truncate">{post.author.name}</span>
             </div>
           </div>
         </CardContent>
@@ -565,146 +574,178 @@ const BlogPostPage: NextPage<BlogPostPageProps> = ({ post: initialPost }) => {
 
   return (
     <Layout
-      title={`${post.title} - Smart Debt Flow Blog`}
-      description={post.excerpt}
+      title={`${post?.title || 'Article'} - Smart Debt Flow Blog`}
+      description={post?.excerpt || 'Read the latest insights on debt management and financial wellness.'}
     >
       <Head>
-        <meta property="og:title" content={`${post.title} - Smart Debt Flow Blog`} />
-        <meta property="og:description" content={post.excerpt} />
+        <meta property="og:title" content={`${post?.title || 'Article'} - Smart Debt Flow Blog`} />
+        <meta property="og:description" content={post?.excerpt || 'Read the latest insights on debt management and financial wellness.'} />
         <meta property="og:type" content="article" />
-        <meta property="og:url" content={`https://smartdebtflow.com/blog/${post.slug}`} />
-        <meta property="og:image" content={post.image} />
-        <meta property="article:published_time" content={post.date} />
-        <meta property="article:author" content={post.author.name} />
-        <meta property="article:section" content={post.category} />
+        <meta property="og:url" content={`https://smartdebtflow.com/blog/${post?.slug}`} />
+        {post?.image && <meta property="og:image" content={post.image} />}
       </Head>
 
-      <article className="py-8 md:py-12 lg:py-20">
-        <div className="container mx-auto px-4 sm:px-6">
-          {/* Back button */}
-          <div className="mb-6 md:mb-8">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/Blog')}
-              className="group"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />
-              <span className="hidden sm:inline">Back to all articles</span>
-              <span className="sm:hidden">Back</span>
-            </Button>
-          </div>
+      {post ? (
+        <>
+          {/* Hero Section with Feature Image */}
+          <section className="relative pt-16 pb-0 md:pb-0 bg-background">
+            <div className="absolute top-0 left-0 w-full h-[30vh] md:h-[45vh] lg:h-[55vh] bg-gradient-to-b from-primary/5 to-background"></div>
+            <div className="container mx-auto px-4 sm:px-6 relative z-10">
+              <div className="max-w-4xl mx-auto">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="mb-6"
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mb-4 text-muted-foreground hover:text-foreground"
+                    onClick={() => router.push('/Blog')}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Blog
+                  </Button>
 
-          {/* Hero section */}
-          <div className="max-w-4xl mx-auto mb-8 md:mb-12">
-            <div className="mb-6">
-              <span className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary mb-4">
-                {post.category.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-              </span>
-              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 md:mb-6 leading-tight">
-                {post.title}
-              </h1>
-              <p className="text-lg md:text-xl text-muted-foreground mb-6">
-                {post.excerpt}
-              </p>
-              
-              {/* Author and metadata */}
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-                <div className="flex items-center">
-                  <Avatar className="h-10 w-10 sm:h-12 sm:w-12 mr-3 sm:mr-4 flex-shrink-0">
-                    <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                    <AvatarFallback>{post.author.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">{post.author.name}</div>
-                    <div className="text-sm text-muted-foreground">{post.author.role}</div>
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="inline-block px-3 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary">
+                      {post.category}
+                    </span>
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Calendar className="h-3 w-3 mr-1" />
+                      <span>{post.date}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <div className="flex items-center text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3 mr-1" />
+                      <span>{post.readTime} read</span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center text-sm text-muted-foreground mt-2 sm:mt-0">
-                  <Calendar className="h-4 w-4 mr-1 flex-shrink-0" />
-                  <span className="mr-4">{post.date}</span>
-                  <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
-                  <span>{post.readTime} read</span>
-                </div>
+
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold leading-tight mb-4 text-foreground">
+                    {post.title}
+                  </h1>
+                  <p className="text-lg text-muted-foreground mb-6">
+                    {post.excerpt}
+                  </p>
+
+                  <div className="flex items-center mb-4">
+                    <Avatar className="h-10 w-10 mr-3 border border-border">
+                      <AvatarImage src={post.author.avatar} alt={post.author.name} />
+                      <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium text-sm text-foreground">{post.author.name}</div>
+                      <div className="text-xs text-muted-foreground">{post.author.role}</div>
+                    </div>
+                  </div>
+                </motion.div>
               </div>
             </div>
-            
-            {/* Featured image */}
-            <div className="relative aspect-[16/9] sm:aspect-[21/9] rounded-lg sm:rounded-xl overflow-hidden mb-8 sm:mb-12">
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="relative w-full aspect-[21/9] mt-4 bg-accent/20"
+            >
               <Image
                 src={post.image}
                 alt={post.title}
                 fill
-                priority
                 className="object-cover"
+                priority
               />
-            </div>
-            
-            {/* Article content */}
-            <div className="prose prose-sm sm:prose md:prose-lg max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: post.content || '' }} />
-            </div>
-            
-            {/* Article footer */}
-            <div className="mt-8 md:mt-12 pt-6 border-t border-border">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <div className="flex items-center gap-2 sm:gap-4">
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto justify-center">
-                    <ThumbsUp className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Helpful</span>
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto justify-center">
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Comment</span>
-                  </Button>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto justify-center">
-                    <Bookmark className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Save</span>
-                  </Button>
-                  <Button variant="outline" size="sm" className="flex-1 sm:flex-auto justify-center">
-                    <Share2 className="mr-2 h-4 w-4" />
-                    <span className="hidden sm:inline">Share</span>
-                  </Button>
-                </div>
+            </motion.div>
+          </section>
+
+          {/* Article Content */}
+          <section className="py-12 bg-background">
+            <div className="container mx-auto px-4 sm:px-6">
+              <div className="flex flex-col md:flex-row gap-8">
+                {/* Main Content */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="flex-1 max-w-3xl mx-auto"
+                >
+                  <Card className="p-6 sm:p-8 md:p-10 border-border bg-card">
+                    <article className="prose prose-sm sm:prose md:prose-lg dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-strong:text-foreground">
+                      {post.content && (
+                        <div dangerouslySetInnerHTML={{ __html: post.content }} />
+                      )}
+                    </article>
+
+                    <div className="flex justify-between items-center mt-8 pt-8 border-t border-border">
+                      <div className="flex items-center gap-4">
+                        <Button variant="outline" size="sm" className="bg-background hover:bg-accent text-foreground">
+                          <ThumbsUp className="h-4 w-4 mr-1" />
+                          Helpful
+                        </Button>
+                        <Button variant="outline" size="sm" className="bg-background hover:bg-accent text-foreground">
+                          <Share2 className="h-4 w-4 mr-1" />
+                          Share
+                        </Button>
+                      </div>
+                      <Button variant="outline" size="sm" className="bg-background hover:bg-accent text-foreground">
+                        <Bookmark className="h-4 w-4 mr-1" />
+                        Save
+                      </Button>
+                    </div>
+                  </Card>
+
+                  {/* Comments Section */}
+                  <div className="mt-8">
+                    <h3 className="text-xl font-bold mb-4 text-foreground">Discussion</h3>
+                    <Card className="p-6 sm:p-8 border-border bg-card">
+                      <div className="text-center p-6">
+                        <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                        <h4 className="text-lg font-medium mb-2 text-foreground">Join the conversation</h4>
+                        <p className="text-muted-foreground mb-4">
+                          Sign in to comment on this article and connect with other readers.
+                        </p>
+                        <Button className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white">
+                          Sign In to Comment
+                        </Button>
+                      </div>
+                    </Card>
+                  </div>
+                </motion.div>
               </div>
             </div>
-          </div>
-          
-          {/* Related articles */}
-          {relatedPosts.length > 0 && (
-            <div className="max-w-4xl mx-auto mt-12 md:mt-20">
-              <h2 className="text-xl sm:text-2xl font-bold mb-6 sm:mb-8">Related Articles</h2>
-              <ResponsiveCardGrid columns={3} gap="default" className="mb-8">
-                {relatedPosts.map(relatedPost => (
+          </section>
+
+          {/* Related Articles */}
+          <section className="py-12 bg-muted/30">
+            <div className="container mx-auto px-4 sm:px-6">
+              <h2 className="text-2xl font-bold mb-8 text-foreground">Related Articles</h2>
+              <ResponsiveCardGrid columns={3} gap="default">
+                {relatedPosts.map((relatedPost) => (
                   <RelatedPostCard key={relatedPost.id} post={relatedPost} />
                 ))}
               </ResponsiveCardGrid>
             </div>
-          )}
-          
-          {/* Newsletter */}
-          <div className="max-w-4xl mx-auto mt-12 md:mt-20 p-6 sm:p-8 bg-muted/30 rounded-lg sm:rounded-xl">
-            <div className="text-center">
-              <h3 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">
-                Subscribe to Our Newsletter
-              </h3>
-              <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
-                Get the latest debt management strategies and financial tips delivered to your inbox.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 max-w-md mx-auto">
-                <input
-                  type="email"
-                  placeholder="Your email address"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-1"
-                />
-                <Button className="mt-2 sm:mt-0">Subscribe</Button>
-              </div>
-            </div>
+          </section>
+        </>
+      ) : (
+        <div className="min-h-[70vh] flex items-center justify-center bg-background">
+          <div className="text-center p-8">
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Article Not Found</h2>
+            <p className="text-muted-foreground mb-6">
+              We couldn't find the article you're looking for. It may have been moved or deleted.
+            </p>
+            <Button
+              onClick={() => router.push('/Blog')}
+              className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white"
+            >
+              Back to Blog
+            </Button>
           </div>
         </div>
-      </article>
+      )}
     </Layout>
   );
 };

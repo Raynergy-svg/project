@@ -1,0 +1,123 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720"
+    xmlns="http://www.w3.org/2000/svg">
+    <!-- Background with gradient -->
+    <rect width="1280" height="720" fill="#0F172A" />
+    <rect width="1280" height="720" fill="url(#grad1)" opacity="0.7" />
+
+    <!-- Gradients -->
+    <defs>
+        <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1E293B" />
+            <stop offset="100%" stop-color="#0F172A" />
+        </linearGradient>
+        <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1DB954" />
+            <stop offset="100%" stop-color="#0D8C3E" />
+        </linearGradient>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="4" stdDeviation="10" flood-opacity="0.3" />
+        </filter>
+    </defs>
+
+    <!-- Main Title -->
+    <text x="640" y="100" font-family="Arial, sans-serif" font-size="50" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Dashboard Overview Tutorial</text>
+
+    <!-- Green Subtitle -->
+    <text x="640" y="160" font-family="Arial, sans-serif" font-size="30" fill="#1DB954" text-anchor="middle">Your Financial Command Center</text>
+
+    <!-- Dashboard Mock UI -->
+    <g transform="translate(190, 220)" filter="url(#shadow)">
+        <!-- Main Dashboard Container -->
+        <rect x="0" y="0" width="900" height="400" rx="15" fill="#1A1E2E" />
+
+        <!-- Top Cards Row -->
+        <g transform="translate(40, 40)">
+            <!-- Card 1 - Total Debt -->
+            <rect x="0" y="0" width="240" height="120" rx="10" fill="#1F2937" />
+            <text x="20" y="30" font-family="Arial, sans-serif" font-size="16" fill="#8B9CB0">Total Debt</text>
+            <text x="20" y="70" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#FFFFFF">$24,650</text>
+            <text x="20" y="100" font-family="Arial, sans-serif" font-size="14" fill="#8B9CB0">Down 3.2% from last month</text>
+            <circle cx="205" cy="40" r="20" fill="url(#greenGrad)" opacity="0.2" />
+            <path d="M205 30 L205 50 M195 40 L215 40" stroke="#1DB954" stroke-width="3" />
+
+            <!-- Card 2 - Monthly Payment -->
+            <rect x="260" y="0" width="240" height="120" rx="10" fill="#1F2937" />
+            <text x="280" y="30" font-family="Arial, sans-serif" font-size="16" fill="#8B9CB0">Monthly Payment</text>
+            <text x="280" y="70" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#FFFFFF">$975</text>
+            <text x="280" y="100" font-family="Arial, sans-serif" font-size="14" fill="#8B9CB0">+$150 extra this month</text>
+            <circle cx="465" cy="40" r="20" fill="url(#greenGrad)" opacity="0.2" />
+            <path d="M465 32 L460 42 L470 42" stroke="#1DB954" stroke-width="3" fill="none" />
+
+            <!-- Card 3 - Time to Freedom -->
+            <rect x="520" y="0" width="240" height="120" rx="10" fill="#1F2937" />
+            <text x="540" y="30" font-family="Arial, sans-serif" font-size="16" fill="#8B9CB0">Time to Freedom</text>
+            <text x="540" y="70" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#FFFFFF">32 months</text>
+            <text x="540" y="100" font-family="Arial, sans-serif" font-size="14" fill="#8B9CB0">-4 months with current plan</text>
+            <circle cx="725" cy="40" r="20" fill="url(#greenGrad)" opacity="0.2" />
+            <path d="M725 32 L725 48 M718 40 L732 40" stroke="#1DB954" stroke-width="3" />
+        </g>
+
+        <!-- Main Content Area -->
+        <g transform="translate(40, 180)">
+            <!-- Left Panel - Debt Breakdown -->
+            <rect x="0" y="0" width="340" height="180" rx="10" fill="#1F2937" />
+            <text x="20" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF">Debt Breakdown</text>
+
+            <!-- Pie Chart -->
+            <circle cx="90" cy="100" r="50" fill="none" stroke="#6366F1" stroke-width="20" stroke-dasharray="188.5 314" />
+            <circle cx="90" cy="100" r="50" fill="none" stroke="#1DB954" stroke-width="20" stroke-dasharray="94.2 314" stroke-dashoffset="-188.5" />
+            <circle cx="90" cy="100" r="50" fill="none" stroke="#F59E0B" stroke-width="20" stroke-dasharray="31.4 314" stroke-dashoffset="-282.7" />
+
+            <!-- Legend -->
+            <rect x="170" y="70" width="15" height="15" fill="#6366F1" />
+            <text x="195" y="83" font-family="Arial, sans-serif" font-size="14" fill="#FFFFFF">Credit Cards</text>
+            <rect x="170" y="100" width="15" height="15" fill="#1DB954" />
+            <text x="195" y="113" font-family="Arial, sans-serif" font-size="14" fill="#FFFFFF">Student Loans</text>
+            <rect x="170" y="130" width="15" height="15" fill="#F59E0B" />
+            <text x="195" y="143" font-family="Arial, sans-serif" font-size="14" fill="#FFFFFF">Auto Loans</text>
+
+            <!-- Middle Panel - Payment Tracking -->
+            <rect x="360" y="0" width="400" height="180" rx="10" fill="#1F2937" />
+            <text x="380" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF">Progress Tracking</text>
+
+            <!-- Progress Chart -->
+            <line x1="380" y1="160" x2="740" y2="160" stroke="#374151" stroke-width="2" />
+            <polyline points="380,120 420,125 460,110 500,105 540,95 580,85 620,80 660,65 700,60 740,50" fill="none" stroke="#1DB954" stroke-width="3" />
+
+            <!-- Chart Points -->
+            <circle cx="380" cy="120" r="4" fill="#1DB954" />
+            <circle cx="420" cy="125" r="4" fill="#1DB954" />
+            <circle cx="460" cy="110" r="4" fill="#1DB954" />
+            <circle cx="500" cy="105" r="4" fill="#1DB954" />
+            <circle cx="540" cy="95" r="4" fill="#1DB954" />
+            <circle cx="580" cy="85" r="4" fill="#1DB954" />
+            <circle cx="620" cy="80" r="4" fill="#1DB954" />
+            <circle cx="660" cy="65" r="4" fill="#1DB954" />
+            <circle cx="700" cy="60" r="4" fill="#1DB954" />
+            <circle cx="740" cy="50" r="4" fill="#1DB954" />
+        </g>
+    </g>
+
+    <!-- Play Button -->
+    <g transform="translate(640, 520)" filter="url(#shadow)">
+        <circle cx="0" cy="0" r="60" fill="url(#greenGrad)" />
+        <polygon points="-15,-30 30,0 -15,30" fill="white" />
+    </g>
+
+    <!-- Duration Label -->
+    <rect x="540" y="620" width="200" height="40" rx="20" fill="#1F2937" opacity="0.8" />
+    <text x="640" y="645" font-family="Arial, sans-serif" font-size="18" fill="#FFFFFF" text-anchor="middle">Duration: 8:45</text>
+
+    <!-- Logo -->
+    <g transform="translate(60, 60)">
+        <rect x="0" y="0" width="180" height="60" rx="10" fill="none" />
+        <text x="0" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#1DB954">SmartDebtFlow</text>
+    </g>
+
+    <!-- Beginner Badge -->
+    <g transform="translate(1160, 60)">
+        <rect x="-100" y="0" width="100" height="40" rx="20" fill="#1DB95444" />
+        <circle cx="-85" cy="20" r="8" fill="#1DB954" />
+        <text x="-70" y="25" font-family="Arial, sans-serif" font-size="16" fill="#FFFFFF">Beginner</text>
+    </g>
+</svg> 

@@ -325,60 +325,74 @@ const MethodsSection = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-          From Stress to Success: Your Financial Command Center
+        <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#1DB954] to-[#1DB954]/80 bg-clip-text text-transparent">
+          Take Control of Your Financial Future
         </h3>
-        <p className="text-muted-foreground">Whether managing millions or making ends meet, take control with confidence</p>
+        <p className="text-muted-foreground">Gain clarity and confidence with a comprehensive view of your debt</p>
       </motion.div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="p-6 hover:shadow-lg transition-all duration-300 transform hover:scale-105 bg-card border-border">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-full bg-primary/10">
-              <DollarSign className="h-6 w-6 text-primary" />
-            </div>
-            <span className="text-sm text-muted-foreground">Total Debt</span>
-          </div>
-          <div className="text-3xl font-bold text-foreground mb-2">
-            {formatCurrency(featureSteps[0].preview.totalDebt)}
-          </div>
-          <div className="text-sm text-green-500 flex items-center mt-2 font-medium">
-            <ArrowDownRight className="h-4 w-4 mr-1" />
-            {formatCurrency(featureSteps[0].preview.debtReduction)} this month
-          </div>
-        </Card>
-
-        <Card className="p-6 hover:shadow-lg transition-all duration-300 transform hover:scale-105 bg-card border-border">
-          <div className="flex items-center justify-between mb-3">
-            <div className="p-2 rounded-full bg-primary/10">
-              <Calendar className="h-6 w-6 text-primary" />
-            </div>
-            <span className="text-sm text-muted-foreground">Freedom Date</span>
-          </div>
-          <div className="text-3xl font-bold text-foreground mb-2">
-            {featureSteps[0].preview.remainingMonths} months
-          </div>
-          <div className="text-sm text-primary flex items-center mt-2 font-medium">
-            Until debt freedom
-          </div>
-        </Card>
-      </div>
-
-      {/* Progress Section */}
-      <Card className="p-6 bg-card border-border">
-        <div className="flex justify-between items-center mb-4">
-          <h4 className="text-lg font-semibold text-foreground">Your Debt Freedom Progress</h4>
-          <span className="text-2xl font-bold text-primary">{featureSteps[0].preview.progress}%</span>
+      {/* Dashboard Preview */}
+      <Card className="p-6 bg-card border-border shadow-md">
+        <div className="flex items-center justify-between mb-6">
+          <h4 className="text-lg font-semibold text-foreground">Debt Overview</h4>
+          <span className="text-xs text-muted-foreground">Last updated: Today</span>
         </div>
-        <Progress value={featureSteps[0].preview.progress} className="h-3 mb-4" />
-        <div className="flex justify-between text-sm text-muted-foreground">
-          <span>Started: $30,000</span>
-          <span>Current: {formatCurrency(featureSteps[0].preview.totalDebt)}</span>
-          <span>Goal: $0</span>
+        
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="p-4 rounded-lg bg-accent/30">
+            <p className="text-xs text-muted-foreground mb-1">Total Debt</p>
+            <p className="text-xl font-bold text-foreground">{formatCurrency(featureSteps[0].preview.totalDebt)}</p>
+            <p className="text-xs text-[#1DB954] flex items-center mt-1">
+              <ArrowDownRight className="h-3 w-3 mr-1" />
+              {formatCurrency(featureSteps[0].preview.debtReduction)} this month
+            </p>
+          </div>
+          <div className="p-4 rounded-lg bg-accent/30">
+            <p className="text-xs text-muted-foreground mb-1">Monthly Payment</p>
+            <p className="text-xl font-bold text-[#1DB954]">{formatCurrency(featureSteps[0].preview.monthlyPayment)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Next: May 1, 2024</p>
+          </div>
+          <div className="p-4 rounded-lg bg-accent/30">
+            <p className="text-xs text-muted-foreground mb-1">Time to Freedom</p>
+            <p className="text-xl font-bold text-foreground">{featureSteps[0].preview.remainingMonths} months</p>
+            <p className="text-xs text-muted-foreground mt-1">Debt-free by 2027</p>
+          </div>
+        </div>
+        
+        <div className="mb-8">
+          <div className="flex justify-between mb-2">
+            <h5 className="text-sm font-medium text-foreground">Debt Reduction Progress</h5>
+            <span className="text-sm text-[#1DB954]">{featureSteps[0].preview.progress}%</span>
+          </div>
+          <div className="w-full h-2 bg-accent/30 rounded-full overflow-hidden">
+            <motion.div 
+              className="h-full bg-[#1DB954] rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${featureSteps[0].preview.progress}%` }}
+              transition={{ duration: 1, delay: 0.5 }}
+            />
+          </div>
+        </div>
+        
+        <div>
+          <h5 className="text-sm font-medium text-foreground mb-4">Debt Breakdown</h5>
+          <div className="space-y-3">
+            {featureSteps[0].preview.breakdown.map((item, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div 
+                    className="w-3 h-3 rounded-full mr-3" 
+                    style={{ backgroundColor: item.color }} 
+                  />
+                  <span className="text-sm text-foreground">{item.name}</span>
+                </div>
+                <span className="text-sm font-medium text-foreground">{formatCurrency(item.amount)}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </Card>
-
+      
       {/* Call to Action */}
       <motion.div
         className="mt-8 text-center"
@@ -387,12 +401,12 @@ const MethodsSection = () => {
       >
         <Button 
           onClick={handleSignup}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+          className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white px-8 py-6 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
         >
-          Start Your Stress-Free Journey
+          Get Your Free Debt Analysis
           <ArrowUpRight className="ml-2 h-5 w-5" />
         </Button>
-        <p className="mt-4 text-sm text-muted-foreground">No credit card required • Free 7-day trial</p>
+        <p className="mt-4 text-sm text-muted-foreground">No credit card required • Free forever</p>
       </motion.div>
     </motion.div>
   );
@@ -416,7 +430,7 @@ const MethodsSection = () => {
         <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#1DB954] to-[#1DB954]/80 bg-clip-text text-transparent">
           Say Goodbye to Due Date Anxiety
         </h3>
-        <p className="text-gray-400">Let us handle the stress of remembering - you focus on living</p>
+        <p className="text-muted-foreground">Let us handle the stress of remembering - you focus on living</p>
       </motion.div>
 
       {/* Enhanced Notifications */}
@@ -438,22 +452,22 @@ const MethodsSection = () => {
             ) : (
               <CheckCircle2 className="h-6 w-6 text-green-500" />
             )}
-            <span className="text-base font-medium text-white">{notification.message}</span>
+            <span className="text-base font-medium text-foreground">{notification.message}</span>
           </motion.div>
         ))}
       </div>
 
       {/* Enhanced Upcoming Payment Card */}
-      <Card className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:shadow-lg transition-all duration-300">
-        <h4 className="text-lg font-semibold text-white mb-4">Next Payment Due</h4>
+      <Card className="p-6 bg-card border-border hover:shadow-lg transition-all duration-300">
+        <h4 className="text-lg font-semibold text-foreground mb-4">Next Payment Due</h4>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-full bg-[#1DB954]/10">
               <Calendar className="h-6 w-6 text-[#1DB954]" />
             </div>
             <div>
-              <p className="text-xl font-bold text-white">{formatCurrency(featureSteps[1].preview.upcomingPayment.amount)}</p>
-              <p className="text-sm text-gray-400">
+              <p className="text-xl font-bold text-foreground">{formatCurrency(featureSteps[1].preview.upcomingPayment.amount)}</p>
+              <p className="text-sm text-muted-foreground">
                 Due {formatDate(featureSteps[1].preview.upcomingPayment.date)}
                 <span className="ml-2 text-yellow-500 font-medium">
                   ({featureSteps[1].preview.upcomingPayment.daysLeft} days left)
@@ -483,7 +497,7 @@ const MethodsSection = () => {
           Start Tracking Your Payments
           <ArrowUpRight className="ml-2 h-5 w-5" />
         </Button>
-        <p className="mt-4 text-sm text-gray-400">Join 50,000+ users managing their debt smarter</p>
+        <p className="mt-4 text-sm text-muted-foreground">Join 50,000+ users managing their debt smarter</p>
       </motion.div>
     </motion.div>
   );
@@ -507,18 +521,18 @@ const MethodsSection = () => {
         <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#1DB954] to-[#1DB954]/80 bg-clip-text text-transparent">
           Your Path, Your Pace, Our Expertise
         </h3>
-        <p className="text-gray-400">From high-net-worth optimization to debt-free dreams, we've got your strategy</p>
+        <p className="text-muted-foreground">From high-net-worth optimization to debt-free dreams, we've got your strategy</p>
       </motion.div>
 
       {/* Enhanced Strategy Selector */}
-      <div className="flex gap-2 p-1 bg-gray-800 rounded-lg">
+      <div className="flex gap-2 p-1 bg-accent/50 rounded-lg">
         {['snowball', 'avalanche'].map((strategy) => (
           <motion.button
             key={strategy}
             className={`flex-1 px-6 py-3 rounded-lg text-base font-medium transition-all duration-300 ${
               selectedStrategy === strategy 
                 ? 'bg-[#1DB954] text-white shadow-lg' 
-                : 'hover:bg-gray-700 text-gray-400'
+                : 'hover:bg-accent text-muted-foreground'
             }`}
             onClick={() => setSelectedStrategy(strategy)}
             whileHover={{ scale: 1.02 }}
@@ -538,17 +552,17 @@ const MethodsSection = () => {
           exit={{ opacity: 0, y: -20 }}
           className="space-y-6"
         >
-          <Card className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700">
+          <Card className="p-6 bg-card border-border">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-full bg-[#1DB954]/10">
                   <TrendingUp className="h-6 w-6 text-[#1DB954]" />
                 </div>
                 <div>
-                  <h4 className="text-xl font-bold text-white">
+                  <h4 className="text-xl font-bold text-foreground">
                     {selectedStrategy === 'snowball' ? 'Snowball Method' : 'Avalanche Method'}
                   </h4>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     {selectedStrategy === 'snowball' 
                       ? 'Pay off smallest debts first for quick wins' 
                       : 'Target highest interest rates first'}
@@ -563,16 +577,16 @@ const MethodsSection = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-6 mb-6">
-              <div className="p-4 rounded-lg bg-gray-800/50">
-                <p className="text-sm text-gray-400 mb-1">Time to Freedom</p>
-                <p className="text-2xl font-bold text-white">
+              <div className="p-4 rounded-lg bg-accent/30">
+                <p className="text-sm text-muted-foreground mb-1">Time to Freedom</p>
+                <p className="text-2xl font-bold text-foreground">
                   {selectedStrategy === 'snowball' 
                     ? featureSteps[2].preview.strategies[0].projection.monthsToDebtFree
                     : featureSteps[2].preview.strategies[1].projection.monthsToDebtFree} months
                 </p>
               </div>
-              <div className="p-4 rounded-lg bg-gray-800/50">
-                <p className="text-sm text-gray-400 mb-1">Monthly Savings</p>
+              <div className="p-4 rounded-lg bg-accent/30">
+                <p className="text-sm text-muted-foreground mb-1">Monthly Savings</p>
                 <p className="text-2xl font-bold text-[#1DB954]">
                   {formatCurrency(
                     selectedStrategy === 'snowball'
@@ -590,13 +604,13 @@ const MethodsSection = () => {
               ).map((benefit, index) => (
                 <motion.div
                   key={index}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/30"
+                  className="flex items-center gap-3 p-3 rounded-lg bg-accent/10"
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
                   <CheckCircle2 className="h-5 w-5 text-[#1DB954]" />
-                  <span className="text-gray-300">{benefit}</span>
+                  <span className="text-foreground">{benefit}</span>
                 </motion.div>
               ))}
             </div>
@@ -615,7 +629,7 @@ const MethodsSection = () => {
               Start Your Stress-Free Journey
               <ArrowUpRight className="ml-2 h-5 w-5" />
             </Button>
-            <p className="mt-4 text-sm text-gray-400">Join executives and families achieving peace of mind</p>
+            <p className="mt-4 text-sm text-muted-foreground">Join executives and families achieving peace of mind</p>
           </motion.div>
         </motion.div>
       </AnimatePresence>
@@ -641,83 +655,92 @@ const MethodsSection = () => {
         <h3 className="text-2xl font-bold mb-2 bg-gradient-to-r from-[#1DB954] to-[#1DB954]/80 bg-clip-text text-transparent">
           AI-Powered Financial Guidance
         </h3>
-        <p className="text-gray-400">Smart recommendations tailored to your spending patterns</p>
+        <p className="text-muted-foreground">Smart recommendations tailored to your spending patterns</p>
       </motion.div>
 
-      {/* AI Insights Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        {featureSteps[3].preview.insights.map((insight, index) => (
+      {/* AI Insights */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        {featureSteps[3].preview.insights.slice(0, 2).map((insight, index) => (
           <Card 
             key={index}
-            className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 hover:shadow-lg transition-all duration-300"
+            className="p-6 bg-card border-border hover:shadow-lg transition-all duration-300"
           >
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-full ${
-                  insight.type === 'opportunity' ? 'bg-green-500/10' :
-                  insight.type === 'alert' ? 'bg-yellow-500/10' :
-                  insight.type === 'recommendation' ? 'bg-blue-500/10' :
-                  'bg-purple-500/10'
-                }`}>
-                  {insight.type === 'opportunity' ? <TrendingUp className="h-5 w-5 text-green-500" /> :
-                   insight.type === 'alert' ? <AlertCircle className="h-5 w-5 text-yellow-500" /> :
-                   insight.type === 'recommendation' ? <Info className="h-5 w-5 text-blue-500" /> :
-                   <LineChart className="h-5 w-5 text-purple-500" />}
+              {insight.type === 'opportunity' && (
+                <div className="p-2 rounded-full bg-[#1DB954]/10">
+                  <TrendingUp className="h-5 w-5 text-[#1DB954]" />
                 </div>
-                <span className={`text-sm font-medium ${
-                  insight.impact === 'High' ? 'text-[#1DB954]' : 'text-yellow-500'
-                }`}>
-                  {insight.impact} Impact
-                </span>
-              </div>
-              {insight.savings && (
-                <span className="text-lg font-bold text-[#1DB954]">
-                  ${insight.savings.toLocaleString()}
-                </span>
               )}
+              {insight.type === 'alert' && (
+                <div className="p-2 rounded-full bg-yellow-500/10">
+                  <AlertCircle className="h-5 w-5 text-yellow-500" />
+                </div>
+              )}
+              {insight.type === 'recommendation' && (
+                <div className="p-2 rounded-full bg-blue-500/10">
+                  <Info className="h-5 w-5 text-blue-500" />
+                </div>
+              )}
+              {insight.type === 'prediction' && (
+                <div className="p-2 rounded-full bg-purple-500/10">
+                  <BarChart className="h-5 w-5 text-purple-500" />
+                </div>
+              )}
+              
+              <span className={`
+                text-xs font-medium px-2 py-1 rounded-full 
+                ${insight.impact === 'High' ? 'bg-red-500/10 text-red-500' : 'bg-yellow-500/10 text-yellow-500'}
+              `}>
+                {insight.impact} Impact
+              </span>
             </div>
-            <h4 className="text-lg font-semibold text-white mb-2">{insight.title}</h4>
-            <p className="text-gray-400 text-sm mb-4">{insight.description}</p>
+            <h4 className="text-lg font-semibold text-foreground mb-2">{insight.title}</h4>
+            <p className="text-muted-foreground text-sm mb-4">{insight.description}</p>
             <Button 
               onClick={handleSignup}
-              className="w-full bg-gray-800 hover:bg-gray-700 text-white"
+              className="w-full bg-accent/50 hover:bg-accent text-foreground"
               variant="outline"
             >
               {insight.action}
-              <ChevronRight className="h-4 w-4 ml-2" />
+              <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </Card>
         ))}
       </div>
 
       {/* Spending Patterns */}
-      <Card className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700">
-        <h4 className="text-lg font-semibold text-white mb-4">Spending Pattern Analysis</h4>
+      <Card className="p-6 bg-card border-border">
+        <h4 className="text-lg font-semibold text-foreground mb-4">Spending Pattern Analysis</h4>
         <div className="space-y-4">
           {featureSteps[3].preview.spendingPatterns.categories.map((category, index) => (
             <div key={index} className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex justify-between mb-1">
-                  <span className="text-sm text-gray-400">{category}</span>
-                  <span className="text-sm font-medium text-white">
+                  <span className="text-sm text-muted-foreground">{category}</span>
+                  <span className="text-sm font-medium text-foreground">
                     ${featureSteps[3].preview.spendingPatterns.current[index]}
                   </span>
                 </div>
-                <div className="relative h-2 bg-gray-700 rounded-full overflow-hidden">
+                <div className="relative h-2 bg-accent/50 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${(featureSteps[3].preview.spendingPatterns.current[index] / Math.max(...featureSteps[3].preview.spendingPatterns.current)) * 100}%` }}
-                    className="absolute h-full bg-[#1DB954] rounded-full"
-                    transition={{ duration: 1, delay: index * 0.1 }}
+                    transition={{ duration: 1, delay: index * 0.2 }}
+                    className={`absolute top-0 left-0 h-full rounded-full ${
+                      index === 0 ? 'bg-[#1DB954]' :
+                      index === 1 ? 'bg-blue-500' :
+                      index === 2 ? 'bg-purple-500' :
+                      'bg-yellow-500'
+                    }`}
                   />
                 </div>
               </div>
-              <span className={`ml-4 text-sm font-medium ${
-                featureSteps[3].preview.spendingPatterns.trend[index].startsWith('+') 
-                  ? 'text-red-500' 
+              <span className={`ml-4 text-xs font-medium ${
+                featureSteps[3].preview.spendingPatterns.trend[index].startsWith('+')
+                  ? 'text-red-500'
                   : featureSteps[3].preview.spendingPatterns.trend[index].startsWith('-')
                   ? 'text-green-500'
-                  : 'text-gray-400'
+                  : 'text-muted-foreground'
               }`}>
                 {featureSteps[3].preview.spendingPatterns.trend[index]}
               </span>
@@ -739,83 +762,27 @@ const MethodsSection = () => {
           Get AI-Powered Insights
           <ArrowUpRight className="ml-2 h-5 w-5" />
         </Button>
-        <p className="mt-4 text-sm text-gray-400">Unlock smarter financial decisions with AI</p>
+        <p className="mt-4 text-sm text-muted-foreground">Unlock smarter financial decisions with AI</p>
       </motion.div>
     </motion.div>
   );
 
   const BrowserChrome = ({ children }: { children: React.ReactNode }) => (
-    <div className="bg-card rounded-xl overflow-hidden border border-border shadow-2xl">
-      {/* Browser Header */}
-      <div className="bg-muted px-4 py-2 flex items-center gap-2">
-        {/* Window Controls */}
-        <div className="flex items-center gap-1.5">
-          <button className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 transition-colors">
-            <X className="w-2 h-2 text-red-900 opacity-0 hover:opacity-100" />
-          </button>
-          <button className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors">
-            <Minus className="w-2 h-2 text-yellow-900 opacity-0 hover:opacity-100" />
-          </button>
-          <button className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-600 transition-colors">
-            <Square className="w-2 h-2 text-green-900 opacity-0 hover:opacity-100" />
-          </button>
+    <div className="rounded-xl overflow-hidden border border-border shadow-2xl">
+      <div className="bg-accent/50 p-3 flex items-center gap-2">
+        <div className="flex gap-1.5">
+          <span className="w-3 h-3 rounded-full bg-red-500"></span>
+          <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
+          <span className="w-3 h-3 rounded-full bg-green-500"></span>
         </div>
-
-        {/* Navigation */}
-        <div className="flex items-center gap-2 ml-4">
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <ChevronRight className="w-4 h-4" />
-          </button>
-          <button className="text-gray-400 hover:text-white transition-colors">
-            <RotateCw className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Address Bar */}
-        <div className="flex-1 mx-4">
-          <div className="bg-background/50 rounded-md flex items-center px-3 py-1">
-            <Search className="w-4 h-4 text-muted-foreground mr-2" />
-            <span className="text-foreground/80 text-sm">smartdebtflow.com/methods</span>
+        <div className="flex-1 flex justify-center">
+          <div className="bg-background/80 rounded-md py-1 px-3 text-xs text-muted-foreground flex items-center w-2/3">
+            <span className="flex-1 truncate text-center">smartdebtflow.com/methods</span>
           </div>
         </div>
       </div>
-
-      <div className="flex">
-        {/* Side Menu */}
-        <div className="w-64 bg-card border-r border-border p-4">
-          <div className="space-y-2">
-            {featureSteps.map((step, index) => {
-              const Icon = step.icon;
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => {
-                    setActiveStep(index);
-                    setIsPlaying(false);
-                  }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 ${
-                    activeStep === index 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'text-muted-foreground hover:bg-muted'
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span className="font-medium">{step.title}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 p-6 bg-background">
-          <AnimatePresence mode="wait">
-            {children}
-          </AnimatePresence>
-        </div>
+      <div className="bg-background p-4">
+        {children}
       </div>
     </div>
   );
@@ -851,7 +818,7 @@ const MethodsSection = () => {
               Live Demo
             </span>
             <span>•</span>
-            <span className="text-primary">Used by CEOs and everyday heroes alike</span>
+            <span className="text-primary">Trusted by thousands of users worldwide</span>
           </motion.div>
         </div>
 
@@ -860,12 +827,12 @@ const MethodsSection = () => {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.15 }}
-            className="absolute -top-20 -left-20 w-72 h-72 bg-[#1DB954] rounded-full blur-[120px] pointer-events-none"
+            className="absolute -top-20 -left-20 w-72 h-72 bg-[#1DB954] rounded-full blur-[120px] pointer-events-none dark:opacity-15 light:opacity-5"
           />
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.15 }}
-            className="absolute -bottom-20 -right-20 w-72 h-72 bg-[#1DB954] rounded-full blur-[120px] pointer-events-none"
+            className="absolute -bottom-20 -right-20 w-72 h-72 bg-[#1DB954] rounded-full blur-[120px] pointer-events-none dark:opacity-15 light:opacity-5"
           />
 
           <BrowserChrome>

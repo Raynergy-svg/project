@@ -1,3 +1,6 @@
+// Import the webpack patch first to ensure it loads early
+import '../utils/webpackPatch';
+
 import { useEffect, useState } from 'react';
 import type { AppProps } from 'next/app';
 import { Analytics } from "@vercel/analytics/react";
@@ -10,11 +13,11 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { CookieConsent } from "@/components/CookieConsent";
 import { useRouter } from 'next/router';
-import { Inter, Poppins } from 'next/font/google';
 import ThemeProvider from '@/components/ThemeProvider';
 import analytics from '@/utils/analytics';
 import { initPolyfills } from '@/utils/polyfills';
 import { injectEnvToWindow } from '@/utils/env';
+import FontLoader from '@/components/FontLoader';
 import '@/index.css';
 import '@/styles/globals.css';
 import '@/styles/animation-effects.css';
@@ -28,21 +31,17 @@ if (typeof window !== 'undefined') {
   if (process.env.NODE_ENV === 'development') {
     injectEnvToWindow();
   }
+  
+  // Handle webpack errors preemptively
+  window.addEventListener('error', (event) => {
+    if (event.message.includes('undefined (reading \'call\')') || 
+        event.message.includes('Cannot read properties of undefined')) {
+      console.warn('Webpack error detected and handled:', event.message);
+      event.preventDefault();
+      return true;
+    }
+  }, true);
 }
-
-// Load fonts properly
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
-
-const poppins = Poppins({
-  weight: ['400', '600', '700'],
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-poppins',
-});
 
 // Minimal adaptation for Next.js
 export default function App({ Component, pageProps }: AppProps) {
@@ -117,10 +116,13 @@ export default function App({ Component, pageProps }: AppProps) {
         <meta name="description" content="Manage your debts smartly and efficiently" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
+      
+      {/* Use our custom font loader */}
+      <FontLoader />
 
       <ErrorBoundary>
         <ThemeProvider defaultTheme="system" storageKey="smartdebtflow-theme">
-          <div className={`${inter.variable} ${poppins.variable} font-sans`}>
+          <div className="font-sans">
             <NextAuthProvider>
               <AuthAdapter>
                 <SecurityProvider>

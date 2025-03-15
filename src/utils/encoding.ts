@@ -44,7 +44,7 @@ export function binaryToBase64(bytes: Uint8Array): string {
  */
 export function createDOMException(message: string, name: string): DOMException {
   // Use the native DOMException
-  return new DOMException(message, name);
+  return createDOMException(message, name);
 }
 
 /**

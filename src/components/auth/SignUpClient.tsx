@@ -13,7 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Layout } from '@/components/layout/Layout';
-import { checkSupabaseConnection, supabase } from '@/utils/supabase/client';
+import { checkSupabaseConnection, supabase, devSignIn } from '@/utils/supabase/client';
+import { IS_DEV } from '@/utils/environment';
 
 interface FormData {
   email: string;
@@ -129,6 +130,8 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
   // Add client-side only state
   const [isClient, setIsClient] = useState(false);
   
+  const [isDevSigningIn, setIsDevSigningIn] = useState(false);
+  
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -147,8 +150,8 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
       try {
         const status = await checkSupabaseConnection();
         setConnectionStatus({
-          isConnected: status,
-          error: status ? null : "Failed to connect to authentication service"
+          isConnected: status.connected,
+          error: status.error
         });
       } catch (error) {
         setConnectionStatus({
@@ -286,29 +289,33 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
     setFormErrors({});
     
     try {
-      // Call the signup function from auth context
-      const result = await signup({
-        email: formData.email,
-        password: formData.password,
-        metadata: {
-          name: formData.name,
-          marketingConsent: formData.marketingConsent || false,
-          plan: plan || 'free',
-          referredBy: feature || 'direct'
+      // Call the signup function from auth context with the correct signature
+      const result = await signup(
+        formData.email, 
+        formData.password,
+        formData.name,
+        { // Pass additional options as the 4th parameter
+          metadata: {
+            marketingConsent: formData.marketingConsent || false,
+            plan: plan || 'free',
+            referredBy: feature || 'direct'
+          }
         }
-      });
+      );
       
       if (result?.error) {
         console.error("Signup error:", result.error);
         
-        // Handle specific error cases
-        if (result.error.message?.includes('email')) {
+        // Handle specific error cases - properly check for string
+        const errorMessage = String(result.error);
+          
+        if (errorMessage.includes('email')) {
           setFormErrors({
             email: "This email is already in use"
           });
         } else {
           setFormErrors({
-            general: result.error.message || "Failed to create account"
+            general: errorMessage || "Failed to create account"
           });
         }
         
@@ -360,6 +367,50 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
         {formErrors[fieldName]}
       </div>
     ) : null;
+  };
+
+  // Add dev sign-in helper function
+  const handleDevSignUp = async (role: 'admin' | 'user') => {
+    if (!IS_DEV) {
+      console.warn('Dev sign-up attempted in production mode');
+      setFormErrors({
+        general: 'Development sign-up is not available in production'
+      });
+      return;
+    }
+
+    setIsDevSigningIn(true);
+    setIsSubmitting(true);
+    setFormErrors({});
+
+    try {
+      // Use email based on role
+      const email = role === 'admin' ? 'admin@example.com' : 'user@example.com';
+      const password = 'password123';  // Safe to expose as it's only for development
+
+      console.log(`🔑 Dev sign-up: Using role ${role} with email ${email}`);
+      
+      // Use our enhanced development sign-in utility
+      const result = await devSignIn(email, password);
+      
+      if (!result.error) {
+        console.log('🎉 Dev sign-up successful');
+        router.push('/dashboard');
+      } else {
+        console.error('❌ Dev sign-up failed:', result.error);
+        setFormErrors({ 
+          general: `Dev sign-up failed: ${result.error instanceof Error ? result.error.message : String(result.error)}` 
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error during dev sign-up:', error);
+      setFormErrors({ 
+        general: error instanceof Error ? error.message : 'An unexpected error occurred' 
+      });
+    } finally {
+      setIsSubmitting(false);
+      setIsDevSigningIn(false);
+    }
   };
 
   return (
@@ -444,6 +495,39 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                   {securityMessage}
                 </AlertDescription>
               </Alert>
+            )}
+            
+            {/* Developer sign-up (only in development) */}
+            {IS_DEV && (
+              <div className="space-y-4 mb-6 pb-6 border-b border-gray-200 dark:border-border">
+                <h3 className="font-medium text-gray-900 dark:text-foreground">Developer Testing</h3>
+                <div className="flex flex-row gap-4">
+                  <Button
+                    onClick={() => handleDevSignUp('admin')}
+                    disabled={isDevSigningIn}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground"
+                  >
+                    Quick Admin Setup
+                  </Button>
+                  <Button
+                    onClick={() => handleDevSignUp('user')}
+                    disabled={isDevSigningIn}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground"
+                  >
+                    Quick User Setup
+                  </Button>
+                </div>
+                {isDevSigningIn && (
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Setting up test account...
+                  </div>
+                )}
+              </div>
             )}
             
             {/* Wrap all conditional rendering in a client-side only div */}

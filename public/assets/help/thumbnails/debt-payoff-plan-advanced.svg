@@ -1,0 +1,440 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Definitions for gradients, masks, patterns and filters -->
+    <defs>
+        <!-- Background gradient -->
+        <radialGradient id="bgGrad" cx="50%" cy="50%" r="70%" fx="50%" fy="50%">
+            <stop offset="0%" stop-color="#1E293B" />
+            <stop offset="100%" stop-color="#0F172A" />
+        </radialGradient>
+
+        <!-- Brand gradient -->
+        <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1DB954" />
+            <stop offset="100%" stop-color="#0D8C3E" />
+        </linearGradient>
+
+        <!-- Orange gradient -->
+        <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#F59E0B" />
+            <stop offset="100%" stop-color="#D97706" />
+        </linearGradient>
+
+        <!-- Card inner shadow -->
+        <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceAlpha" stdDeviation="3" result="blur" />
+            <feOffset dy="4" dx="0" in="blur" result="offsetBlur" />
+            <feComposite in="SourceAlpha" in2="offsetBlur" operator="over" result="innerShadow" />
+        </filter>
+
+        <!-- Outer glow filter -->
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+
+        <!-- Subtle drop shadow -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="140%">
+            <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000" flood-opacity="0.3" />
+        </filter>
+
+        <!-- Card highlight effect -->
+        <linearGradient id="cardHighlight" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.1" />
+            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0" />
+        </linearGradient>
+
+        <!-- Progress line animation -->
+        <linearGradient id="progressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#1DB954" />
+            <stop offset="50%" stop-color="#4ADE80" />
+            <stop offset="100%" stop-color="#1DB954" />
+            <animate attributeName="x1" from="0%" to="100%" dur="3s" repeatCount="indefinite" />
+            <animate attributeName="x2" from="100%" to="200%" dur="3s" repeatCount="indefinite" />
+        </linearGradient>
+
+        <!-- Orange progress line animation -->
+        <linearGradient id="orangeProgressGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#F59E0B" />
+            <stop offset="50%" stop-color="#FBBF24" />
+            <stop offset="100%" stop-color="#F59E0B" />
+            <animate attributeName="x1" from="0%" to="100%" dur="3s" repeatCount="indefinite" />
+            <animate attributeName="x2" from="100%" to="200%" dur="3s" repeatCount="indefinite" />
+        </linearGradient>
+
+        <!-- Snowball Growing Animation -->
+        <radialGradient id="snowballGrad" cx="50%" cy="50%" r="50%" fx="40%" fy="40%">
+            <stop offset="0%" stop-color="#FFFFFF" />
+            <stop offset="100%" stop-color="#E5E7EB" />
+        </radialGradient>
+
+        <!-- Bar chart gradient -->
+        <linearGradient id="barGradGreen" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#1DB954" />
+            <stop offset="100%" stop-color="#0D8C3E" />
+        </linearGradient>
+
+        <linearGradient id="barGradOrange" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#F59E0B" />
+            <stop offset="100%" stop-color="#D97706" />
+        </linearGradient>
+
+        <!-- Texture pattern for background -->
+        <pattern id="texture" patternUnits="userSpaceOnUse" width="100" height="100">
+            <rect width="100" height="100" fill="#0F172A" />
+            <path d="M0 10 L100 10 M0 30 L100 30 M0 50 L100 50 M0 70 L100 70 M0 90 L100 90" stroke="#1E293B" stroke-width="0.5" />
+            <path d="M10 0 L10 100 M30 0 L30 100 M50 0 L50 100 M70 0 L70 100 M90 0 L90 100" stroke="#1E293B" stroke-width="0.5" />
+        </pattern>
+
+        <!-- Clipboard pattern -->
+        <pattern id="clipboardBg" patternUnits="userSpaceOnUse" width="20" height="20">
+            <rect width="20" height="20" fill="#1F2937" />
+            <path d="M0 10 L20 10 M10 0 L10 20" stroke="#2D3748" stroke-width="0.5" />
+        </pattern>
+
+        <!-- Glass effect -->
+        <filter id="glass" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+
+        <!-- Money effect -->
+        <filter id="money" x="-50%" y="-50%" width="200%" height="200%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="1280" height="720" fill="url(#bgGrad)" />
+    <rect width="1280" height="720" fill="url(#texture)" opacity="0.15" />
+    <g transform="translate(640, 360)">
+        <circle cx="0" cy="0" r="300" fill="url(#orangeGrad)" opacity="0.05" filter="url(#glow)" />
+    </g>
+
+    <!-- Animated grid lines for background effect -->
+    <g opacity="0.1">
+        <line x1="0" y1="120" x2="1280" y2="120" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="0" y1="240" x2="1280" y2="240" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="0" y1="360" x2="1280" y2="360" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="0" y1="480" x2="1280" y2="480" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="0" y1="600" x2="1280" y2="600" stroke="#FFFFFF" stroke-width="1" />
+
+        <line x1="213" y1="0" x2="213" y2="720" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="426" y1="0" x2="426" y2="720" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="640" y1="0" x2="640" y2="720" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="854" y1="0" x2="854" y2="720" stroke="#FFFFFF" stroke-width="1" />
+        <line x1="1068" y1="0" x2="1068" y2="720" stroke="#FFFFFF" stroke-width="1" />
+    </g>
+
+    <!-- Main Title with Glow Effect -->
+    <g filter="url(#glow)">
+        <text x="640" y="100" font-family="'SF Pro Display', Arial, sans-serif" font-size="54" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Creating a Debt Payoff Plan</text>
+    </g>
+
+    <!-- Animated Subtitle -->
+    <g>
+        <text x="640" y="160" font-family="'SF Pro Display', Arial, sans-serif" font-size="32" fill="#F59E0B" text-anchor="middle" opacity="0.9">Strategies for Financial Freedom</text>
+        <rect x="440" y="170" width="400" height="2" fill="url(#orangeProgressGrad)" />
+    </g>
+
+    <!-- Main Comparison UI -->
+    <g transform="translate(190, 200)" filter="url(#shadow)">
+        <!-- Main Container - Glass Morphism Effect -->
+        <rect x="0" y="0" width="900" height="350" rx="16" fill="#1A1E2E" opacity="0.9" />
+        <rect x="0" y="0" width="900" height="350" rx="16" fill="url(#cardHighlight)" opacity="0.1" />
+
+        <!-- Header with Tab Bar -->
+        <rect x="0" y="0" width="900" height="60" rx="16 16 0 0" fill="#151929" />
+        <text x="450" y="38" font-family="'SF Pro Display', Arial, sans-serif" font-size="24" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Strategy Comparison</text>
+
+        <!-- Tab Bar -->
+        <rect x="20" y="70" width="860" height="50" rx="8" fill="#151929" />
+
+        <!-- Active Tab - Avalanche vs Snowball -->
+        <rect x="20" y="70" width="280" height="50" rx="8" fill="#1F2937" />
+        <text x="160" y="102" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" font-weight="600" fill="#FFFFFF" text-anchor="middle">Avalanche vs Snowball</text>
+
+        <!-- Inactive Tabs -->
+        <text x="340" y="102" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#8B9CB0" text-anchor="middle">Custom Strategy</text>
+        <text x="500" y="102" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#8B9CB0" text-anchor="middle">Debt Consolidation</text>
+        <text x="660" y="102" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#8B9CB0" text-anchor="middle">Refinancing</text>
+        <text x="820" y="102" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#8B9CB0" text-anchor="middle">Balance Transfer</text>
+
+        <!-- Active Tab Indicator -->
+        <rect x="20" y="120" width="280" height="3" rx="1.5" fill="url(#progressGrad)" />
+
+        <!-- Avalanche Strategy Panel -->
+        <g transform="translate(40, 140)">
+            <rect x="0" y="0" width="375" height="190" rx="12" fill="#1F2937" />
+            <rect x="0" y="0" width="375" height="190" rx="12" fill="url(#cardHighlight)" opacity="0.1" />
+
+            <!-- Header -->
+            <rect x="0" y="0" width="375" height="50" rx="12 12 0 0" fill="#151929" />
+            <text x="187.5" y="32" font-family="'SF Pro Display', Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Debt Avalanche</text>
+
+            <!-- Avalanche Icon - Mathematical Symbol -->
+            <g transform="translate(60, 25)">
+                <circle cx="0" cy="0" r="20" fill="url(#brandGrad)" opacity="0.3" />
+                <path d="M-10,-10 L10,10 M-10,10 L10,-10" stroke="#1DB954" stroke-width="3" stroke-linecap="round" />
+            </g>
+
+            <!-- Description -->
+            <text x="20" y="70" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF" font-weight="600">Highest Interest First Method</text>
+
+            <!-- Benefits with icon bullets -->
+            <g transform="translate(20, 95)">
+                <circle cx="6" cy="6" r="4" fill="#1DB954" />
+                <text x="20" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Mathematically optimal approach</text>
+            </g>
+
+            <g transform="translate(20, 120)">
+                <circle cx="6" cy="6" r="4" fill="#1DB954" />
+                <text x="20" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Minimizes total interest paid</text>
+            </g>
+
+            <g transform="translate(20, 145)">
+                <circle cx="6" cy="6" r="4" fill="#1DB954" />
+                <text x="20" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Best for disciplined planners</text>
+            </g>
+
+            <!-- Results -->
+            <rect x="20" y="165" width="335" height="50" rx="8" fill="#0F1629" />
+            <rect x="20" y="165" width="335" height="50" rx="8" fill="url(#cardHighlight)" opacity="0.05" />
+
+            <!-- Savings -->
+            <g transform="translate(40, 190)">
+                <text font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Save:</text>
+                <text x="50" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" font-weight="bold" fill="#1DB954">$3,450</text>
+                <text x="120" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">in interest</text>
+            </g>
+
+            <!-- Time -->
+            <g transform="translate(230, 190)">
+                <text font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Time:</text>
+                <text x="50" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" font-weight="bold" fill="#1DB954">36 months</text>
+            </g>
+
+            <!-- Interest Rate Bar Chart -->
+            <g transform="translate(335, 100)">
+                <!-- Chart container -->
+                <rect x="-80" y="-10" width="100" height="60" rx="4" fill="#0F1629" opacity="0.7" />
+
+                <!-- Bars representing interest rates -->
+                <rect x="-70" y="0" width="15" height="40" rx="2" fill="url(#barGradGreen)" opacity="0.9" />
+                <rect x="-45" y="10" width="15" height="30" rx="2" fill="url(#barGradGreen)" opacity="0.8" />
+                <rect x="-20" y="20" width="15" height="20" rx="2" fill="url(#barGradGreen)" opacity="0.7" />
+
+                <!-- Label -->
+                <text x="-30" y="-20" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#FFFFFF" text-anchor="middle">Interest Focus</text>
+            </g>
+        </g>
+
+        <!-- Snowball Strategy Panel -->
+        <g transform="translate(485, 140)">
+            <rect x="0" y="0" width="375" height="190" rx="12" fill="#1F2937" />
+            <rect x="0" y="0" width="375" height="190" rx="12" fill="url(#cardHighlight)" opacity="0.1" />
+
+            <!-- Header -->
+            <rect x="0" y="0" width="375" height="50" rx="12 12 0 0" fill="#151929" />
+            <text x="187.5" y="32" font-family="'SF Pro Display', Arial, sans-serif" font-size="20" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Debt Snowball</text>
+
+            <!-- Snowball Icon - Animated -->
+            <g transform="translate(60, 25)">
+                <circle cx="0" cy="0" r="20" fill="url(#orangeGrad)" opacity="0.3" />
+                <circle cx="0" cy="0" r="10" fill="url(#snowballGrad)">
+                    <animate attributeName="r" values="8;12;8" dur="3s" repeatCount="indefinite" />
+                </circle>
+            </g>
+
+            <!-- Description -->
+            <text x="20" y="70" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF" font-weight="600">Smallest Balance First Method</text>
+
+            <!-- Benefits with icon bullets -->
+            <g transform="translate(20, 95)">
+                <circle cx="6" cy="6" r="4" fill="#F59E0B" />
+                <text x="20" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Psychological wins build momentum</text>
+            </g>
+
+            <g transform="translate(20, 120)">
+                <circle cx="6" cy="6" r="4" fill="#F59E0B" />
+                <text x="20" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Fewer debts to track over time</text>
+            </g>
+
+            <g transform="translate(20, 145)">
+                <circle cx="6" cy="6" r="4" fill="#F59E0B" />
+                <text x="20" y="10" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Best for motivation-focused approach</text>
+            </g>
+
+            <!-- Results -->
+            <rect x="20" y="165" width="335" height="50" rx="8" fill="#0F1629" />
+            <rect x="20" y="165" width="335" height="50" rx="8" fill="url(#cardHighlight)" opacity="0.05" />
+
+            <!-- Savings -->
+            <g transform="translate(40, 190)">
+                <text font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Save:</text>
+                <text x="50" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" font-weight="bold" fill="#F59E0B">$2,870</text>
+                <text x="120" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">in interest</text>
+            </g>
+
+            <!-- Time -->
+            <g transform="translate(230, 190)">
+                <text font-family="'SF Pro Display', Arial, sans-serif" font-size="14" fill="#8B9CB0">Time:</text>
+                <text x="50" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" font-weight="bold" fill="#F59E0B">39 months</text>
+            </g>
+
+            <!-- Balance Bar Chart -->
+            <g transform="translate(335, 100)">
+                <!-- Chart container -->
+                <rect x="-80" y="-10" width="100" height="60" rx="4" fill="#0F1629" opacity="0.7" />
+
+                <!-- Bars representing balances -->
+                <rect x="-70" y="20" width="15" height="20" rx="2" fill="url(#barGradOrange)" opacity="0.9" />
+                <rect x="-45" y="10" width="15" height="30" rx="2" fill="url(#barGradOrange)" opacity="0.8" />
+                <rect x="-20" y="0" width="15" height="40" rx="2" fill="url(#barGradOrange)" opacity="0.7" />
+
+                <!-- Label -->
+                <text x="-30" y="-20" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#FFFFFF" text-anchor="middle">Balance Focus</text>
+            </g>
+        </g>
+    </g>
+
+    <!-- Calculator UI with Interaction -->
+    <g transform="translate(250, 570)" filter="url(#shadow)">
+        <!-- Calculator Container -->
+        <rect x="0" y="0" width="780" height="100" rx="12" fill="#1F2937" />
+        <rect x="0" y="0" width="780" height="100" rx="12" fill="url(#cardHighlight)" opacity="0.1" />
+
+        <!-- Extra Payment Input -->
+        <g transform="translate(20, 30)">
+            <text y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF" font-weight="500">Extra Monthly Payment:</text>
+            <rect x="200" y="-15" width="120" height="30" rx="6" fill="#151929" stroke="#374151" stroke-width="1" />
+            <rect x="200" y="-15" width="120" height="30" rx="6" fill="url(#cardHighlight)" opacity="0.05" />
+            <text x="215" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF">$150</text>
+
+            <!-- Up/Down Stepper -->
+            <g transform="translate(305, -7)">
+                <rect x="0" y="0" width="15" height="15" rx="2" fill="#374151" />
+                <path d="M3,7.5 L7.5,3 L12,7.5" stroke="#FFFFFF" stroke-width="1.5" fill="none" />
+            </g>
+            <g transform="translate(305, 8)">
+                <rect x="0" y="0" width="15" height="15" rx="2" fill="#374151" />
+                <path d="M3,7.5 L7.5,12 L12,7.5" stroke="#FFFFFF" stroke-width="1.5" fill="none" />
+            </g>
+        </g>
+
+        <!-- Strategy Dropdown -->
+        <g transform="translate(360, 30)">
+            <text y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF" font-weight="500">Strategy:</text>
+            <rect x="80" y="-15" width="140" height="30" rx="6" fill="#151929" stroke="#374151" stroke-width="1" />
+            <rect x="80" y="-15" width="140" height="30" rx="6" fill="url(#cardHighlight)" opacity="0.05" />
+            <text x="95" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF">Avalanche</text>
+            <path d="M200,0 L205,5 L210,0" stroke="#FFFFFF" stroke-width="1.5" fill="none" />
+        </g>
+
+        <!-- Calculate Button with Animation -->
+        <g transform="translate(620, 15)">
+            <rect x="0" y="0" width="130" height="36" rx="6" fill="url(#brandGrad)">
+                <animate attributeName="opacity" values="1;0.9;1" dur="3s" repeatCount="indefinite" />
+            </rect>
+            <text x="65" y="23" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF" font-weight="bold" text-anchor="middle">Calculate</text>
+        </g>
+
+        <!-- Timeline -->
+        <g transform="translate(20, 70)">
+            <line x1="0" y1="0" x2="740" y2="0" stroke="#374151" stroke-width="2" />
+
+            <!-- Timeline Markers with Progression -->
+            <circle cx="0" cy="0" r="4" fill="#FFFFFF" />
+            <text x="0" y="18" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#8B9CB0" text-anchor="middle">Now</text>
+
+            <circle cx="148" cy="0" r="4" fill="#FFFFFF" />
+            <text x="148" y="18" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#8B9CB0" text-anchor="middle">6 Months</text>
+
+            <circle cx="296" cy="0" r="4" fill="#FFFFFF" />
+            <text x="296" y="18" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#8B9CB0" text-anchor="middle">1 Year</text>
+
+            <circle cx="444" cy="0" r="4" fill="#FFFFFF" />
+            <text x="444" y="18" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#8B9CB0" text-anchor="middle">2 Years</text>
+
+            <circle cx="592" cy="0" r="4" fill="#FFFFFF" />
+            <text x="592" y="18" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#8B9CB0" text-anchor="middle">3 Years</text>
+
+            <circle cx="740" cy="0" r="4" fill="#FFFFFF" />
+            <text x="740" y="18" font-family="'SF Pro Display', Arial, sans-serif" font-size="10" fill="#8B9CB0" text-anchor="middle">Debt-Free!</text>
+
+            <!-- Progress Line -->
+            <path d="M0,0 L592,0" stroke="url(#progressGrad)" stroke-width="4" stroke-linecap="round" />
+
+            <!-- Current Position Indicator -->
+            <circle cx="444" cy="0" r="8" fill="#1DB954" stroke="#FFFFFF" stroke-width="2">
+                <animate attributeName="r" values="8;10;8" dur="2s" repeatCount="indefinite" />
+            </circle>
+        </g>
+    </g>
+
+    <!-- Debt Strategy Notes/Annotations UI -->
+    <g transform="translate(640, 400)" filter="url(#shadow)">
+        <!-- Notes Card -->
+        <g transform="translate(-180, 0)">
+            <rect x="-100" y="-60" width="200" height="120" rx="10" fill="#1F2937" opacity="0.9" />
+            <rect x="-100" y="-60" width="200" height="120" rx="10" fill="url(#clipboardBg)" opacity="0.1" />
+            <text x="0" y="-35" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Avalanche Strategy</text>
+            <line x1="-80" y1="-20" x2="80" y2="-20" stroke="#374151" stroke-width="1" />
+            <text x="-85" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#8B9CB0">✓ Pay highest interest first</text>
+            <text x="-85" y="25" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#8B9CB0">✓ Save more money overall</text>
+        </g>
+
+        <!-- Notes Card -->
+        <g transform="translate(180, 0)">
+            <rect x="-100" y="-60" width="200" height="120" rx="10" fill="#1F2937" opacity="0.9" />
+            <rect x="-100" y="-60" width="200" height="120" rx="10" fill="url(#clipboardBg)" opacity="0.1" />
+            <text x="0" y="-35" font-family="'SF Pro Display', Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">Snowball Strategy</text>
+            <line x1="-80" y1="-20" x2="80" y2="-20" stroke="#374151" stroke-width="1" />
+            <text x="-85" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#8B9CB0">✓ Pay smallest balance first</text>
+            <text x="-85" y="25" font-family="'SF Pro Display', Arial, sans-serif" font-size="12" fill="#8B9CB0">✓ More psychological wins</text>
+        </g>
+    </g>
+
+    <!-- Play Button with Animated Effects -->
+    <g transform="translate(640, 470)" filter="url(#shadow)">
+        <circle cx="0" cy="0" r="60" fill="url(#brandGrad)">
+            <animate attributeName="r" values="60;62;60" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="0" cy="0" r="70" fill="none" stroke="#1DB954" stroke-width="2" opacity="0.5">
+            <animate attributeName="r" values="70;80;70" dur="2s" repeatCount="indefinite" />
+            <animate attributeName="opacity" values="0.5;0;0.5" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <polygon points="-15,-30 30,0 -15,30" fill="white" />
+    </g>
+
+    <!-- Duration Badge with Glass Effect -->
+    <g transform="translate(640, 650)">
+        <rect x="-100" y="-20" width="200" height="40" rx="20" fill="#1F2937" opacity="0.8" />
+        <rect x="-100" y="-20" width="200" height="40" rx="20" fill="url(#cardHighlight)" opacity="0.1" />
+        <text x="0" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="18" fill="#FFFFFF" text-anchor="middle">Duration: 12:20</text>
+    </g>
+
+    <!-- Brand Logo with Animated Glow -->
+    <g transform="translate(60, 60)" filter="url(#glow)">
+        <text x="0" y="0" font-family="'SF Pro Display', Arial, sans-serif" font-size="28" font-weight="bold" fill="#1DB954">SmartDebtFlow</text>
+    </g>
+
+    <!-- Intermediate Badge with Animated Pulse -->
+    <g transform="translate(1160, 60)">
+        <rect x="-120" y="-20" width="120" height="40" rx="20" fill="#F59E0B33">
+            <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite" />
+        </rect>
+        <circle cx="-100" cy="0" r="8" fill="#F59E0B" />
+        <text x="-80" y="5" font-family="'SF Pro Display', Arial, sans-serif" font-size="16" fill="#FFFFFF">Intermediate</text>
+    </g>
+
+    <!-- Decorative Elements -->
+    <g opacity="0.1" transform="translate(100, 500)">
+        <rect x="0" y="0" width="150" height="150" rx="20" fill="#F59E0B" transform="rotate(15)" />
+    </g>
+    <g opacity="0.1" transform="translate(1100, 200)">
+        <rect x="0" y="0" width="100" height="100" rx="15" fill="#F59E0B" transform="rotate(45)" />
+    </g>
+</svg> 

@@ -62,7 +62,7 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
               />
               <div className="absolute top-3 sm:top-4 left-3 sm:left-4">
-                <Badge variant="secondary" className="bg-white/90 text-foreground hover:bg-white text-xs sm:text-sm">
+                <Badge variant="secondary" className="bg-background/90 text-foreground hover:bg-background text-xs sm:text-sm">
                   {post.category}
                 </Badge>
               </div>
@@ -89,7 +89,7 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
                     />
                   </div>
                   <div className="text-xs sm:text-sm truncate max-w-[100px] sm:max-w-[140px]">
-                    <span className="font-medium">{post.author.name}</span>
+                    <span className="font-medium text-foreground">{post.author.name}</span>
                   </div>
                 </div>
                 <div className="text-primary text-xs sm:text-sm font-medium flex items-center">
@@ -117,12 +117,12 @@ const FeaturedPost = ({ post }: { post: BlogPost }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-b from-muted/80 to-muted"
+      className="relative overflow-hidden rounded-lg sm:rounded-xl bg-card border border-border shadow-md"
     >
       <div className="relative flex flex-col md:flex-row">
         <div className="md:w-1/2 order-2 md:order-1 p-6 sm:p-8 md:p-10">
-          <Badge className="mb-3 sm:mb-4">{post.category}</Badge>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 leading-tight">
+          <Badge className="mb-3 sm:mb-4 bg-primary text-primary-foreground hover:bg-primary/90">{post.category}</Badge>
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-2 sm:mb-3 leading-tight text-foreground">
             {post.title}
           </h2>
           <p className="text-muted-foreground mb-3 sm:mb-4 md:mb-6 text-sm sm:text-base">
@@ -144,12 +144,12 @@ const FeaturedPost = ({ post }: { post: BlogPost }) => {
               />
             </div>
             <div>
-              <div className="font-medium text-sm sm:text-base">{post.author.name}</div>
+              <div className="font-medium text-sm sm:text-base text-foreground">{post.author.name}</div>
               <div className="text-xs sm:text-sm text-muted-foreground">{post.author.role}</div>
             </div>
           </div>
           <Link href={`/blog/${post.slug}`}>
-            <Button size="sm" className="sm:h-10">
+            <Button size="sm" className="sm:h-10 bg-[#1DB954] hover:bg-[#1DB954]/90 text-white">
               Read Full Article
               <ArrowRight className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
@@ -412,7 +412,7 @@ export default function BlogPage() {
       {/* Hero Section */}
       <section
         ref={heroRef}
-        className="py-10 sm:py-16 md:py-24 bg-muted/30"
+        className="py-10 sm:py-16 md:py-24 bg-background border-b border-border"
       >
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center">
@@ -420,7 +420,7 @@ export default function BlogPage() {
               initial={{ opacity: 0, y: -20 }}
               animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
               transition={{ duration: 0.5 }}
-              className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 leading-tight"
+              className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 leading-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent"
             >
               Smart Debt Flow Blog
             </motion.h1>
@@ -444,7 +444,7 @@ export default function BlogPage() {
               <Input
                 type="text"
                 placeholder="Search articles..."
-                className="pl-10 h-10"
+                className="pl-10 h-10 bg-background border-border"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -455,10 +455,10 @@ export default function BlogPage() {
 
       {/* Featured Post */}
       {featuredPost && !searchQuery && selectedCategory === "all" && (
-        <section className="py-8 sm:py-12">
+        <section className="py-8 sm:py-12 bg-background">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="mb-6 sm:mb-8">
-              <h2 className="text-xl sm:text-2xl font-bold">Featured Article</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-foreground">Featured Article</h2>
             </div>
             <FeaturedPost post={featuredPost} />
           </div>
@@ -466,7 +466,7 @@ export default function BlogPage() {
       )}
 
       {/* Blog Posts */}
-      <section className="py-8 sm:py-12">
+      <section className="py-8 sm:py-12 bg-background">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="mb-6 sm:mb-8">
             <Tabs
@@ -475,17 +475,28 @@ export default function BlogPage() {
               onValueChange={setSelectedCategory}
               className="w-full"
             >
-              <TabsList className="mb-6 sm:mb-8 flex flex-wrap justify-start gap-2 overflow-x-auto pb-2 -mx-2 px-2">
-                {categories.map((category) => (
-                  <TabsTrigger
-                    key={category.id}
-                    value={category.id}
-                    className="rounded-full text-xs sm:text-sm whitespace-nowrap"
-                  >
-                    {category.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
+              <div className="border-b border-border mb-8">
+                <TabsList className="flex overflow-x-auto -mb-px space-x-8 justify-start bg-transparent">
+                  {categories.map((category) => (
+                    <TabsTrigger
+                      key={category.id}
+                      value={category.id}
+                      className="relative px-1 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent data-[state=active]:border-[#1DB954] data-[state=active]:text-[#1DB954] transition-all duration-200"
+                    >
+                      {category.name}
+                      {category.id === selectedCategory && (
+                        <motion.div
+                          layoutId="activeTab"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1DB954]"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.2 }}
+                        />
+                      )}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
 
               {categories.map((category) => (
                 <TabsContent key={category.id} value={category.id} className="mt-0">
@@ -496,15 +507,19 @@ export default function BlogPage() {
                   </ResponsiveCardGrid>
 
                   {filteredPosts.length === 0 && (
-                    <div className="text-center py-8 sm:py-12">
+                    <div className="text-center py-8 sm:py-12 bg-card rounded-lg border border-border p-6">
                       <p className="text-muted-foreground mb-4 text-sm sm:text-base">
-                        No articles found matching your criteria
+                        No articles found matching your search criteria.
                       </p>
-                      <Button onClick={() => {
-                        setSearchQuery("");
-                        setSelectedCategory("all");
-                      }}>
-                        Reset Filters
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setSelectedCategory("all");
+                        }}
+                        className="bg-background hover:bg-accent text-foreground"
+                      >
+                        View All Articles
                       </Button>
                     </div>
                   )}

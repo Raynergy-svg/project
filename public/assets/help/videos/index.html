@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Debt Flow Video Tutorials</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0c0c0c;
+            color: #fff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        header {
+            background-color: #111;
+            padding: 20px 0;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        h1 {
+            color: #1DB954;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+        }
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+        }
+        .video-card {
+            background-color: #1a1a1a;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #333;
+        }
+        .video-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+        .thumbnail {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+        }
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        .video-card:hover .thumbnail img {
+            transform: scale(1.05);
+        }
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: #1DB954;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.9;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .video-card:hover .play-button {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        .video-info {
+            padding: 20px;
+        }
+        .video-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .video-meta {
+            display: flex;
+            justify-content: space-between;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+        .level {
+            display: flex;
+            align-items: center;
+        }
+        .level-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .beginner {
+            background-color: #1DB954;
+        }
+        .intermediate {
+            background-color: #F5B014;
+        }
+        .advanced {
+            background-color: #3498db;
+        }
+        .video-description {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        .video-link {
+            display: inline-block;
+            color: #1DB954;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+            padding: 5px 0;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s ease;
+        }
+        .video-link:hover {
+            border-color: #1DB954;
+        }
+        .logo {
+            height: 40px;
+        }
+        .categories {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+        .category-button {
+            background-color: #222;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .category-button:hover, .category-button.active {
+            background-color: #1DB954;
+            border-color: #1DB954;
+        }
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 60px;
+            border-top: 1px solid #333;
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="/logo.png" alt="Smart Debt Flow Logo" class="logo">
+    </header>
+    
+    <div class="container">
+        <h1>Video Tutorials</h1>
+        <p class="subtitle">Master Smart Debt Flow with our comprehensive video guides</p>
+        
+        <div class="categories">
+            <button class="category-button active">All Videos</button>
+            <button class="category-button">Getting Started</button>
+            <button class="category-button">Debt Strategies</button>
+            <button class="category-button">Advanced Features</button>
+        </div>
+        
+        <div class="video-grid">
+            <!-- Video 1 -->
+            <div class="video-card">
+                <a href="dashboard-overview.html">
+                    <div class="thumbnail">
+                        <img src="/assets/help/thumbnails/dashboard-overview.svg" alt="Dashboard Overview Tutorial">
+                        <div class="play-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                        </div>
+                    </div>
+                </a>
+                <div class="video-info">
+                    <h3 class="video-title">Dashboard Overview Tutorial</h3>
+                    <div class="video-meta">
+                        <span>Duration: 8:45</span>
+                        <div class="level">
+                            <span class="level-indicator beginner"></span>
+                            <span>Beginner</span>
+                        </div>
+                    </div>
+                    <p class="video-description">
+                        Learn how to navigate your financial command center with this comprehensive tour of the Smart Debt Flow dashboard.
+                    </p>
+                    <a href="dashboard-overview.html" class="video-link">Watch tutorial →</a>
+                </div>
+            </div>
+            
+            <!-- Video 2 -->
+            <div class="video-card">
+                <a href="debt-payoff-plan.html">
+                    <div class="thumbnail">
+                        <img src="/assets/help/thumbnails/debt-payoff-plan.svg" alt="Creating a Debt Payoff Plan">
+                        <div class="play-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                        </div>
+                    </div>
+                </a>
+                <div class="video-info">
+                    <h3 class="video-title">Creating a Debt Payoff Plan</h3>
+                    <div class="video-meta">
+                        <span>Duration: 12:20</span>
+                        <div class="level">
+                            <span class="level-indicator intermediate"></span>
+                            <span>Intermediate</span>
+                        </div>
+                    </div>
+                    <p class="video-description">
+                        Learn how to create a customized debt payoff strategy that works for your specific financial situation.
+                    </p>
+                    <a href="debt-payoff-plan.html" class="video-link">Watch tutorial →</a>
+                </div>
+            </div>
+            
+            <!-- Video 3 -->
+            <div class="video-card">
+                <a href="ai-insights.html">
+                    <div class="thumbnail">
+                        <img src="/assets/help/thumbnails/ai-insights.svg" alt="AI Insights & Advanced Features">
+                        <div class="play-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                            </svg>
+                        </div>
+                    </div>
+                </a>
+                <div class="video-info">
+                    <h3 class="video-title">AI Insights & Advanced Features</h3>
+                    <div class="video-meta">
+                        <span>Duration: 15:50</span>
+                        <div class="level">
+                            <span class="level-indicator advanced"></span>
+                            <span>Advanced</span>
+                        </div>
+                    </div>
+                    <p class="video-description">
+                        Take your debt management to the next level with our powerful AI-driven insights and advanced features.
+                    </p>
+                    <a href="ai-insights.html" class="video-link">Watch tutorial →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2023 Smart Debt Flow. All rights reserved.</p>
+    </footer>
+</body>
+</html> 

@@ -1,0 +1,58 @@
+/* Logo Styling */
+
+.logo-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: fit-content;
+}
+
+.logo-text {
+  display: flex;
+  align-items: center;
+  margin-left: 10px;
+  font-size: 1.5rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.logo-text span {
+  display: inline-block;
+}
+
+.logo-text span.font-bold {
+  font-weight: 700;
+}
+
+.logo-text span.font-medium {
+  font-weight: 500;
+}
+
+.logo-text span.text-primary {
+  color: hsl(var(--primary));
+  font-weight: 700;
+}
+
+.logo-text span.text-accent {
+  color: hsl(var(--primary));
+}
+
+/* Ensure logo containers have proper flex alignment */
+a[href="/"] .logo-image,
+div[class*="flex items-center"] .logo-image {
+  margin-right: 0;
+}
+
+/* Enhanced display on mobile */
+@media (max-width: 640px) {
+  .logo-text {
+    font-size: 1.25rem;
+  }
+}
+
+/* Container adjustment for positioning */
+div.flex.items-center.-ml-3,
+a.flex.items-center.-ml-3 {
+  position: relative;
+  z-index: 10;
+} 

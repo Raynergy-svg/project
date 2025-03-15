@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { DeviceInfo } from '@/types/device';
 
@@ -81,7 +79,7 @@ export function DeviceProvider({ children }: DeviceProviderProps) {
     pointerQuery.addEventListener('change', updateDeviceInfo);
 
     // Development logging
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log('Initial Device Info:', deviceInfo);
     }
 

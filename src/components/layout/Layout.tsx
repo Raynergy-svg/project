@@ -10,6 +10,7 @@ import SkipToContent from '@/components/SkipToContent';
 import { useAuth } from '@/components/AuthProvider'; // Updated to use the new AuthProvider
 import { useTheme } from '@/components/ThemeProvider';
 import { cn } from '@/lib/utils';
+import ScrollToTop from '@/components/ScrollToTop';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -86,6 +87,8 @@ export function Layout({
         </main>
         
         {showFooter && <Footer />}
+        
+        <ScrollToTop />
       </div>
     </>
   );

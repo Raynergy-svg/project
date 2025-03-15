@@ -121,8 +121,7 @@ export default function Navbar({
       items: [
         { label: 'Privacy Policy', href: '/privacy' },
         { label: 'Terms of Service', href: '/terms' },
-        { label: 'Security', href: '/security' },
-        { label: 'Compliance', href: '/compliance' }
+        { label: 'Security', href: '/security' }
       ]
     }
   ];
@@ -161,7 +160,9 @@ export default function Navbar({
           >
             <div className="container h-full flex flex-col">
               <div className="flex items-center justify-between py-4">
-                <Logo />
+                <div className="-ml-3">
+                  <Logo size="lg" />
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -180,7 +181,7 @@ export default function Navbar({
                       {item.type === 'scroll' ? (
                         <button
                           onClick={() => handleNavigation(item.id)}
-                          className="text-xl font-medium py-3 text-left flex items-center"
+                          className="text-xl font-medium py-3 text-left flex items-center dark:text-white text-gray-800"
                           aria-label={`Navigate to ${item.label} section`}
                         >
                           {item.label}
@@ -189,9 +190,11 @@ export default function Navbar({
                         <div className="flex flex-col">
                           <button
                             onClick={() => toggleDropdown(item.label)}
-                            className="text-xl font-medium py-3 text-left flex items-center justify-between"
+                            className={cn(
+                              "px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors flex items-center dark:text-white text-gray-800",
+                              openDropdowns.includes(item.label) && "bg-accent/50"
+                            )}
                             aria-expanded={openDropdowns.includes(item.label)}
-                            aria-label={`Toggle ${item.label} menu`}
                           >
                             {item.label}
                             <ChevronDown
@@ -216,7 +219,7 @@ export default function Navbar({
                                     <button
                                       key={subItem.label}
                                       onClick={() => handleNavigation(undefined, subItem.href)}
-                                      className="text-lg py-2 text-left"
+                                      className="text-lg py-2 text-left dark:text-white text-gray-800"
                                       aria-label={`Navigate to ${subItem.label}`}
                                     >
                                       {subItem.label}
@@ -230,7 +233,7 @@ export default function Navbar({
                       ) : (
                         <Link
                           href={item.href || '#'}
-                          className="text-xl font-medium py-3"
+                          className="text-xl font-medium py-3 dark:text-white text-gray-800"
                           aria-label={`Navigate to ${item.label}`}
                         >
                           {item.label}
@@ -248,13 +251,14 @@ export default function Navbar({
                       <Button
                         variant="outline"
                         onClick={onSignIn}
+                        className="bg-white/10 hover:bg-white/20 text-white border-white/20 dark:text-white text-gray-800"
                       >
                         Sign In
                       </Button>
                       <Button
-                        variant="outline"
+                        variant="default"
                         onClick={onSignUp}
-                        className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                        className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white border-none"
                       >
                         Sign Up
                       </Button>
@@ -271,7 +275,7 @@ export default function Navbar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-full"
+                      className="rounded-full dark:text-white text-gray-800"
                       onClick={() => setTheme("light")}
                       aria-label="Light mode"
                     >
@@ -280,7 +284,7 @@ export default function Navbar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-full"
+                      className="rounded-full dark:text-white text-gray-800"
                       onClick={() => setTheme("dark")}
                       aria-label="Dark mode"
                     >
@@ -289,7 +293,7 @@ export default function Navbar({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="rounded-full"
+                      className="rounded-full dark:text-white text-gray-800"
                       onClick={() => setTheme("system")}
                       aria-label="System theme"
                     >
@@ -314,9 +318,9 @@ export default function Navbar({
         )}
       >
         <div className="container mx-auto px-4 md:px-6">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <div className="flex items-center">
-              <Logo />
+          <div className="flex items-center justify-between h-16 md:h-24">
+            <div className="flex items-center -ml-3 md:-ml-4">
+              <Logo size="xl" />
             </div>
             
             {/* Desktop Navigation */}
@@ -326,7 +330,7 @@ export default function Navbar({
                   {item.type === 'scroll' ? (
                     <button
                       onClick={() => handleNavigation(item.id)}
-                      className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors"
+                      className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors dark:text-white text-gray-800"
                     >
                       {item.label}
                     </button>
@@ -335,7 +339,7 @@ export default function Navbar({
                       <button
                         onClick={() => toggleDropdown(item.label)}
                         className={cn(
-                          "px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors flex items-center",
+                          "px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors flex items-center dark:text-white text-gray-800",
                           openDropdowns.includes(item.label) && "bg-accent/50"
                         )}
                         aria-expanded={openDropdowns.includes(item.label)}
@@ -363,7 +367,7 @@ export default function Navbar({
                                 <button
                                   key={subItem.label}
                                   onClick={() => handleNavigation(undefined, subItem.href)}
-                                  className="block w-full text-left px-4 py-2 text-sm hover:bg-accent/50 transition-colors"
+                                  className="block w-full text-left px-4 py-2 text-sm hover:bg-accent/50 transition-colors dark:text-white text-gray-800"
                                 >
                                   {subItem.label}
                                 </button>
@@ -376,7 +380,7 @@ export default function Navbar({
                   ) : (
                     <Link
                       href={item.href || '#'}
-                      className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors"
+                      className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors dark:text-white text-gray-800"
                     >
                       {item.label}
                     </Link>
@@ -392,14 +396,14 @@ export default function Navbar({
                   <Button
                     variant="ghost"
                     onClick={onSignIn}
-                    className="hidden sm:inline-flex"
+                    className="hidden sm:inline-flex dark:text-white text-gray-800"
                   >
                     Sign In
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="default"
                     onClick={onSignUp}
-                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
+                    className="bg-[#1DB954] hover:bg-[#1DB954]/90 text-white border-none"
                   >
                     Sign Up
                   </Button>
@@ -416,7 +420,7 @@ export default function Navbar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full"
+                  className="rounded-full dark:text-white text-gray-800"
                   onClick={() => setTheme("light")}
                   aria-label="Light mode"
                 >
@@ -425,7 +429,7 @@ export default function Navbar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full"
+                  className="rounded-full dark:text-white text-gray-800"
                   onClick={() => setTheme("dark")}
                   aria-label="Dark mode"
                 >
@@ -434,7 +438,7 @@ export default function Navbar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="rounded-full"
+                  className="rounded-full dark:text-white text-gray-800"
                   onClick={() => setTheme("system")}
                   aria-label="System theme"
                 >

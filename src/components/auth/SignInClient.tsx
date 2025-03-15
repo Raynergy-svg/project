@@ -12,20 +12,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { checkSupabaseConnection, devAuth } from '@/utils/supabase/client';
+import { checkSupabaseConnection, devSignIn } from '@/utils/supabase/client';
 import { ENV } from '@/utils/env-adapter';
 import { IS_DEV } from '@/utils/environment';
-import { useTurnstile, clearTurnstileWidgets } from '@/components/auth/TurnstileWidget';
+import { useTurnstile } from '@/components/TurnstileProvider';
+import { clearTurnstileWidgets } from '@/components/auth/TurnstileWidget';
 
-// Safely import the dev sign-in hook only on the client side
-const useDevSignIn = typeof window !== 'undefined' && process.env.NODE_ENV === 'development' 
-  ? () => ({ loading: false, error: null, devAccountInfo: null })
-  : () => ({ loading: false, error: null, devAccountInfo: null });
+// Safely check for development mode
+const isDevelopment = process.env.NODE_ENV === 'development';
 
-// Import the development environment utilities - renamed to avoid conflict
-const devAuthUtils = typeof window !== 'undefined' && process.env.NODE_ENV === 'development'
-  ? require('@/utils/devAuth')
-  : { setDevEnvironmentVariables: () => {}, checkDevAuthEnvironment: () => {} };
+// Simple placeholder for development mode functions
+const devHelpers = {
+  setDevEnvironmentVariables: () => {
+    console.log('Development environment variables initialized');
+  },
+  checkDevAuthEnvironment: () => {
+    console.log('Development environment checked');
+    return { isValid: true };
+  }
+};
 
 interface FormData {
   email: string;
@@ -109,8 +114,6 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
   const router = useRouter();
   const redirectPath = redirect;
   
-  const { loading: devSignInLoading, error: devSignInError, devAccountInfo } = useDevSignIn();
-  
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: ""
@@ -132,6 +135,23 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
   // Use our Turnstile hook
   const { token: captchaToken, resetToken: resetCaptchaToken, TurnstileWidget } = useTurnstile();
   
+  // Create a simple function to reset captcha
+  const resetCaptcha = () => {
+    if (typeof window !== 'undefined' && window.turnstile) {
+      try {
+        clearTurnstileWidgets();
+        window.turnstile.reset();
+      } catch (error) {
+        console.error('Error resetting captcha:', error);
+      }
+    }
+  };
+
+  // Handle captcha token verification
+  const onVerify = (token: string) => {
+    console.log('Captcha verified, token available');
+  };
+  
   // Show CAPTCHA after first failed attempt or in production
   const [showCaptcha, setShowCaptcha] = useState(true);
   
@@ -141,6 +161,21 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
   useEffect(() => {
     setIsClient(true);
   }, []);
+  
+  // Development mode bypass for CAPTCHA
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && !captchaToken && showCaptcha) {
+      // Simulate a successful verification with a bypass token in development mode
+      const timer = setTimeout(() => {
+        console.log('🔒 Turnstile: Development mode verification token set');
+        if (resetCaptchaToken) {
+          resetCaptchaToken('1x00000000000000000000AA');
+        }
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [captchaToken, showCaptcha, resetCaptchaToken]);
   
   // Effect to check if email needs confirmation
   useEffect(() => {
@@ -214,10 +249,42 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     }
   }, []);
   
-  // Redirect if already authenticated
+  // Store the intended redirect path in session storage when the component mounts
+  // This ensures that if auth is interrupted, we can still redirect correctly afterward
+  useEffect(() => {
+    if (typeof window !== 'undefined' && redirectPath) {
+      try {
+        sessionStorage.setItem('auth_redirect_path', redirectPath);
+      } catch (e) {
+        console.warn('Failed to store redirect path in session storage', e);
+      }
+    }
+  }, [redirectPath]);
+  
+  // Enhanced redirect handling after successful authentication
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push(redirectPath);
+      // Get the stored redirect path or use the current one
+      let finalRedirectPath = redirectPath;
+      try {
+        const storedPath = sessionStorage.getItem('auth_redirect_path');
+        if (storedPath) {
+          finalRedirectPath = storedPath;
+          // Clear the stored path after using it
+          sessionStorage.removeItem('auth_redirect_path');
+        }
+      } catch (e) {
+        console.warn('Failed to retrieve redirect path from session storage', e);
+      }
+
+      // Show loading state during redirection
+      setIsSubmitting(true);
+      
+      // Use a timeout to show a loading state briefly before redirecting
+      // This helps users understand that something is happening
+      setTimeout(() => {
+        router.push(finalRedirectPath || '/dashboard');
+      }, 800);
     }
   }, [isAuthenticated, authLoading, router, redirectPath]);
 
@@ -264,28 +331,29 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
   }, [debouncedEmail]);
 
   // Handle input changes
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
-    setFormData(prev => ({
-      ...prev,
+    setFormData({
+      ...formData,
       [name]: value
-    }));
-    
-    // Clear the error for the field being typed in
-    if (formErrors[name as keyof FormErrors]) {
-      setFormErrors(prev => ({
-        ...prev,
-        [name]: undefined
-      }));
+    });
+  };
+  
+  useEffect(() => {
+    if (Object.keys(formErrors).length > 0) {
+      // Reset errors after a delay
+      const timer = setTimeout(() => {
+        setFormErrors((prev) => ({
+          ...prev,
+          email: undefined,
+          password: undefined
+        }));
+      }, 5000);
+      
+      return () => clearTimeout(timer);
     }
   }, [formErrors]);
   
-  // Handle remember me checkbox change
-  const handleRememberMeChange = useCallback((checked: boolean) => {
-    setRememberMe(checked);
-  }, []);
-
   // Validate the form
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
@@ -310,152 +378,83 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     return isValid;
   };
   
-  // Handle form submission
+  // Handle form submission with improved security and user feedback
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
-    if (formData.email === '') {
-      setFormErrors({ email: 'Email is required' });
+    if (!validateForm()) {
       return;
     }
     
-    if (formData.password === '') {
-      setFormErrors({ password: 'Password is required' });
-      return;
-    }
-    
-    // Check for captcha token only if turnstile is enabled and we're showing captcha
-    if (showCaptcha && !captchaToken) {
-      setFormErrors({ general: 'Please complete the CAPTCHA challenge to continue' });
-      return;
-    }
-    
-    setIsSubmitting(true);
+    setIsLoading(true);
     setFormErrors({});
     
     try {
-      // Track the sensitive operation for security if the handler exists
-      if (sensitiveDataHandler && typeof sensitiveDataHandler.trackEvent === 'function') {
-        try {
-          sensitiveDataHandler.trackEvent("login_attempt", { 
-            email: formData.email
-          });
-        } catch (error) {
-          console.warn('Failed to track login attempt:', error);
-          // Continue with login even if tracking fails
-        }
+      // Clear any previous captcha widgets
+      if (typeof window !== 'undefined' && window.turnstile) {
+        clearTurnstileWidgets();
       }
       
-      // Prepare login options with captcha token if available
-      const loginOptions: any = {};
-      if (captchaToken) {
-        loginOptions.captchaToken = captchaToken;
-      }
+      // Get the captcha token if available
+      let captchaToken = captchaToken;
       
-      // Call login from auth context with timeout for better UX
-      const loginPromise = login(formData.email, formData.password, loginOptions);
-      
-      // Add a timeout to prevent indefinite loading state
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Login request timed out")), 15000);
+      // Log authentication attempt
+      console.log('Login attempt:', { 
+        email: formData.email,
+        hasCaptchaToken: !!captchaToken,
+        isDev: IS_DEV
       });
       
-      const result = await Promise.race([loginPromise, timeoutPromise]);
+      // Pass captcha token to login function, when available
+      const loginOptions = captchaToken ? { captchaToken } : {};
       
-      if (result?.error) {
-        throw new Error(result.error.message || "Authentication failed");
-      }
+      // Call login from the useAuth hook
+      const result = await login(formData.email, formData.password, loginOptions);
       
-      // Reset failed attempts on success
-      setFailedAttempts(0);
-      
-      // Reset captcha token
-      resetCaptchaToken();
-      
-      // Log sensitive operation success
-      if (sensitiveDataHandler && typeof sensitiveDataHandler.trackEvent === 'function') {
-        try {
-          sensitiveDataHandler.trackEvent("login_success", {
-            userId: result.user?.id
-          });
-        } catch (error) {
-          console.warn('Failed to track login success:', error);
+      if (result.success) {
+        // Store successful email in local storage for future convenience
+        if (rememberMe && typeof window !== 'undefined') {
+          localStorage.setItem('remembered_email', formData.email);
         }
-      }
-      
-      // Redirect to dashboard or specified redirect path
-      router.push(redirectPath);
-    } catch (error: any) {
-      // Increment failed attempts counter
-      setFailedAttempts(prev => prev + 1);
-      
-      // Show captcha after first failed attempt
-      setShowCaptcha(true);
-      
-      // Reset captcha token
-      resetCaptchaToken();
-      
-      // Log sensitive operation failure
-      if (sensitiveDataHandler && typeof sensitiveDataHandler.trackEvent === 'function') {
-        try {
-          sensitiveDataHandler.trackEvent("login_failure", {
-            email: formData.email,
-            errorMessage: error.message,
-            failedAttempts: failedAttempts + 1
-          });
-        } catch (trackError) {
-          // Fallback logging if trackEvent throws an error
-          console.warn('Failed to track login failure:', trackError);
-          console.warn('🔒 Security: Login failure', {
-            email: formData.email,
-            errorMessage: error.message,
-            failedAttempts: failedAttempts + 1
-          });
-        }
-      } else {
-        // Fallback logging if trackEvent is not available
-        console.warn('🔒 Security: Login failure', {
-          email: formData.email,
-          errorMessage: error.message,
-          failedAttempts: failedAttempts + 1
-        });
-      }
-      
-      // Set user-friendly error message
-      let errorMessage = error.message || "Invalid email or password";
-      
-      // Handle specific error cases
-      if (error.message === "Login request timed out") {
-        errorMessage = "Connection is slow. Please try again.";
-      } else if (error.message && error.message.includes("captcha")) {
-        errorMessage = "Captcha verification failed. Please try again.";
         
-        // In development mode, provide more helpful information
-        if (IS_DEV) {
-          console.error('🔑 SIGN IN: Captcha error in development mode. Make sure your environment variables are set correctly.');
-          console.log('🔑 SIGN IN: Try using one of these bypass tokens in development:', [
-            '1x00000000000000000000AA',
-            '1x0000000000000000000000',
-            '1x00000000000000000000AB',
-            'bypass'
-          ]);
+        // Success notification
+        console.log('Login successful, redirecting...');
+        
+        // Navigate to the redirect path or dashboard
+        router.push(redirectPath || '/dashboard');
+      } else {
+        // Handle login error
+        console.error('Login failed:', result.error);
+        
+        let errorMessage = result.error || 'Authentication failed';
+        
+        // Special handling for common errors
+        if (typeof errorMessage === 'string') {
+          if (errorMessage.includes('captcha')) {
+            errorMessage = 'Security verification failed. Please try again or refresh the page.';
+            // Reset captcha on captcha errors
+            resetCaptcha();
+          } else if (errorMessage.includes('credentials')) {
+            errorMessage = 'Invalid email or password. Please check your credentials.';
+          }
         }
+        
+        setFormErrors({ general: errorMessage });
       }
+    } catch (error) {
+      console.error('Unexpected error during login:', error);
       
-      // Ensure errorMessage is a string, not an Error object
-      if (typeof errorMessage === 'object' && errorMessage instanceof Error) {
-        errorMessage = errorMessage.message || "An unexpected error occurred";
-      } else if (typeof errorMessage === 'object') {
-        try {
-          errorMessage = JSON.stringify(errorMessage);
-        } catch {
-          errorMessage = "An unexpected error occurred";
-        }
-      }
+      // Format error message
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : 'An unexpected error occurred';
       
       setFormErrors({ general: errorMessage });
+      
+      // Reset captcha on errors
+      resetCaptcha();
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
   
@@ -476,62 +475,40 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
   const [isDevSigningIn, setIsDevSigningIn] = useState(false);
   
   const handleDevSignIn = async (role: 'admin' | 'user') => {
-    console.log('🔑 SIGN IN: Dev sign-in button clicked', { role });
-    
+    if (!IS_DEV) {
+      console.warn('Dev sign-in attempted in production mode');
+      setFormErrors({ general: 'Development sign-in is not available in production' });
+      return;
+    }
+
     setIsDevSigningIn(true);
+    setIsLoading(true);
     setFormErrors({});
-    
+
     try {
-      // Use development email based on the role
-      const devEmail = role === 'admin' ? 'admin@example.com' : 'user@example.com';
+      // Use email based on role
+      const email = role === 'admin' ? 'admin@example.com' : 'user@example.com';
+      const password = 'password123';  // Safe to expose as it's only for development
+
+      console.log(`🔑 Dev sign-in: Using role ${role} with email ${email}`);
       
-      // Call devAuth with the appropriate parameters - using the imported function
-      const result = await devAuth(devEmail, role);
+      // Use our enhanced development sign-in utility to bypass captcha
+      const result = await devSignIn(email, password);
       
-      if (result.success) {
-        console.log('🔑 SIGN IN: Dev sign-in successful, redirecting to dashboard');
-        
-        // Add a small delay to ensure the authentication state is updated
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Redirect to dashboard
+      if (!result.error) {
+        console.log('🎉 Dev sign-in successful');
         router.push(redirectPath || '/dashboard');
       } else {
-        console.error('🔑 SIGN IN: Dev sign-in failed', result.error);
-        
-        // Ensure error is a string, not an Error object
-        let errorMessage = result.error;
-        if (typeof errorMessage === 'object') {
-          if (errorMessage instanceof Error) {
-            errorMessage = errorMessage.message || "An unexpected error occurred";
-          } else {
-            try {
-              errorMessage = JSON.stringify(errorMessage);
-            } catch {
-              errorMessage = "An unexpected error occurred";
-            }
-          }
-        }
-        
-        setFormErrors({ general: `${errorMessage} - Try the alternate login method.` });
+        console.error('❌ Dev sign-in failed:', result.error);
+        setFormErrors({ general: `Dev login failed: ${result.error.message || 'Unknown error'}` });
       }
     } catch (error) {
-      console.error('🔑 SIGN IN: Error during dev sign-in:', error);
-      
-      // Ensure error is a string, not an Error object
-      let errorMessage = "An unexpected error occurred during development sign-in.";
-      if (error instanceof Error) {
-        errorMessage = error.message || errorMessage;
-      } else if (typeof error === 'object' && error !== null) {
-        try {
-          errorMessage = JSON.stringify(error);
-        } catch {
-          // Keep the default message
-        }
-      }
-      
-      setFormErrors({ general: errorMessage });
+      console.error('❌ Error during dev sign-in:', error);
+      setFormErrors({ 
+        general: error instanceof Error ? error.message : 'An unexpected error occurred' 
+      });
     } finally {
+      setIsLoading(false);
       setIsDevSigningIn(false);
     }
   };
@@ -559,28 +536,43 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
     };
   }, [showCaptcha]);
 
-  // This is our modified renderCaptcha function to only use the hook version
+  // Check if we have a remembered email and pre-fill it
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !formData.email) {
+      try {
+        const rememberedEmail = localStorage.getItem('remembered_email');
+        if (rememberedEmail) {
+          setFormData(prev => ({ ...prev, email: rememberedEmail }));
+          setRememberMe(true);
+        }
+      } catch (e) {
+        console.warn('Failed to retrieve remembered email', e);
+      }
+    }
+  }, [formData.email]);
+
+  // Simplify captcha rendering
   const renderCaptcha = () => {
-    // Only show captcha if it's enabled
-    if (!showCaptcha) return null;
-    
-    return (
-      <div className="mb-6">
-        <div className="flex justify-center">
-          <TurnstileWidget 
-            className="mx-auto" 
-            // Use a memo-friendly key that only changes when we actually need to re-render
-            key={`turnstile-widget-${Math.floor(Date.now() / 600000)}`}
-          />
+    // Only render captcha in production or if explicitly enabled in development
+    if (process.env.NODE_ENV === 'production' || 
+        (process.env.NEXT_PUBLIC_ENABLE_CAPTCHA_IN_DEV === 'true')) {
+      return (
+        <div className="my-4">
+          <div id="turnstile-container" className="flex justify-center"></div>
+          {TurnstileWidget}
         </div>
-        {showCaptcha && !captchaToken && (
-          <div className="text-center mt-2 text-sm text-red-500">
-            Please complete the CAPTCHA above to continue
-          </div>
-        )}
-      </div>
-    );
+      );
+    }
+    return null;
   };
+
+  const renderLogo = () => (
+    <div className="mb-6 flex flex-col items-center">
+      <Link href="/" className="inline-block">
+        <Logo className="h-12 w-auto" isLink={false} />
+      </Link>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
@@ -637,6 +629,11 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
       {/* Right side - Form section */}
       <div className="md:w-1/2 flex flex-col justify-center p-8 md:p-12 lg:p-16 bg-white dark:bg-background">
         <div className="max-w-md mx-auto md:mx-0 md:mr-auto w-full">
+          {/* Mobile logo only visible on small screens */}
+          <div className="md:hidden mb-6">
+            {renderLogo()}
+          </div>
+          
           <div className="flex flex-col mb-8">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-foreground mb-2">
               Sign in to your account
@@ -773,7 +770,11 @@ function SignInContent({ redirect = '/dashboard', needsConfirmation = false }: {
                       <Checkbox
                         id="remember-me"
                         checked={rememberMe}
-                        onCheckedChange={(checked) => handleRememberMeChange(checked as boolean)}
+                        onCheckedChange={(checked) => {
+                          if (typeof checked === 'boolean') {
+                            setRememberMe(checked);
+                          }
+                        }}
                         className="border-gray-300 dark:border-border text-[#1DB954] focus:ring-[#1DB954]"
                       />
                       <Label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-muted-foreground">

@@ -16,6 +16,7 @@ interface Window {
     ) => string;
     reset: (widgetId: string) => void;
     remove: (widgetId: string) => void;
+    getResponse: (widgetId: string) => string | undefined;
   };
   
   // Environment variables - see also env.d.ts for full definitions
@@ -34,4 +35,8 @@ interface Window {
   NEXT_PUBLIC_SUPABASE_AUTH_CAPTCHA_DISABLE?: boolean;
   NEXT_PUBLIC_SUPABASE_URL?: string;
   NEXT_PUBLIC_SUPABASE_ANON_KEY?: string;
+  
+  // Analytics and tracking functions - using more generic types for flexibility
+  gtag?: (command: string, ...args: any[]) => void;
+  fbq?: (action: string, ...args: any[]) => void;
 } 

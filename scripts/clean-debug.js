@@ -20,6 +20,7 @@ const DEBUG_FILES = [
   "debug.html",
   "test.html",
   "src/debug.tsx",
+  "src/index.html",
   "src/DebugApp.tsx",
 ];
 

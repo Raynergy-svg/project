@@ -162,10 +162,6 @@ export interface FeaturePanelProps {
   onToggle?: () => void;
 }
 
-// Re-export types from other files
-export * from './user';
-export * from './auth';
-
 // Add bank account related types
 export interface BankAccount {
   id: string;

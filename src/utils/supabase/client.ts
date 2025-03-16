@@ -10,39 +10,28 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { createBrowserClient } from '@supabase/ssr';
-import { IS_DEV } from '@/utils/environment';
+// Use the lightweight environment constants
+import { IS_DEV, SUPABASE_URL, SUPABASE_ANON_KEY } from '@/utils/env-constants';
 import type { SupabaseClientOptions } from '@supabase/supabase-js';
-import ENV, { getEnv } from '@/utils/env';
 import { supabaseCookieHandler } from '@/utils/cookies';
 import configureCaptcha from './configure-captcha';
-import { CLOUDFLARE_TEST_SITE_KEY } from '../env-loader';
+// Use emergency fix temporary constants
+import { CLOUDFLARE_TEST_SITE_KEY } from '../temp-constants';
 
-// Environment variables - use our centralized env utility
-export const supabaseUrl = getEnv('SUPABASE_URL', '');
-export const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY', '');
+// Environment variables from our lightweight constants
+export const supabaseUrl = SUPABASE_URL;
+export const supabaseAnonKey = SUPABASE_ANON_KEY;
 
 // Validate environment variables in development
 if (IS_DEV && (!supabaseUrl || !supabaseAnonKey)) {
-  console.warn('Missing Supabase environment variables. Check your .env.local file.');
+  console.warn('Missing Supabase credentials. Check your .env.local file.');
   
-  // Log environment variable sources
+  // Reduced logging in development mode
   if (typeof window !== 'undefined') {
-    console.log('Environment variable sources:');
-    console.log('- ENV.SUPABASE_URL:', ENV.SUPABASE_URL ? 'Set' : 'Not set');
-    console.log('- ENV.SUPABASE_ANON_KEY:', ENV.SUPABASE_ANON_KEY ? 'Set' : 'Not set');
-    console.log('- window.NEXT_PUBLIC_SUPABASE_URL:', window.NEXT_PUBLIC_SUPABASE_URL ? 'Set' : 'Not set');
-    console.log('- window.NEXT_PUBLIC_SUPABASE_ANON_KEY:', window.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Set' : 'Not set');
-    
-    // Last resort fallbacks (only in development)
-    if (!supabaseUrl) {
-      console.warn('Using hardcoded fallback for supabaseUrl');
-      (window as any).NEXT_PUBLIC_SUPABASE_URL = 'https://gnwdahoiauduyncppbdb.supabase.co';
-    }
-    
-    if (!supabaseAnonKey) {
-      console.warn('Using hardcoded fallback for supabaseAnonKey');
-      (window as any).NEXT_PUBLIC_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U';
-    }
+    console.log('Environment variable sources:', { 
+      supabaseUrl: !!supabaseUrl, 
+      supabaseAnonKey: !!supabaseAnonKey 
+    });
   }
 }
 
@@ -75,7 +64,7 @@ const clientOptions: SupabaseClientOptions<'public'> = {
   },
   global: {
     headers: {
-      'X-Client-Info': `supabase-js/${getEnv('NEXT_PUBLIC_SUPABASE_JS_VERSION', 'unknown')}`,
+      'X-Client-Info': `supabase-js/unknown`,
       // Add headers to disable captcha in development only if not using "Always Pass" mode
       ...(IS_DEV && process.env.ENABLE_TURNSTILE_IN_DEV !== 'true' ? {
         'X-Captcha-Disable': 'true',

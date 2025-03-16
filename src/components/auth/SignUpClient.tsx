@@ -1,20 +1,34 @@
-'use client';
+"use client";
 
 import React, { useState, useCallback, useEffect } from "react";
-import { Eye, EyeOff, ArrowRight, Lock, Shield, ArrowLeft, Loader2, AlertCircle, Check } from "lucide-react";
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import {
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Lock,
+  Shield,
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  Check,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { motion } from "framer-motion";
 import { Logo } from "@/components/Logo";
 import { useSecurity } from "@/contexts/SecurityContext";
 import { useAuth } from "@/contexts/auth-adapter";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Layout } from '@/components/layout/Layout';
-import { checkSupabaseConnection, supabase, devSignIn } from '@/utils/supabase/client';
-import { IS_DEV } from '@/utils/environment';
+import {
+  checkSupabaseConnection,
+  supabase,
+  devSignIn,
+} from "@/utils/supabase/client";
+import { IS_DEV } from "@/utils/environment";
 
 interface FormData {
   email: string;
@@ -52,15 +66,18 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
       console.error("Error in SignUp component:", error);
     };
 
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
   }, []);
 
   if (hasError) {
     return (
       <div className="p-4 bg-red-900/20 border border-red-500 rounded-lg text-white">
         <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
-        <p className="mb-4">We encountered an error while loading this page. Please try refreshing.</p>
+        <p className="mb-4">
+          We encountered an error while loading this page. Please try
+          refreshing.
+        </p>
         <button 
           onClick={() => window.location.reload()} 
           className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-md"
@@ -110,7 +127,7 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
     confirmPassword: "",
     name: "",
     acceptTerms: false,
-    marketingConsent: false
+    marketingConsent: false,
   });
 
   const [formErrors, setFormErrors] = useState<FormErrors>({});
@@ -139,7 +156,7 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.push('/dashboard');
+      router.push("/dashboard");
     }
   }, [isAuthenticated, authLoading, router]);
 
@@ -151,12 +168,12 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
         const status = await checkSupabaseConnection();
         setConnectionStatus({
           isConnected: status.connected,
-          error: status.error
+          error: status.error,
         });
       } catch (error) {
         setConnectionStatus({
           isConnected: false,
-          error: "Failed to connect to authentication service"
+          error: "Failed to connect to authentication service",
         });
       } finally {
         setIsLoading(false);
@@ -173,61 +190,67 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
   
   useEffect(() => {
     if (debouncedEmail && !/\S+@\S+\.\S+/.test(debouncedEmail)) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
-        email: "Please enter a valid email"
+        email: "Please enter a valid email",
       }));
     } else if (debouncedEmail) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
-        email: undefined
+        email: undefined,
       }));
     }
   }, [debouncedEmail]);
   
   useEffect(() => {
     if (debouncedPassword && debouncedPassword.length < 8) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
-        password: "Password must be at least 8 characters"
+        password: "Password must be at least 8 characters",
       }));
     } else if (debouncedPassword) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
-        password: undefined
+        password: undefined,
       }));
     }
     
-    if (debouncedConfirmPassword && debouncedPassword !== debouncedConfirmPassword) {
-      setFormErrors(prev => ({
+    if (
+      debouncedConfirmPassword &&
+      debouncedPassword !== debouncedConfirmPassword
+    ) {
+      setFormErrors((prev) => ({
         ...prev,
-        confirmPassword: "Passwords do not match"
+        confirmPassword: "Passwords do not match",
       }));
     } else if (debouncedConfirmPassword) {
-      setFormErrors(prev => ({
+      setFormErrors((prev) => ({
         ...prev,
-        confirmPassword: undefined
+        confirmPassword: undefined,
       }));
     }
   }, [debouncedPassword, debouncedConfirmPassword]);
 
   // Handle input changes
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     
-    setFormData(prev => ({
+      setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+        [name]: type === "checkbox" ? checked : value,
     }));
     
     // Clear errors for this field when user types
     if (formErrors[name as keyof FormErrors]) {
-      setFormErrors(prev => ({
+        setFormErrors((prev) => ({
         ...prev,
-        [name]: undefined
+          [name]: undefined,
       }));
     }
-  }, [formErrors]);
+    },
+    [formErrors]
+  );
 
   // Validate the form
   const validateForm = (): boolean => {
@@ -294,12 +317,13 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
         formData.email, 
         formData.password,
         formData.name,
-        { // Pass additional options as the 4th parameter
+        {
+          // Pass additional options as the 4th parameter
           metadata: {
             marketingConsent: formData.marketingConsent || false,
-            plan: plan || 'free',
-            referredBy: feature || 'direct'
-          }
+            plan: plan || "free",
+            referredBy: feature || "direct",
+          },
         }
       );
       
@@ -309,13 +333,13 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
         // Handle specific error cases - properly check for string
         const errorMessage = String(result.error);
           
-        if (errorMessage.includes('email')) {
+        if (errorMessage.includes("email")) {
           setFormErrors({
-            email: "This email is already in use"
+            email: "This email is already in use",
           });
         } else {
           setFormErrors({
-            general: errorMessage || "Failed to create account"
+            general: errorMessage || "Failed to create account",
           });
         }
         
@@ -333,18 +357,17 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
         confirmPassword: "",
         name: "",
         acceptTerms: false,
-        marketingConsent: false
+        marketingConsent: false,
       });
       
       // Redirect to dashboard after a delay
       setTimeout(() => {
-        router.push('/signin?needsConfirmation=true');
+        router.push("/signin?needsConfirmation=true");
       }, 3000);
-      
     } catch (error) {
       console.error("Error during signup:", error);
       setFormErrors({
-        general: "An unexpected error occurred. Please try again."
+        general: "An unexpected error occurred. Please try again.",
       });
       setIsSubmitting(false);
     }
@@ -363,18 +386,16 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
   // Render error message for a field
   const renderErrorMessage = (fieldName: keyof FormErrors) => {
     return formErrors[fieldName] ? (
-      <div className="text-sm text-red-500 mt-1">
-        {formErrors[fieldName]}
-      </div>
+      <div className="text-sm text-red-500 mt-1">{formErrors[fieldName]}</div>
     ) : null;
   };
 
   // Add dev sign-in helper function
-  const handleDevSignUp = async (role: 'admin' | 'user') => {
+  const handleDevSignUp = async (role: "admin" | "user") => {
     if (!IS_DEV) {
-      console.warn('Dev sign-up attempted in production mode');
+      console.warn("Dev sign-up attempted in production mode");
       setFormErrors({
-        general: 'Development sign-up is not available in production'
+        general: "Development sign-up is not available in production",
       });
       return;
     }
@@ -385,8 +406,8 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
 
     try {
       // Use email based on role
-      const email = role === 'admin' ? 'admin@example.com' : 'user@example.com';
-      const password = 'password123';  // Safe to expose as it's only for development
+      const email = role === "admin" ? "admin@example.com" : "user@example.com";
+      const password = "password123"; // Safe to expose as it's only for development
 
       console.log(`🔑 Dev sign-up: Using role ${role} with email ${email}`);
       
@@ -394,18 +415,25 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
       const result = await devSignIn(email, password);
       
       if (!result.error) {
-        console.log('🎉 Dev sign-up successful');
-        router.push('/dashboard');
+        console.log("🎉 Dev sign-up successful");
+        router.push("/dashboard");
       } else {
-        console.error('❌ Dev sign-up failed:', result.error);
+        console.error("❌ Dev sign-up failed:", result.error);
         setFormErrors({ 
-          general: `Dev sign-up failed: ${result.error instanceof Error ? result.error.message : String(result.error)}` 
+          general: `Dev sign-up failed: ${
+            result.error instanceof Error
+              ? result.error.message
+              : String(result.error)
+          }`,
         });
       }
     } catch (error) {
-      console.error('❌ Error during dev sign-up:', error);
+      console.error("❌ Error during dev sign-up:", error);
       setFormErrors({ 
-        general: error instanceof Error ? error.message : 'An unexpected error occurred' 
+        general:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred",
       });
     } finally {
       setIsSubmitting(false);
@@ -414,8 +442,22 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
   };
 
   return (
-    <Layout showNavbar={false}>
       <div className="min-h-screen flex flex-col md:flex-row">
+      {/* Back button */}
+      <motion.div
+        className="fixed top-4 left-4 z-10"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+      >
+        <Link href="/">
+          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#1DB954] shadow-md cursor-pointer">
+            <ArrowLeft className="h-5 w-5 text-white" />
+          </div>
+        </Link>
+      </motion.div>
+
         {/* Left side - Brand section */}
         <div className="bg-gray-900 dark:bg-white md:w-1/2 flex flex-col justify-center p-8 md:p-12 lg:p-16 border-r border-gray-800 dark:border-gray-200">
           <div className="max-w-md mx-auto text-center">
@@ -428,12 +470,15 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
             </h1>
             
             <p className="text-lg text-gray-300 dark:text-gray-700 mb-8">
-              Create your Smart Debt Flow account and take the first step toward financial freedom.
+            Create your Smart Debt Flow account and take the first step toward
+            financial freedom.
             </p>
             
             <div className="mb-8">
               <div className="bg-gray-800 dark:bg-gray-100 shadow-md p-6 rounded-lg border border-gray-700 dark:border-gray-300">
-                <h3 className="font-medium text-white dark:text-gray-900 mb-4">What you'll get:</h3>
+              <h3 className="font-medium text-white dark:text-gray-900 mb-4">
+                What you'll get:
+              </h3>
                 <ul className="space-y-3 text-gray-300 dark:text-gray-700">
                   <li className="flex items-start justify-center">
                     <Check className="h-5 w-5 text-[#1DB954] mr-2 flex-shrink-0 mt-0.5" />
@@ -460,7 +505,8 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                 Mobile App Launch
               </h3>
               <p className="text-gray-300 dark:text-gray-700 text-sm">
-                Take Smart Debt Flow with you everywhere. Our mobile app is launching next month with exclusive features.
+              Take Smart Debt Flow with you everywhere. Our mobile app is
+              launching next month with exclusive features.
               </p>
             </div>
           </div>
@@ -477,11 +523,15 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
             
             {/* Display connection error if any */}
             {connectionStatus?.error && (
-              <Alert variant="destructive" className="mb-6 border border-red-200 dark:border-red-900/50">
+            <Alert
+              variant="destructive"
+              className="mb-6 border border-red-200 dark:border-red-900/50"
+            >
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Connection Error</AlertTitle>
                 <AlertDescription>
-                  {connectionStatus.error}. Please try again later or contact support.
+                {connectionStatus.error}. Please try again later or contact
+                support.
                 </AlertDescription>
               </Alert>
             )}
@@ -491,19 +541,19 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
               <Alert className="mb-6 bg-yellow-50 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20">
                 <Shield className="h-4 w-4" />
                 <AlertTitle>Security Notice</AlertTitle>
-                <AlertDescription>
-                  {securityMessage}
-                </AlertDescription>
+              <AlertDescription>{securityMessage}</AlertDescription>
               </Alert>
             )}
             
             {/* Developer sign-up (only in development) */}
             {IS_DEV && (
               <div className="space-y-4 mb-6 pb-6 border-b border-gray-200 dark:border-border">
-                <h3 className="font-medium text-gray-900 dark:text-foreground">Developer Testing</h3>
+              <h3 className="font-medium text-gray-900 dark:text-foreground">
+                Developer Testing
+              </h3>
                 <div className="flex flex-row gap-4">
                   <Button
-                    onClick={() => handleDevSignUp('admin')}
+                  onClick={() => handleDevSignUp("admin")}
                     disabled={isDevSigningIn}
                     variant="outline"
                     size="sm"
@@ -512,7 +562,7 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                     Quick Admin Setup
                   </Button>
                   <Button
-                    onClick={() => handleDevSignUp('user')}
+                  onClick={() => handleDevSignUp("user")}
                     disabled={isDevSigningIn}
                     variant="outline"
                     size="sm"
@@ -539,13 +589,15 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                       <Check className="h-4 w-4" />
                       <AlertTitle>Registration Successful!</AlertTitle>
                       <AlertDescription>
-                        We've sent a confirmation email to <strong>{formData.email}</strong>. 
-                        Please check your inbox and confirm your email address to complete your registration.
+                      We've sent a confirmation email to{" "}
+                      <strong>{formData.email}</strong>. Please check your inbox
+                      and confirm your email address to complete your
+                      registration.
                       </AlertDescription>
                     </Alert>
                     <div className="flex flex-col space-y-4">
                       <Button 
-                        onClick={() => router.push('/signin')}
+                      onClick={() => router.push("/signin")}
                         variant="outline"
                         className="border-gray-300 dark:border-border"
                       >
@@ -557,7 +609,10 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                   <form className="space-y-6" onSubmit={handleSubmit}>
                     {/* General error message */}
                     {formErrors.general && (
-                      <Alert variant="destructive" className="border border-red-200 dark:border-red-900/50">
+                    <Alert
+                      variant="destructive"
+                      className="border border-red-200 dark:border-red-900/50"
+                    >
                         <AlertCircle className="h-4 w-4" />
                         <AlertTitle>Error</AlertTitle>
                         <AlertDescription>{formErrors.general}</AlertDescription>
@@ -566,7 +621,12 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                     
                     {/* Name field */}
                     <div>
-                      <Label htmlFor="name" className="text-gray-900 dark:text-foreground">Name</Label>
+                    <Label
+                      htmlFor="name"
+                      className="text-gray-900 dark:text-foreground"
+                    >
+                      Name
+                    </Label>
                       <div className="mt-1">
                         <Input
                           id="name"
@@ -576,15 +636,22 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                           required
                           value={formData.name}
                           onChange={handleInputChange}
-                          className={`bg-white dark:bg-card border-gray-300 dark:border-border ${formErrors.name ? "border-red-500" : ""}`}
+                        className={`bg-white dark:bg-card border-gray-300 dark:border-border ${
+                          formErrors.name ? "border-red-500" : ""
+                        }`}
                         />
-                        {renderErrorMessage('name')}
-                      </div>
+                      {renderErrorMessage("name")}
+                    </div>
                     </div>
                     
                     {/* Email field */}
                     <div>
-                      <Label htmlFor="email" className="text-gray-900 dark:text-foreground">Email address</Label>
+                    <Label
+                      htmlFor="email"
+                      className="text-gray-900 dark:text-foreground"
+                    >
+                      Email address
+                    </Label>
                       <div className="mt-1">
                         <Input
                           id="email"
@@ -594,15 +661,22 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                           required
                           value={formData.email}
                           onChange={handleInputChange}
-                          className={`bg-white dark:bg-card border-gray-300 dark:border-border ${formErrors.email ? "border-red-500" : ""}`}
+                        className={`bg-white dark:bg-card border-gray-300 dark:border-border ${
+                          formErrors.email ? "border-red-500" : ""
+                        }`}
                         />
-                        {renderErrorMessage('email')}
-                      </div>
+                      {renderErrorMessage("email")}
+                    </div>
                     </div>
 
                     {/* Password field */}
                     <div>
-                      <Label htmlFor="password" className="text-gray-900 dark:text-foreground">Password</Label>
+                    <Label
+                      htmlFor="password"
+                      className="text-gray-900 dark:text-foreground"
+                    >
+                      Password
+                    </Label>
                       <div className="mt-1 relative">
                         <Input
                           id="password"
@@ -612,7 +686,9 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                           required
                           value={formData.password}
                           onChange={handleInputChange}
-                          className={`bg-white dark:bg-card border-gray-300 dark:border-border pr-10 ${formErrors.password ? "border-red-500" : ""}`}
+                        className={`bg-white dark:bg-card border-gray-300 dark:border-border pr-10 ${
+                          formErrors.password ? "border-red-500" : ""
+                        }`}
                         />
                         <button
                           type="button"
@@ -625,13 +701,18 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                             <Eye className="h-4 w-4 text-gray-500 dark:text-muted-foreground" />
                           )}
                         </button>
-                        {renderErrorMessage('password')}
-                      </div>
+                      {renderErrorMessage("password")}
+                    </div>
                     </div>
                     
                     {/* Confirm Password field */}
                     <div>
-                      <Label htmlFor="confirmPassword" className="text-gray-900 dark:text-foreground">Confirm Password</Label>
+                    <Label
+                      htmlFor="confirmPassword"
+                      className="text-gray-900 dark:text-foreground"
+                    >
+                      Confirm Password
+                    </Label>
                       <div className="mt-1 relative">
                         <Input
                           id="confirmPassword"
@@ -641,7 +722,9 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                           required
                           value={formData.confirmPassword}
                           onChange={handleInputChange}
-                          className={`bg-white dark:bg-card border-gray-300 dark:border-border pr-10 ${formErrors.confirmPassword ? "border-red-500" : ""}`}
+                        className={`bg-white dark:bg-card border-gray-300 dark:border-border pr-10 ${
+                          formErrors.confirmPassword ? "border-red-500" : ""
+                        }`}
                         />
                         <button
                           type="button"
@@ -654,8 +737,8 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                             <Eye className="h-4 w-4 text-gray-500 dark:text-muted-foreground" />
                           )}
                         </button>
-                        {renderErrorMessage('confirmPassword')}
-                      </div>
+                      {renderErrorMessage("confirmPassword")}
+                    </div>
                     </div>
 
                     {/* Terms and conditions */}
@@ -666,7 +749,10 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                           name="acceptTerms"
                           checked={formData.acceptTerms}
                           onCheckedChange={(checked) => 
-                            setFormData(prev => ({ ...prev, acceptTerms: checked === true }))
+                          setFormData((prev) => ({
+                            ...prev,
+                            acceptTerms: checked === true,
+                          }))
                           }
                           className="border-gray-300 dark:border-border text-[#1DB954] focus:ring-[#1DB954]"
                         />
@@ -674,12 +760,27 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                       <div className="ml-3 text-sm">
                         <Label 
                           htmlFor="acceptTerms" 
-                          className={`font-medium text-gray-700 dark:text-muted-foreground ${formErrors.acceptTerms ? "text-red-500" : ""}`}
+                        className={`font-medium text-gray-700 dark:text-muted-foreground ${
+                          formErrors.acceptTerms ? "text-red-500" : ""
+                        }`}
+                      >
+                        I agree to the{" "}
+                        <Link
+                          href="/terms"
+                          className="text-[#1DB954] hover:text-[#1DB954]/90"
                         >
-                          I agree to the <Link href="/terms" className="text-[#1DB954] hover:text-[#1DB954]/90">Terms of Service</Link> and <Link href="/privacy" className="text-[#1DB954] hover:text-[#1DB954]/90">Privacy Policy</Link>
+                          Terms of Service
+                        </Link>{" "}
+                        and{" "}
+                        <Link
+                          href="/privacy"
+                          className="text-[#1DB954] hover:text-[#1DB954]/90"
+                        >
+                          Privacy Policy
+                        </Link>
                         </Label>
-                        {renderErrorMessage('acceptTerms')}
-                      </div>
+                      {renderErrorMessage("acceptTerms")}
+                    </div>
                     </div>
                     
                     {/* Marketing consent */}
@@ -690,14 +791,21 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                           name="marketingConsent"
                           checked={formData.marketingConsent}
                           onCheckedChange={(checked) => 
-                            setFormData(prev => ({ ...prev, marketingConsent: checked === true }))
+                          setFormData((prev) => ({
+                            ...prev,
+                            marketingConsent: checked === true,
+                          }))
                           }
                           className="border-gray-300 dark:border-border text-[#1DB954] focus:ring-[#1DB954]"
                         />
                       </div>
                       <div className="ml-3 text-sm">
-                        <Label htmlFor="marketingConsent" className="font-medium text-gray-700 dark:text-muted-foreground">
-                          I'd like to receive updates about new features and promotions
+                      <Label
+                        htmlFor="marketingConsent"
+                        className="font-medium text-gray-700 dark:text-muted-foreground"
+                      >
+                        I'd like to receive updates about new features and
+                        promotions
                         </Label>
                       </div>
                     </div>
@@ -725,8 +833,13 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
                     {/* Sign in link - moved below create account button */}
                     <div className="text-center pt-4 border-t border-gray-200 dark:border-border mt-6">
                       <div className="flex flex-col items-center">
-                        <span className="text-gray-700 dark:text-muted-foreground mb-2">Already have an account?</span>
-                        <Link href="/signin" className="font-medium text-[#1DB954] hover:text-[#1DB954]/90 transition-colors">
+                      <span className="text-gray-700 dark:text-muted-foreground mb-2">
+                        Already have an account?
+                      </span>
+                      <Link
+                        href="/signin"
+                        className="font-medium text-[#1DB954] hover:text-[#1DB954]/90 transition-colors"
+                      >
                           Sign in
                         </Link>
                       </div>
@@ -750,6 +863,5 @@ function SignUpContent({ plan, feature }: SignUpClientProps) {
           </div>
         </div>
       </div>
-    </Layout>
   );
 } 

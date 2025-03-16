@@ -1,22 +1,22 @@
-'use client';
+"use client";
 
 // Import webpack patch to fix "Cannot read properties of undefined (reading 'call')" error
-import '@/utils/webpackPatch';
+import "@/utils/webpackPatch";
 
-import React, { useCallback, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/auth-adapter';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { Layout } from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
-import BackgroundElements from '@/components/BackgroundElements';
-import Section from '@/components/Section';
-import SectionLoader from '@/components/SectionLoader';
-import ErrorBoundary from '@/components/ErrorBoundary';
-import ClientWrapper from './ClientWrapper';
-import ScrollToTop from '@/components/ScrollToTop';
+import React, { useCallback, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-adapter";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { Layout } from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import BackgroundElements from "@/components/BackgroundElements";
+import Section from "@/components/Section";
+import SectionLoader from "@/components/SectionLoader";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import ClientWrapper from "./ClientWrapper";
+import ScrollToTop from "@/components/ScrollToTop";
 
 // Define component props interface
 interface LandingPageClientProps {
@@ -36,49 +36,57 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
   // State hooks
   const [isLoading, setIsLoading] = useState(true);
   const [componentError, setComponentError] = useState(false);
-  
+
   // Router and auth hooks - with safety checks
   const router = useRouter();
   const authContext = useAuth();
   const isAuthenticated = authContext ? authContext.isAuthenticated : false;
-  
+
   const motionContext = useReducedMotion();
-  const prefersReducedMotion = motionContext ? motionContext.prefersReducedMotion : false;
-  
+  const prefersReducedMotion = motionContext
+    ? motionContext.prefersReducedMotion
+    : false;
+
   const isMobile = useMediaQuery("(max-width: 768px)");
-  
+
   // Callback functions
   const handleSignIn = useCallback(() => {
-    if (router) router.push('/signin');
+    if (router) router.push("/signin");
   }, [router]);
 
   const handleSignUp = useCallback(() => {
-    if (router) router.push('/signup');
+    if (router) router.push("/signup");
   }, [router]);
 
   const handleDashboardClick = useCallback(() => {
-    if (router) router.push('/dashboard');
+    if (router) router.push("/dashboard");
   }, [router]);
 
-  const handleGetStarted = useCallback((planId: string) => {
-    if (router) router.push(`/signup?plan=${planId}`);
-  }, [router]);
-  
+  const handleGetStarted = useCallback(
+    (planId: string) => {
+      if (router) router.push(`/signup?plan=${planId}`);
+    },
+    [router]
+  );
+
   const handleNavigateToSection = useCallback((sectionId: string) => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       const section = document.getElementById(sectionId);
       if (section) {
         setTimeout(() => {
-          section.scrollIntoView({ behavior: 'smooth' });
+          section.scrollIntoView({ behavior: "smooth" });
         }, 100);
       }
     }
   }, []);
 
-  const handleFeatureClick = useCallback((featureId: string) => {
-    if (router) router.push(`/signup?feature=${featureId}`);
-  }, [router]);
-  
+  const handleFeatureClick = useCallback(
+    (featureId: string) => {
+      if (router) router.push(`/signup?feature=${featureId}`);
+    },
+    [router]
+  );
+
   // Load state
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -90,29 +98,29 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
 
   // Improved preloading with proper type and timing
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined") return;
+
     // Only preload if we're sure the logo will be used soon
     const logoElement = document.querySelector('img[src="/logo.svg"]');
-    
+
     // If the logo is already in the DOM, no need to preload
     if (logoElement) return;
-    
+
     // Create preload link with proper attributes for SVG
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.type = 'image/svg+xml'; // Specify the correct MIME type for SVG
-    link.href = '/logo.svg';
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.type = "image/svg+xml"; // Specify the correct MIME type for SVG
+    link.href = "/logo.svg";
     document.head.appendChild(link);
-    
+
     // Remove the preload link if not used within 5 seconds
     const timeout = setTimeout(() => {
       if (document.head.contains(link)) {
         document.head.removeChild(link);
       }
     }, 5000);
-    
+
     return () => {
       clearTimeout(timeout);
       if (document.head.contains(link)) {
@@ -127,8 +135,8 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
       setComponentError(true);
     };
 
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
   }, []);
 
   if (isLoading) {
@@ -143,7 +151,9 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
-        <p className="text-center mb-4">We're having trouble loading this page. Please try refreshing.</p>
+        <p className="text-center mb-4">
+          We're having trouble loading this page. Please try refreshing.
+        </p>
         <Button onClick={() => window.location.reload()}>Refresh Page</Button>
       </div>
     );
@@ -151,7 +161,7 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
 
   return (
     <ErrorBoundary>
-      <Layout 
+      <Layout
         showNavbar={true}
         navbarProps={{
           onSignIn: handleSignIn,
@@ -159,7 +169,7 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
           onDashboardClick: handleDashboardClick,
           isAuthenticated: isAuthenticated,
           onNavigate: handleNavigateToSection,
-          transparent: false
+          transparent: false,
         }}
       >
         <BackgroundElements />
@@ -172,15 +182,16 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
                   <div className="text-center">
                     <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
                       <span className="text-primary inline-block">
-                        Break Free From The 
-                        <br className="hidden md:block" /> 
+                        Break Free From The
+                        <br className="hidden md:block" />
                         Weight of Debt
                       </span>
                     </h1>
                     <h2 className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-                      Transform your financial burden into a clear path to freedom with AI-powered guidance
+                      Transform your financial burden into a clear path to
+                      freedom with AI-powered guidance
                     </h2>
-                    
+
                     <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                       <Button
                         size="lg"
@@ -193,8 +204,8 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
                       <Button
                         variant="outline"
                         size="lg"
-                        onClick={() => handleNavigateToSection('features')}
-                        className="font-medium text-lg"
+                        onClick={() => handleNavigateToSection("features")}
+                        className="font-medium text-lg border-primary/70 text-primary hover:bg-primary/10 dark:border-white/70 dark:text-white dark:hover:bg-white/10"
                       >
                         Learn More
                       </Button>
@@ -204,41 +215,41 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
               </div>
             </div>
           </Section>
-          
+
           {/* Features Section - Using ClientWrapper instead of direct imports */}
           <div id="features">
-            <ClientWrapper 
-              componentName="Features" 
-              props={{ 
+            <ClientWrapper
+              componentName="Features"
+              props={{
                 onFeatureClick: handleFeatureClick,
-                id: "features" 
+                id: "features",
               }}
               fallback={<SectionLoader />}
             />
           </div>
-          
+
           {/* Methods Section - Using ClientWrapper */}
-          <ClientWrapper 
-            componentName="MethodsSection" 
+          <ClientWrapper
+            componentName="MethodsSection"
             fallback={<SectionLoader />}
           />
-          
+
           {/* Testimonials Section - Using ClientWrapper */}
-          <ClientWrapper 
-            componentName="Testimonials" 
+          <ClientWrapper
+            componentName="Testimonials"
             fallback={<SectionLoader />}
           />
-          
+
           {/* Pricing Section - Using ClientWrapper */}
           <div id="pricing">
-            <ClientWrapper 
-              componentName="Pricing" 
+            <ClientWrapper
+              componentName="Pricing"
               props={{ onGetStarted: handleGetStarted }}
               fallback={<SectionLoader />}
             />
           </div>
         </main>
-        
+
         {/* Add ScrollToTop button */}
         <ScrollToTop position="bottom-right" />
       </Layout>
@@ -246,4 +257,4 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
   );
 };
 
-export default LandingPageClient; 
+export default LandingPageClient;

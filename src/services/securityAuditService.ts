@@ -8,7 +8,7 @@ import { supabase } from '@/utils/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 
 // Add flag to determine if we're in mock mode
-const FORCE_MOCK_MODE = import.meta.env.VITE_MOCK_SUPABASE === 'true' || true; // Force to true for now
+const FORCE_MOCK_MODE = true; // Always use mock mode for now
 
 export enum SecurityEventType {
   // Authentication Events

@@ -1,38 +1,66 @@
 // This is an empty module to replace React Router imports in Next.js
 // In Next.js, we use the built-in routing system instead of react-router-dom
 
-import { useRouter as useNextRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import NextLink from "next/link";
+import React, { createContext, useContext, useState, useEffect } from "react";
 
-// Show a warning in development mode when using react-router
-const warnAboutReactRouter = (component) => {
-  if (process.env.NODE_ENV !== "production") {
-    console.warn(
-      `You're using ${component} from react-router-dom which is not compatible with Next.js. ` +
-        `Please use Next.js routing instead. See: https://nextjs.org/docs/pages/building-your-application/routing`
-    );
-  }
-};
+// Simple location context to avoid circular dependencies
+const LocationContext = createContext({
+  pathname: typeof window !== "undefined" ? window.location.pathname : "/",
+});
 
-// Add empty exports for commonly imported hooks and components from react-router-dom
+// Simple implementation of BrowserRouter
 export const BrowserRouter = ({ children }) => {
-  warnAboutReactRouter("BrowserRouter");
-  return children;
+  const [pathname, setPathname] = useState(
+    typeof window !== "undefined" ? window.location.pathname : "/"
+  );
+
+  // Update pathname when location changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const handleRouteChange = () => {
+        setPathname(window.location.pathname);
+      };
+
+      window.addEventListener("popstate", handleRouteChange);
+
+      return () => {
+        window.removeEventListener("popstate", handleRouteChange);
+      };
+    }
+  }, []);
+
+  return (
+    <LocationContext.Provider value={{ pathname }}>
+      {children}
+    </LocationContext.Provider>
+  );
 };
 
+// Simple Routes implementation
 export const Routes = ({ children }) => {
-  warnAboutReactRouter("Routes");
-  return children;
+  return <>{children}</>;
 };
 
-export const Route = () => {
-  warnAboutReactRouter("Route");
+// Simple Route implementation
+export const Route = ({ path, element }) => {
+  const { pathname } = useContext(LocationContext);
+
+  // Basic path matching
+  if (
+    path === "*" ||
+    pathname === path ||
+    (path === "/" && (pathname === "" || pathname === "/"))
+  ) {
+    return element;
+  }
+
   return null;
 };
 
+// Link component that uses Next.js Link
 export const Link = ({ to, children, ...props }) => {
-  warnAboutReactRouter("Link");
-  // Return a Next.js Link component instead
   return (
     <NextLink href={to} {...props}>
       {children}
@@ -40,96 +68,58 @@ export const Link = ({ to, children, ...props }) => {
   );
 };
 
-export const Navigate = ({ to }) => {
-  warnAboutReactRouter("Navigate");
-  // Use a client-side effect to navigate
-  if (typeof window !== "undefined") {
-    const router = useNextRouter();
-    router.push(to);
-  }
+// Navigate component that performs navigation
+export const Navigate = ({ to, replace }) => {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      if (replace) {
+        router.replace(to);
+      } else {
+        router.push(to);
+      }
+    }
+  }, [to, replace, router]);
+
   return null;
 };
 
+// Simple implementation of useNavigate
 export const useNavigate = () => {
-  warnAboutReactRouter("useNavigate");
-  const router = useNextRouter();
-  return (to) => router.push(to);
+  const router = useRouter();
+
+  return React.useCallback(
+    (to, options) => {
+      if (typeof window !== "undefined") {
+        if (options?.replace) {
+          router.replace(to);
+        } else {
+          router.push(to);
+        }
+      }
+    },
+    [router]
+  );
 };
 
+// Simple implementation of useLocation
 export const useLocation = () => {
-  warnAboutReactRouter("useLocation");
-  const router = useNextRouter();
+  const { pathname } = useContext(LocationContext);
 
   return {
-    pathname: router.pathname,
-    search: router.asPath.includes("?")
-      ? router.asPath.substring(router.asPath.indexOf("?"))
-      : "",
-    hash: router.asPath.includes("#")
-      ? router.asPath.substring(router.asPath.indexOf("#"))
-      : "",
+    pathname,
+    search: typeof window !== "undefined" ? window.location.search : "",
+    hash: typeof window !== "undefined" ? window.location.hash : "",
     state: {},
   };
 };
 
-export const useParams = () => {
-  warnAboutReactRouter("useParams");
-  const router = useNextRouter();
-  return router.query || {};
-};
+// Other hooks with minimal implementations
+export const useParams = () => ({});
+export const useSearchParams = () => [new URLSearchParams(), () => {}];
+export const Outlet = ({ children }) => children;
 
-export const useSearchParams = () => {
-  warnAboutReactRouter("useSearchParams");
-  const router = useNextRouter();
-
-  // Create a URLSearchParams object from the query
-  const searchParams = new URLSearchParams();
-  if (router.query) {
-    Object.entries(router.query).forEach(([key, value]) => {
-      if (value) {
-        if (Array.isArray(value)) {
-          value.forEach((v) => searchParams.append(key, v));
-        } else {
-          searchParams.append(key, value);
-        }
-      }
-    });
-  }
-
-  // Return a function to update search params that uses Next.js router
-  const setSearchParams = (newParams) => {
-    const updatedQuery = {};
-
-    // Convert the newParams to a query object
-    if (newParams instanceof URLSearchParams) {
-      for (const [key, value] of newParams.entries()) {
-        updatedQuery[key] = value;
-      }
-    } else if (typeof newParams === "function") {
-      const updatedSearchParams = newParams(searchParams);
-      for (const [key, value] of updatedSearchParams.entries()) {
-        updatedQuery[key] = value;
-      }
-    } else {
-      Object.assign(updatedQuery, newParams);
-    }
-
-    // Update the URL with the new query parameters
-    router.push({
-      pathname: router.pathname,
-      query: updatedQuery,
-    });
-  };
-
-  return [searchParams, setSearchParams];
-};
-
-export const Outlet = ({ children }) => {
-  warnAboutReactRouter("Outlet");
-  return children;
-};
-
-// Add default export for components that might use default import
 export default {
   BrowserRouter,
   Routes,

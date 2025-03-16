@@ -8,13 +8,28 @@
  * This function will always return false in production builds due to tree-shaking
  */
 export function isDevelopmentMode(): boolean {
-  // This condition will be evaluated at build time and completely removed in production builds
-  if (import.meta.env.PROD) {
-    return false;
+  try {
+    // Check if import.meta.env exists and handle undefined properties
+    const env = import.meta.env || {};
+    
+    // Next.js uses NODE_ENV instead of PROD/DEV
+    // First check for Next.js environment variables
+    if (process.env.NODE_ENV === 'production') {
+      return false;
+    }
+    
+    // Then fall back to Vite-style environment variables if they exist
+    if (env.PROD === true) {
+      return false;
+    }
+    
+    // Additional runtime checks to ensure we're truly in development
+    return (env.DEV === true || process.env.NODE_ENV === 'development') && 
+           (env.MODE !== 'production' && process.env.NODE_ENV !== 'production');
+  } catch (e) {
+    // If anything fails, assume development mode in non-production environments
+    return process.env.NODE_ENV !== 'production';
   }
-  
-  // Additional runtime checks to ensure we're truly in development
-  return import.meta.env.DEV && import.meta.env.MODE !== 'production';
 }
 
 /**

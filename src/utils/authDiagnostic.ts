@@ -6,7 +6,7 @@
  */
 
 import { supabase } from './supabase/client';
-import { getTurnstileEnv, forceTurnstileEnv } from './env-loader';
+import { getTurnstileEnv, forceTurnstileEnv } from './temp-constants';
 import { testSignUp } from './test-auth';
 
 interface DiagnosticResult {

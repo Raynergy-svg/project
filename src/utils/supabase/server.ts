@@ -35,21 +35,18 @@ export const createClient = (cookieStore: ReturnType<typeof cookies>) => {
     supabaseAnonKey,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set(name, value, options);
+            cookiesToSet.forEach(({ name, value, options }) => 
+              cookieStore.set(name, value, options)
+            );
           } catch {
-            // Handle server component cookie setting
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set(name, "", { ...options, maxAge: 0 });
-          } catch {
-            // Handle server component cookie removal
+            // The `setAll` method was called from a Server Component.
+            // This can be ignored if you have middleware refreshing
+            // user sessions.
           }
         },
       },
@@ -77,15 +74,11 @@ export const createAdminClient = () => {
     supabaseServiceRoleKey,
     {
       cookies: {
-        // Use server-only cookies for admin operations
-        get(name: string) {
-          return cookies().get(name)?.value;
+        getAll() {
+          return cookies().getAll();
         },
-        set() {
+        setAll() {
           // Deliberately empty - admin operations typically don't set cookies
-        },
-        remove() {
-          // Deliberately empty - admin operations typically don't remove cookies
         },
       },
     }

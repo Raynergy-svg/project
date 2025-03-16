@@ -1,1 +1,3 @@
- 
+"use client";
+
+// ... existing imports and code ...

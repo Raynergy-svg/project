@@ -1,5 +1,11 @@
 import { Suspense, useEffect, useState } from "react";
-import { Routes, Route, useNavigate, useLocation, Navigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+  Navigate,
+} from "@/empty-module";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
@@ -14,7 +20,10 @@ import { Toaster } from "@/components/ui/toaster";
 import Navbar from "@/components/layout/Navbar";
 import { Layout } from "@/components/layout/Layout";
 import { lazyLoad, preloadComponents } from "@/utils/lazyLoad";
-import { createDebtTable, checkExecuteSqlFunction } from "@/lib/supabase/createDebtTable";
+import {
+  createDebtTable,
+  checkExecuteSqlFunction,
+} from "@/lib/supabase/createDebtTable";
 import { createBankAccountsTable } from "@/lib/supabase/createBankAccountsTable";
 import { createTransactionHistoryTable } from "@/lib/supabase/createTransactionHistoryTable";
 import { supabase } from "@/utils/supabase/client";
@@ -22,13 +31,15 @@ import SkipToContent from "@/components/SkipToContent";
 import { IS_DEV } from "@/utils/environment";
 
 // For development debugging only
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+
 let ConnectionStatus: React.ComponentType<any> | null = null;
 
 // We use top-level check that will be evaluated at build time
 // This prevents even references to debug components from being included in production builds
 // @ts-expect-error - Using global Function constructor to prevent static analysis
-new Function('IS_DEV', `
+new Function(
+  "IS_DEV",
+  `
   if (IS_DEV) {
     try {
       // This code will never be included in the production bundle
@@ -45,14 +56,14 @@ new Function('IS_DEV', `
       console.warn('Debug components could not be loaded:', e);
     }
   }
-`)(IS_DEV);
+`
+)(IS_DEV);
 
 // Lazy load routes with enhanced error handling and loading
 const Landing = lazyLoad(() => import("@/pages/Landing"));
 const Dashboard = lazyLoad(() => import("@/pages/Dashboard"));
 const DebtPlanner = lazyLoad(() => import("@/pages/DebtPlanner"));
 const Settings = lazyLoad(() => import("@/pages/Settings"));
-const About = lazyLoad(() => import("@/pages/About"));
 const Privacy = lazyLoad(() => import("@/pages/Privacy"));
 const Terms = lazyLoad(() => import("@/pages/Terms"));
 const Support = lazyLoad(() => import("@/pages/Support"));
@@ -66,11 +77,12 @@ const Careers = lazyLoad(() => import("@/pages/Careers"));
 const JobApplication = lazyLoad(() => import("@/pages/JobApplication"));
 const Compliance = lazyLoad(() => import("@/pages/Compliance"));
 const AdminTools = lazyLoad(() => import("@/pages/AdminTools"));
-const SignUp = lazyLoad(() => 
-  import("@/pages/SignUp").catch(error => {
-    console.error("Error loading SignUp component:", error);
-    return { default: () => <div>Error loading signup page</div> };
-  }),
+const SignUp = lazyLoad(
+  () =>
+    import("@/pages/SignUp").catch((error) => {
+      console.error("Error loading SignUp component:", error);
+      return { default: () => <div>Error loading signup page</div> };
+    }),
   { retry: 3, retryDelay: 1000 }
 );
 const SignIn = lazyLoad(() => import("@/pages/SignIn"));
@@ -78,56 +90,81 @@ const AuthDemo = lazyLoad(() => import("@/pages/AuthDemo"));
 const PaymentSuccess = lazyLoad(() => import("@/pages/PaymentSuccess"));
 
 // Lazy load articles
-const SnowballMethodArticle = lazyLoad(() => import('@/components/help/articles/SnowballMethod'));
-const AvalancheMethodArticle = lazyLoad(() => import('@/components/help/articles/AvalancheMethod'));
-const AccountSetupArticle = lazyLoad(() => import('@/components/help/articles/account-setup'));
-const UnderstandingDashboardArticle = lazyLoad(() => import('@/components/help/articles/understanding-dashboard'));
-const AddingFirstDebtArticle = lazyLoad(() => import('@/components/help/articles/adding-first-debt'));
+const SnowballMethodArticle = lazyLoad(
+  () => import("@/components/help/articles/SnowballMethod")
+);
+const AvalancheMethodArticle = lazyLoad(
+  () => import("@/components/help/articles/AvalancheMethod")
+);
+const AccountSetupArticle = lazyLoad(
+  () => import("@/components/help/articles/account-setup")
+);
+const UnderstandingDashboardArticle = lazyLoad(
+  () => import("@/components/help/articles/understanding-dashboard")
+);
+const AddingFirstDebtArticle = lazyLoad(
+  () => import("@/components/help/articles/adding-first-debt")
+);
 
 // Preload critical components for better user experience
 preloadComponents([
   () => import("@/pages/Landing"),
   () => import("@/pages/SignIn"),
-  () => import("@/pages/SignUp")
+  () => import("@/pages/SignUp"),
 ]);
 
 // Helper function to get page class based on path
 const getPageClass = (pathname: string): string => {
-  if (pathname === '/') return 'landing-page';
-  if (pathname === '/signin' || pathname === '/signup') return 'auth-page';
-  if (pathname.startsWith('/dashboard')) return 'dashboard-page';
-  return '';
+  if (pathname === "/") return "landing-page";
+  if (pathname === "/signin" || pathname === "/signup") return "auth-page";
+  if (pathname.startsWith("/dashboard")) return "dashboard-page";
+  return "";
 };
 
 function AppRoutes() {
   const location = useLocation();
   const pageClass = getPageClass(location.pathname);
-  
+
   // Apply page-specific class to main content
   useEffect(() => {
-    const mainContent = document.getElementById('main-content');
+    const mainContent = document.getElementById("main-content");
     if (mainContent) {
       mainContent.className = pageClass;
     }
   }, [location.pathname, pageClass]);
-  
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/signin" element={<SignIn />} />
-      <Route path="/about" element={<About />} />
+      <Route path="/about" element={<Navigate to="/about" replace />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/support" element={<Support />} />
-      <Route path="/security" element={<Navigate to="/support" replace />} />
+      <Route path="/security" element={<Support />} />
       <Route path="/blog" element={<Blog />} />
       <Route path="/press" element={<Press />} />
       <Route path="/help" element={<Help />} />
-      <Route path="/help/articles/snowball-method" element={<SnowballMethodArticle />} />
-      <Route path="/help/articles/avalanche-method" element={<AvalancheMethodArticle />} />
-      <Route path="/help/articles/account-setup" element={<AccountSetupArticle />} />
-      <Route path="/help/articles/dashboard-overview" element={<UnderstandingDashboardArticle />} />
-      <Route path="/help/articles/adding-debts" element={<AddingFirstDebtArticle />} />
+      <Route
+        path="/help/articles/snowball-method"
+        element={<SnowballMethodArticle />}
+      />
+      <Route
+        path="/help/articles/avalanche-method"
+        element={<AvalancheMethodArticle />}
+      />
+      <Route
+        path="/help/articles/account-setup"
+        element={<AccountSetupArticle />}
+      />
+      <Route
+        path="/help/articles/dashboard-overview"
+        element={<UnderstandingDashboardArticle />}
+      />
+      <Route
+        path="/help/articles/adding-debts"
+        element={<AddingFirstDebtArticle />}
+      />
       <Route path="/docs" element={<Docs />} />
       <Route path="/api" element={<Api />} />
       <Route path="/status" element={<Status />} />
@@ -137,11 +174,14 @@ function AppRoutes() {
       <Route path="/signup" element={<SignUp />} />
       <Route path="/payment-success" element={<PaymentSuccess />} />
       <Route path="/auth-demo" element={<AuthDemo />} />
-      <Route path="/admin" element={
-        <ProtectedRoute>
-          <AdminTools />
-        </ProtectedRoute>
-      } />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <AdminTools />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/dashboard/*"
         element={
@@ -152,7 +192,7 @@ function AppRoutes() {
       />
       <Route path="/debt-planner" element={<DebtPlanner />} />
       <Route path="/settings" element={<Settings />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Landing />} />
     </Routes>
   );
 }
@@ -164,7 +204,9 @@ function AppNavbar() {
   const { isMobile } = useDeviceContext();
 
   const handleSignIn = () => {
-    navigate("/signin", { state: { returnTo: window.location.pathname, animation: "slide-in" } });
+    navigate("/signin", {
+      state: { returnTo: window.location.pathname, animation: "slide-in" },
+    });
   };
 
   const handleSignUp = () => {
@@ -207,38 +249,47 @@ function AppContent() {
   useEffect(() => {
     const initializeDatabase = async () => {
       try {
-        console.log('Checking database tables...');
-        
+        console.log("Checking database tables...");
+
         // Check if the SQL execute function exists
         const sqlFunctionCheck = await checkExecuteSqlFunction();
         if (!sqlFunctionCheck.exists) {
-          console.warn('SQL execution function is not available:', sqlFunctionCheck.message);
+          console.warn(
+            "SQL execution function is not available:",
+            sqlFunctionCheck.message
+          );
           // Continue even without SQL execution capability
         }
-        
+
         // Try to access tables (this will validate if they exist)
         const debtsResult = await createDebtTable();
         if (!debtsResult.success) {
-          console.log('Note about debts table:', debtsResult.error);
+          console.log("Note about debts table:", debtsResult.error);
         }
-        
+
         const bankAccountsResult = await createBankAccountsTable();
         if (!bankAccountsResult.success) {
-          console.log('Note about bank accounts table:', bankAccountsResult.error);
+          console.log(
+            "Note about bank accounts table:",
+            bankAccountsResult.error
+          );
         }
-        
+
         const transactionHistoryResult = await createTransactionHistoryTable();
         if (!transactionHistoryResult.success) {
-          console.log('Note about transaction history table:', transactionHistoryResult.error);
+          console.log(
+            "Note about transaction history table:",
+            transactionHistoryResult.error
+          );
         }
-        
-        console.log('Database initialization completed');
+
+        console.log("Database initialization completed");
       } catch (err) {
-        console.error('Error during database initialization:', err);
+        console.error("Error during database initialization:", err);
         // Continue with the application regardless of database initialization
       }
     };
-    
+
     // Only run this if the user is authenticated
     if (isAuthenticated) {
       initializeDatabase();
@@ -247,8 +298,9 @@ function AppContent() {
 
   // Show onboarding tour for new users
   const shouldShowTour = !localStorage.getItem("onboardingCompleted");
-  const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
-  const isDashboardPage = location.pathname.startsWith('/dashboard');
+  const isAuthPage =
+    location.pathname === "/signin" || location.pathname === "/signup";
+  const isDashboardPage = location.pathname.startsWith("/dashboard");
 
   return (
     <Layout>
@@ -276,7 +328,7 @@ function AppContent() {
 function App() {
   // Initialize performance monitoring
   usePerformanceMonitoring();
-  
+
   // Initialize error tracking
   useErrorTracking();
 

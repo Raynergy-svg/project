@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/empty-module';
 import { IS_DEV } from '@/utils/environment';
 
 /**

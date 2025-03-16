@@ -7,7 +7,7 @@
  * @see https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
  */
 
-import { getTurnstileEnv, CLOUDFLARE_TEST_SITE_KEY, CLOUDFLARE_TEST_SECRET_KEY } from './env-loader';
+import { getTurnstileEnv, CLOUDFLARE_TEST_SITE_KEY, CLOUDFLARE_TEST_SECRET_KEY } from '../temp-constants';
 
 // Helper function to safely get environment variables with fallbacks
 function getEnvVar(name: string, fallback: string = ''): string {

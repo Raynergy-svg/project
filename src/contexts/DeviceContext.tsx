@@ -1,10 +1,13 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import type { DeviceInfo } from '@/types/device';
+"use client";
+
+import { createContext, useContext, useEffect, useState } from "react";
+import type { DeviceInfo } from "@/types/device";
+import { IS_DEV } from "@/utils/env-constants";
 
 // Default values for SSR
 const defaultDeviceInfo: DeviceInfo = {
-  type: 'desktop',
-  orientation: 'landscape',
+  type: "desktop",
+  orientation: "landscape",
   isTouchDevice: false,
   isReducedMotion: false,
   devicePixelRatio: 1,
@@ -14,7 +17,7 @@ const defaultDeviceInfo: DeviceInfo = {
   isDesktop: true,
   isMobileOrTablet: false,
   isPortrait: false,
-  isLandscape: true
+  isLandscape: true,
 };
 
 const DeviceContext = createContext<DeviceInfo>(defaultDeviceInfo);
@@ -29,19 +32,23 @@ export function DeviceProvider({ children }: DeviceProviderProps) {
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo>(defaultDeviceInfo);
 
   useEffect(() => {
-    const getDeviceType = (width: number): DeviceInfo['type'] => {
-      if (width < 768) return 'mobile';
-      if (width < 1024) return 'tablet';
-      return 'desktop';
+    const getDeviceType = (width: number): DeviceInfo["type"] => {
+      if (width < 768) return "mobile";
+      if (width < 1024) return "tablet";
+      return "desktop";
     };
 
     const updateDeviceInfo = () => {
       const width = window.innerWidth;
       const type = getDeviceType(width);
-      const orientation = window.innerHeight > window.innerWidth ? 'portrait' : 'landscape';
-      const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const hasMouse = window.matchMedia('(pointer: fine)').matches;
+      const orientation =
+        window.innerHeight > window.innerWidth ? "portrait" : "landscape";
+      const isTouchDevice =
+        "ontouchstart" in window || navigator.maxTouchPoints > 0;
+      const isReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+      const hasMouse = window.matchMedia("(pointer: fine)").matches;
 
       setDeviceInfo({
         type,
@@ -50,12 +57,12 @@ export function DeviceProvider({ children }: DeviceProviderProps) {
         isReducedMotion,
         devicePixelRatio: window.devicePixelRatio,
         hasMouse,
-        isMobile: type === 'mobile',
-        isTablet: type === 'tablet',
-        isDesktop: type === 'desktop',
-        isMobileOrTablet: type === 'mobile' || type === 'tablet',
-        isPortrait: orientation === 'portrait',
-        isLandscape: orientation === 'landscape'
+        isMobile: type === "mobile",
+        isTablet: type === "tablet",
+        isDesktop: type === "desktop",
+        isMobileOrTablet: type === "mobile" || type === "tablet",
+        isPortrait: orientation === "portrait",
+        isLandscape: orientation === "landscape",
       });
     };
 
@@ -69,32 +76,36 @@ export function DeviceProvider({ children }: DeviceProviderProps) {
       timeoutId = window.setTimeout(updateDeviceInfo, 150);
     };
 
-    window.addEventListener('resize', handleResize, { passive: true });
-    window.addEventListener('orientationchange', handleResize, { passive: true });
+    window.addEventListener("resize", handleResize, { passive: true });
+    window.addEventListener("orientationchange", handleResize, {
+      passive: true,
+    });
 
-    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const pointerQuery = window.matchMedia('(pointer: fine)');
+    const reducedMotionQuery = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    );
+    const pointerQuery = window.matchMedia("(pointer: fine)");
 
-    reducedMotionQuery.addEventListener('change', updateDeviceInfo);
-    pointerQuery.addEventListener('change', updateDeviceInfo);
+    reducedMotionQuery.addEventListener("change", updateDeviceInfo);
+    pointerQuery.addEventListener("change", updateDeviceInfo);
 
     // Development logging
-    if (import.meta.env.DEV) {
-      console.log('Initial Device Info:', deviceInfo);
+    if (IS_DEV) {
+      console.log("Initial Device Info:", deviceInfo);
     }
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-      reducedMotionQuery.removeEventListener('change', updateDeviceInfo);
-      pointerQuery.removeEventListener('change', updateDeviceInfo);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
+      reducedMotionQuery.removeEventListener("change", updateDeviceInfo);
+      pointerQuery.removeEventListener("change", updateDeviceInfo);
       clearTimeout(timeoutId);
     };
   }, []);
 
   return (
     <DeviceContext.Provider value={deviceInfo}>
-      <div 
+      <div
         data-device-type={deviceInfo.type}
         data-orientation={deviceInfo.orientation}
         data-touch={deviceInfo.isTouchDevice}
@@ -104,4 +115,4 @@ export function DeviceProvider({ children }: DeviceProviderProps) {
       </div>
     </DeviceContext.Provider>
   );
-} 
+}

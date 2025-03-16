@@ -37,76 +37,128 @@ CREATE POLICY IF NOT EXISTS "Public profiles are viewable by everyone"
   FOR SELECT 
   USING (true);
 
--- Create a robust trigger function that works with various profile schemas
-CREATE OR REPLACE FUNCTION public.handle_new_user() 
+-- Check tables that exist
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+AND table_type = 'BASE TABLE';
+
+-- Check if the trigger exists
+SELECT tgname, tgrelid::regclass AS table_name, tgtype, tgenabled, tgisinternal
+FROM pg_trigger
+WHERE tgname = 'on_auth_user_created';
+
+-- Check if the function exists
+SELECT proname, pronamespace::regnamespace AS schema_name, prosrc
+FROM pg_proc
+WHERE proname = 'handle_new_user';
+
+-- Recreate the trigger function to handle either table
+CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
-  columns_info RECORD;
-  has_email BOOLEAN := FALSE;
-  has_name BOOLEAN := FALSE;
-  has_raw_meta BOOLEAN := FALSE;
-  has_username BOOLEAN := FALSE;
-  has_full_name BOOLEAN := FALSE;
+  users_table_exists BOOLEAN;
+  profiles_table_exists BOOLEAN;
 BEGIN
-  -- Check if each column exists in the profiles table
-  FOR columns_info IN 
-    SELECT column_name 
-    FROM information_schema.columns 
-    WHERE table_schema = 'public' AND table_name = 'profiles'
-  LOOP
-    IF columns_info.column_name = 'email' THEN 
-      has_email := TRUE;
-    END IF;
-    IF columns_info.column_name = 'name' THEN 
-      has_name := TRUE;
-    END IF;
-    IF columns_info.column_name = 'raw_user_meta_data' THEN 
-      has_raw_meta := TRUE;
-    END IF;
-    IF columns_info.column_name = 'username' THEN 
-      has_username := TRUE;
-    END IF;
-    IF columns_info.column_name = 'full_name' THEN 
-      has_full_name := TRUE;
-    END IF;
-  END LOOP;
+  -- Check which tables exist
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' AND table_name = 'users'
+  ) INTO users_table_exists;
   
-  -- Construct the INSERT dynamically based on available columns
-  EXECUTE 'INSERT INTO public.profiles (id'
-    || CASE WHEN has_email THEN ', email' ELSE '' END
-    || CASE WHEN has_name THEN ', name' ELSE '' END
-    || CASE WHEN has_raw_meta THEN ', raw_user_meta_data' ELSE '' END
-    || CASE WHEN has_username THEN ', username' ELSE '' END
-    || CASE WHEN has_full_name THEN ', full_name' ELSE '' END
-    || ') VALUES ($1'
-    || CASE WHEN has_email THEN ', $2' ELSE '' END
-    || CASE WHEN has_name THEN ', $3' ELSE '' END
-    || CASE WHEN has_raw_meta THEN ', $4' ELSE '' END
-    || CASE WHEN has_username THEN ', $5' ELSE '' END
-    || CASE WHEN has_full_name THEN ', $6' ELSE '' END
-    || ')'
-  USING 
-    NEW.id,
-    CASE WHEN has_email THEN NEW.email ELSE NULL END,
-    CASE WHEN has_name THEN NEW.raw_user_meta_data->>'name' ELSE NULL END,
-    CASE WHEN has_raw_meta THEN NEW.raw_user_meta_data ELSE NULL END,
-    CASE WHEN has_username THEN NEW.raw_user_meta_data->>'username' ELSE NULL END,
-    CASE WHEN has_full_name THEN NEW.raw_user_meta_data->>'full_name' ELSE NULL END;
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' AND table_name = 'profiles'
+  ) INTO profiles_table_exists;
+  
+  -- Insert debug log
+  RAISE NOTICE 'Trigger fired for user_id: %, email: %, users_exists: %, profiles_exists: %', 
+    NEW.id, NEW.email, users_table_exists, profiles_table_exists;
+  
+  -- Insert into users table if it exists
+  IF users_table_exists THEN
+    INSERT INTO public.users (id, email, full_name)
+    VALUES (
+      NEW.id,
+      NEW.email,
+      coalesce(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name')
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+  
+  -- Insert into profiles table if it exists
+  IF profiles_table_exists THEN
+    INSERT INTO public.profiles (id, email, full_name)
+    VALUES (
+      NEW.id,
+      NEW.email,
+      coalesce(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name')
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
   
   RETURN NEW;
 EXCEPTION
-  WHEN OTHERS THEN
-    -- Fallback to basic insert if dynamic approach fails
-    INSERT INTO public.profiles (id) VALUES (NEW.id);
+  WHEN unique_violation THEN
+    -- If the user already exists, do nothing
+    RAISE NOTICE 'User already exists: %', NEW.id;
+    RETURN NEW;
+  WHEN others THEN
+    -- Log other errors but don't fail the transaction
+    RAISE WARNING 'Error in handle_new_user: %', SQLERRM;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Recreate the trigger
+-- Re-create the trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Explicitly grant permissions to both tables
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT EXECUTE ON FUNCTION public.handle_new_user() TO postgres, service_role, anon, authenticated;
+
+-- Try to manually insert the record for our test user into both tables
+DO $$
+DECLARE
+  users_table_exists BOOLEAN;
+  profiles_table_exists BOOLEAN;
+BEGIN
+  -- Check which tables exist
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' AND table_name = 'users'
+  ) INTO users_table_exists;
+  
+  SELECT EXISTS(
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'public' AND table_name = 'profiles'
+  ) INTO profiles_table_exists;
+  
+  -- Insert into users table if it exists
+  IF users_table_exists THEN
+    INSERT INTO public.users (id, email, full_name)
+    VALUES (
+      '9c9cf51a-a774-406f-8928-eade48844ccf',
+      'test.user123@gmail.com',
+      'Test User'
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+  
+  -- Insert into profiles table if it exists
+  IF profiles_table_exists THEN
+    INSERT INTO public.profiles (id, email, full_name)
+    VALUES (
+      '9c9cf51a-a774-406f-8928-eade48844ccf',
+      'test.user123@gmail.com',
+      'Test User'
+    )
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+END $$;
 
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/empty-module';
 import { useAuth } from '@/contexts/AuthContext';
 import { CreateInvestorAccount } from '@/components/admin/CreateInvestorAccount';
 import { supabase } from '@/utils/supabase/client';

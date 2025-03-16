@@ -6,7 +6,7 @@
  */
 
 import { supabase } from './client';
-import { CLOUDFLARE_TEST_SITE_KEY } from '../env-loader';
+import { CLOUDFLARE_TEST_SITE_KEY } from '../temp-constants';
 
 // The site URL that should be configured in Supabase for CAPTCHA
 const SITE_URL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';

@@ -5,14 +5,14 @@
 /**
  * This file is now a compatibility layer that re-exports from AuthContext
  * New code should import directly from AuthContext.tsx
- * 
+ *
  * This maintains backward compatibility while we migrate to the new auth system.
  */
 
-'use client';
+"use client";
 
-import { AuthProvider, useAuth, UserProfile } from './AuthContext';
-import { Session } from '@supabase/supabase-js';
+import { AuthProvider, useAuth, UserProfile } from "./AuthContext";
+import { Session } from "@supabase/supabase-js";
 
 // Export types for backward compatibility
 interface NextAuthContextType {
@@ -21,8 +21,16 @@ interface NextAuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isSubscribed: boolean;
-  login: (email: string, password: string, options?: any) => Promise<{ success: boolean; error?: string }>;
-  signup: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    email: string,
+    password: string,
+    options?: any
+  ) => Promise<{ success: boolean; error?: string }>;
+  signup: (
+    email: string,
+    password: string,
+    name?: string
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<void>;
 }
@@ -41,4 +49,4 @@ export function useNextAuth() {
 }
 
 // Export the UserProfile type
-export type { UserProfile, NextAuthContextType }; 
+export type { UserProfile, NextAuthContextType };

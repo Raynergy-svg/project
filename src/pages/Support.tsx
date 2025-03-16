@@ -3,7 +3,7 @@ import { HeadphonesIcon, HelpCircle, MessageCircle, Clock, FileQuestion, Mail, S
 import { Button } from '@/components/ui/button';
 import AIChat from '@/components/chat/AIChat';
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@/empty-module';
 
 export default function Support() {
   // Keep session active while on support page

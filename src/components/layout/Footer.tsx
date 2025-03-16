@@ -1,34 +1,41 @@
-import Link from 'next/link';
-import { Logo } from '@/components/Logo';
-import { Facebook, Twitter, Instagram, Linkedin, Shield, Lock } from 'lucide-react';
+import Link from "next/link";
+import { Logo } from "@/components/Logo";
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  Shield,
+  Lock,
+} from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
     company: [
-      { label: 'About Us', href: '/about' },
-      { label: 'Careers', href: '/careers' },
-      { label: 'Blog', href: '/blog' },
+      { label: "About Us", href: "/about" },
+      { label: "Careers", href: "/careers" },
+      { label: "Blog", href: "/blog" },
     ],
     resources: [
-      { label: 'Help Center', href: '/help' },
-      { label: 'Financial Resources', href: '/docs' },
-      { label: 'Status', href: '/status' },
+      { label: "Help Center", href: "/help" },
+      { label: "Financial Resources", href: "/docs" },
+      { label: "Status", href: "/status" },
     ],
     legal: [
-      { label: 'Privacy Policy', href: '/privacy' },
-      { label: 'Terms of Service', href: '/terms' },
-      { label: 'Support', href: '/support' },
-      { label: 'Security', href: '/security' },
+      { label: "Privacy Policy", href: "/privacy" },
+      { label: "Terms of Service", href: "/terms" },
+      { label: "Support", href: "/support" },
+      { label: "Security", href: "/security" },
     ],
   };
 
   const socialLinks = [
-    { icon: Facebook, href: 'https://facebook.com', label: 'Facebook' },
-    { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
-    { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
-    { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
+    { icon: Facebook, href: "https://facebook.com", label: "Facebook" },
+    { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
+    { icon: Instagram, href: "https://instagram.com", label: "Instagram" },
+    { icon: Linkedin, href: "https://linkedin.com", label: "LinkedIn" },
   ];
 
   return (
@@ -41,9 +48,10 @@ export default function Footer() {
               <Logo className="h-8 w-auto mb-4" isLink={false} />
             </Link>
             <p className="text-muted-foreground text-sm">
-              Smart Debt Flow helps you manage your debt, create payment plans, and track your progress toward financial freedom.
+              Smart Debt Flow helps you manage your debt, create payment plans,
+              and track your progress toward financial freedom.
             </p>
-            
+
             {/* Social Links */}
             <div className="flex space-x-4 mt-6">
               {socialLinks.map((link) => {

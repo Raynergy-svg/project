@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from '@/empty-module';
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 
 /**

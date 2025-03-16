@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Calculator, Wallet, TrendingUp, PiggyBank, CreditCard, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/empty-module';
 
 interface FinancialToolsProps {
   className?: string;
@@ -157,7 +157,7 @@ export default function FinancialTools({ className, onLaunchCalculator }: Financ
                       ))}
                     </ul>
                     <Button
-                      className="mt-4 ml-8 text-[#88B04B] border-[#88B04B]/30 hover:bg-[#88B04B]/10"
+                      className="mt-4 ml-8 text-[#88B04B] border-[#88B04B]/30 hover:bg-[#88B04B]/10 dark:text-[#A4CC69] dark:border-[#A4CC69]/40 dark:hover:bg-[#A4CC69]/10"
                       variant="outline"
                       size="sm"
                       onClick={() => navigate('/financial-resources')}

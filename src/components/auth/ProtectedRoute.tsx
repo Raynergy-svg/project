@@ -1,8 +1,8 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { supabase } from '@/utils/supabase/client';
+import { ReactNode, useEffect, useState } from "react";
+import { Navigate, useLocation } from "@/empty-module";
+import { useAuth } from "@/contexts/AuthContext";
+import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { supabase } from "@/utils/supabase/client";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -17,14 +17,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   useEffect(() => {
     async function checkSubscription() {
       // Always bypass subscription check in development mode
-      if (window.location.hostname === 'localhost' || 
-          import.meta.env.MODE === 'development') {
-        console.log('Development mode detected - bypassing subscription check');
+      if (
+        window.location.hostname === "localhost" ||
+        import.meta.env.MODE === "development"
+      ) {
+        console.log("Development mode detected - bypassing subscription check");
         setHasSubscription(true);
         setIsLoading(false);
         return;
       }
-      
+
       if (!isAuthenticated || !user) {
         setIsLoading(false);
         return;
@@ -33,30 +35,32 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       try {
         // Query the user's subscription status from Supabase
         const { data, error } = await supabase
-          .from('user_subscriptions')
-          .select('status, subscription_id')
-          .eq('user_id', user.id)
+          .from("user_subscriptions")
+          .select("status, subscription_id")
+          .eq("user_id", user.id)
           .single();
 
         if (error) {
-          console.error('Error checking subscription:', error);
+          console.error("Error checking subscription:", error);
           // If we can't check the subscription (API error, etc.), allow access in development
           // but block in production
-          if (import.meta.env.MODE === 'development') {
-            console.warn('Development mode - allowing access despite subscription check error');
+          if (import.meta.env.MODE === "development") {
+            console.warn(
+              "Development mode - allowing access despite subscription check error"
+            );
             setHasSubscription(true);
           } else {
             setHasSubscription(false);
           }
         } else {
           // Check if subscription is active
-          setHasSubscription(data && data.status === 'active');
+          setHasSubscription(data && data.status === "active");
         }
       } catch (error) {
-        console.error('Error checking subscription:', error);
+        console.error("Error checking subscription:", error);
         // Same fallback behavior as above
-        if (import.meta.env.MODE === 'development') {
-          console.warn('Development mode - allowing access despite error');
+        if (import.meta.env.MODE === "development") {
+          console.warn("Development mode - allowing access despite error");
           setHasSubscription(true);
         } else {
           setHasSubscription(false);
@@ -79,7 +83,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!isAuthenticated) {
     // Redirect to sign in if not authenticated
-    return <Navigate to="/signin" state={{ returnTo: location.pathname }} replace />;
+    return (
+      <Navigate to="/signin" state={{ returnTo: location.pathname }} replace />
+    );
   }
 
   if (!hasSubscription) {

@@ -13,6 +13,9 @@ declare global {
       (moduleId: any): any;
       [key: string]: any;
     };
+    __webpack_modules__?: {
+      [key: string]: any;
+    };
   }
 }
 
@@ -23,13 +26,8 @@ interface WebpackErrorHandlerProps {
 /**
  * WebpackErrorHandler
  *
- * A specialized error boundary component that specifically targets and handles
- * webpack-related errors, including the "Cannot read properties of undefined (reading 'call')" error.
- *
- * This component:
- * 1. Listens for global errors that match webpack patterns
- * 2. Provides a user-friendly fallback UI when errors occur
- * 3. Offers a retry mechanism
+ * Specifically targets and handles webpack + React Server Components errors
+ * including the "Cannot read properties of undefined (reading 'call')" error.
  */
 const WebpackErrorHandler: React.FC<WebpackErrorHandlerProps> = ({
   children,
@@ -37,36 +35,92 @@ const WebpackErrorHandler: React.FC<WebpackErrorHandlerProps> = ({
   const [hasError, setHasError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
-  useEffect(function () {
-    // Function to handle global errors
+  // Fix React Server Components client error
+  useEffect(() => {
+    // Early return if not in browser
+    if (typeof window === "undefined") return;
+
+    // Apply patches to react-server-dom-webpack
+    const patchReactServerDOMWebpack = () => {
+      try {
+        // Get all script elements that might contain the problematic module
+        const scripts = document.querySelectorAll("script");
+
+        // Find the webpack runtime script
+        const webpackScript = Array.from(scripts).find(
+          (script) => script.src && script.src.includes("webpack.js")
+        );
+
+        if (webpackScript) {
+          // Enhance the webpack require function
+          if (window.__webpack_require__) {
+            const originalRequire = window.__webpack_require__;
+
+            // Proxy the webpack require to handle undefined modules
+            window.__webpack_require__ = function (moduleId) {
+              try {
+                if (moduleId === undefined || moduleId === null) {
+                  console.warn("Attempted to require undefined module");
+                  return {};
+                }
+                return originalRequire(moduleId);
+              } catch (e) {
+                console.warn(`Error requiring module ${moduleId}:`, e);
+                return {};
+              }
+            };
+
+            // Copy all properties
+            for (const key in originalRequire) {
+              if (Object.prototype.hasOwnProperty.call(originalRequire, key)) {
+                window.__webpack_require__[key] = originalRequire[key];
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Error patching React Server DOM Webpack:", e);
+      }
+    };
+
+    // Apply patch immediately
+    patchReactServerDOMWebpack();
+
+    // Also patch after a short delay in case scripts load later
+    setTimeout(patchReactServerDOMWebpack, 500);
+  }, []);
+
+  useEffect(() => {
+    // Handle global errors
     function handleError(event: ErrorEvent) {
-      // Check if this is a webpack-related error using indexOf instead of includes
-      const isWebpackError =
-        event.message.indexOf("webpack") !== -1 ||
-        event.message.indexOf("Cannot read properties of undefined") !== -1 ||
-        event.message.indexOf("reading 'call'") !== -1 ||
+      const isRSCError =
+        (event.message &&
+          (event.message.includes("Cannot read properties of undefined") ||
+            event.message.includes("reading 'call'") ||
+            event.message.includes("react-server-dom-webpack"))) ||
         (event.error &&
           event.error.stack &&
-          event.error.stack.indexOf("webpack") !== -1);
+          (event.error.stack.includes("react-server-dom-webpack") ||
+            event.error.stack.includes("webpack.js")));
 
-      if (isWebpackError) {
-        // Prevent the error from bubbling up
+      if (isRSCError) {
+        console.error("RSC Error caught:", event.message);
         event.preventDefault();
         setHasError(true);
         setErrorDetails(event.message);
       }
     }
 
-    // Function to handle promise rejections
+    // Handle promise rejections
     function handleRejection(event: PromiseRejectionEvent) {
       const reason = event.reason ? String(event.reason) : "";
-      const isWebpackError =
-        reason.indexOf("webpack") !== -1 ||
-        reason.indexOf("Cannot read properties of undefined") !== -1 ||
-        reason.indexOf("reading 'call'") !== -1;
+      const isRSCError =
+        reason.includes("Cannot read properties of undefined") ||
+        reason.includes("reading 'call'") ||
+        reason.includes("react-server-dom-webpack");
 
-      if (isWebpackError) {
-        // Prevent the rejection from bubbling up
+      if (isRSCError) {
+        console.error("RSC Promise Rejection caught:", reason);
         event.preventDefault();
         setHasError(true);
         setErrorDetails(reason);
@@ -80,7 +134,7 @@ const WebpackErrorHandler: React.FC<WebpackErrorHandlerProps> = ({
     }
 
     // Cleanup
-    return function () {
+    return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("error", handleError);
         window.removeEventListener("unhandledrejection", handleRejection);
@@ -88,32 +142,16 @@ const WebpackErrorHandler: React.FC<WebpackErrorHandlerProps> = ({
     };
   }, []);
 
-  // Function to handle retry
+  // Handle retry
   function handleRetry() {
-    // Apply webpack patch again
-    try {
-      // Try to fix webpack runtime issues
-      if (typeof window !== "undefined" && window.__webpack_require__) {
-        var originalRequire = window.__webpack_require__;
-
-        window.__webpack_require__ = function patchedRequire(moduleId: any) {
-          try {
-            if (!moduleId) {
-              return {};
-            }
-            return originalRequire(moduleId);
-          } catch (e) {
-            return {};
-          }
-        };
-      }
-    } catch (e) {
-      // Ignore errors in the patch itself
-    }
-
     // Reset error state
     setHasError(false);
     setErrorDetails(null);
+
+    // Force refresh the page
+    if (typeof window !== "undefined") {
+      window.location.reload();
+    }
   }
 
   // If no error, render children normally
@@ -130,7 +168,7 @@ const WebpackErrorHandler: React.FC<WebpackErrorHandlerProps> = ({
         </h2>
         <p className="mb-4 text-muted-foreground">
           We encountered an issue loading this page. This is likely due to a
-          temporary problem with the application's resources.
+          temporary problem with React Server Components.
         </p>
         {errorDetails && (
           <div className="mb-4 p-3 bg-muted rounded text-sm overflow-auto max-h-32">
@@ -143,12 +181,29 @@ const WebpackErrorHandler: React.FC<WebpackErrorHandlerProps> = ({
           </Button>
           <Button
             variant="outline"
-            onClick={function () {
+            onClick={() => {
               window.location.reload();
             }}
             className="w-full"
           >
             Reload Page
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              // Clear storage and cache
+              if ("caches" in window) {
+                caches.keys().then((names) => {
+                  names.forEach((name) => caches.delete(name));
+                });
+              }
+              localStorage.clear();
+              sessionStorage.clear();
+              window.location.reload();
+            }}
+            className="w-full mt-2"
+          >
+            Clear Cache and Reload
           </Button>
         </div>
       </div>

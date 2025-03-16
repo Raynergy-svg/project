@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ interface NavbarProps {
 interface NavItem {
   id?: string;
   label: string;
-  type: 'scroll' | 'menu';
+  type: "scroll" | "menu";
   href?: string;
   items?: Array<{
     label: string;
@@ -46,7 +46,7 @@ export default function Navbar({
   userName,
   onDashboardClick,
   onNavigate,
-  transparent = false
+  transparent = false,
 }: NavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openDropdowns, setOpenDropdowns] = useState<string[]>([]);
@@ -57,8 +57,8 @@ export default function Navbar({
   const isReducedMotion = useReducedMotion();
   const { theme, setTheme } = useTheme();
   const prefersReducedMotion = useReducedMotion();
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  
+  const isMobile = useMediaQuery("(max-width: 768px)");
+
   const backgroundColor = "rgba(0, 0, 0, 0.9)";
 
   useEffect(() => {
@@ -66,11 +66,11 @@ export default function Navbar({
       setIsScrolled(window.scrollY > 10);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
     handleScroll();
-    
+
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -83,47 +83,47 @@ export default function Navbar({
   // Add effect to prevent body scrolling when mobile menu is open
   useEffect(() => {
     if (isMenuOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     }
-    
+
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = "";
     };
   }, [isMenuOpen]);
 
   const navItems: NavItem[] = [
-    { id: 'features', label: 'Features', type: 'scroll' },
-    { id: 'methods', label: 'Methods', type: 'scroll' },
-    { id: 'pricing', label: 'Pricing', type: 'scroll' },
-    { 
-      label: 'Company',
-      type: 'menu',
+    { id: "features", label: "Features", type: "scroll" },
+    { id: "methods", label: "Methods", type: "scroll" },
+    { id: "pricing", label: "Pricing", type: "scroll" },
+    {
+      label: "Company",
+      type: "menu",
       items: [
-        { label: 'About Us', href: '/about' },
-        { label: 'Careers', href: '/careers' },
-        { label: 'Blog', href: '/blog' }
-      ]
+        { label: "About Us", href: "/about" },
+        { label: "Careers", href: "/careers" },
+        { label: "Blog", href: "/blog" },
+      ],
     },
-    { 
-      label: 'Resources',
-      type: 'menu',
+    {
+      label: "Resources",
+      type: "menu",
       items: [
-        { label: 'Help Center', href: '/help' },
-        { label: 'Financial Resources', href: '/docs' },
-        { label: 'Status', href: '/status' }
-      ]
+        { label: "Help Center", href: "/help" },
+        { label: "Financial Resources", href: "/docs" },
+        { label: "Status", href: "/status" },
+      ],
     },
-    { 
-      label: 'Legal',
-      type: 'menu',
+    {
+      label: "Legal",
+      type: "menu",
       items: [
-        { label: 'Privacy Policy', href: '/privacy' },
-        { label: 'Terms of Service', href: '/terms' },
-        { label: 'Security', href: '/security' }
-      ]
-    }
+        { label: "Privacy Policy", href: "/privacy" },
+        { label: "Terms of Service", href: "/terms" },
+        { label: "Security", href: "/security" },
+      ],
+    },
   ];
 
   const handleNavigation = (id?: string, href?: string) => {
@@ -137,9 +137,9 @@ export default function Navbar({
   };
 
   const toggleDropdown = (label: string) => {
-    setOpenDropdowns(prev => {
+    setOpenDropdowns((prev) => {
       if (prev.includes(label)) {
-        return prev.filter(item => item !== label);
+        return prev.filter((item) => item !== label);
       } else {
         return [...prev, label];
       }
@@ -173,12 +173,12 @@ export default function Navbar({
                   <X className="h-6 w-6" />
                 </Button>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto py-8">
                 <nav className="flex flex-col space-y-6">
                   {navItems.map((item) => (
                     <div key={item.label} className="flex flex-col">
-                      {item.type === 'scroll' ? (
+                      {item.type === "scroll" ? (
                         <button
                           onClick={() => handleNavigation(item.id)}
                           className="text-xl font-medium py-3 text-left flex items-center dark:text-white text-gray-800"
@@ -186,13 +186,14 @@ export default function Navbar({
                         >
                           {item.label}
                         </button>
-                      ) : item.type === 'menu' && item.items ? (
+                      ) : item.type === "menu" && item.items ? (
                         <div className="flex flex-col">
                           <button
                             onClick={() => toggleDropdown(item.label)}
                             className={cn(
                               "px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors flex items-center dark:text-white text-gray-800",
-                              openDropdowns.includes(item.label) && "bg-accent/50"
+                              openDropdowns.includes(item.label) &&
+                                "bg-accent/50"
                             )}
                             aria-expanded={openDropdowns.includes(item.label)}
                           >
@@ -200,25 +201,33 @@ export default function Navbar({
                             <ChevronDown
                               className={cn(
                                 "ml-1 h-5 w-5 transition-transform",
-                                openDropdowns.includes(item.label) && "rotate-180"
+                                openDropdowns.includes(item.label) &&
+                                  "rotate-180"
                               )}
                             />
                           </button>
-                          
+
                           <AnimatePresence>
                             {openDropdowns.includes(item.label) && (
                               <motion.div
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: isReducedMotion ? 0 : 0.2 }}
+                                transition={{
+                                  duration: isReducedMotion ? 0 : 0.2,
+                                }}
                                 className="overflow-hidden"
                               >
                                 <div className="pl-4 py-2 flex flex-col space-y-4">
                                   {item.items.map((subItem) => (
                                     <button
                                       key={subItem.label}
-                                      onClick={() => handleNavigation(undefined, subItem.href)}
+                                      onClick={() =>
+                                        handleNavigation(
+                                          undefined,
+                                          subItem.href
+                                        )
+                                      }
                                       className="text-lg py-2 text-left dark:text-white text-gray-800"
                                       aria-label={`Navigate to ${subItem.label}`}
                                     >
@@ -232,7 +241,7 @@ export default function Navbar({
                         </div>
                       ) : (
                         <Link
-                          href={item.href || '#'}
+                          href={item.href || "#"}
                           className="text-xl font-medium py-3 dark:text-white text-gray-800"
                           aria-label={`Navigate to ${item.label}`}
                         >
@@ -243,7 +252,7 @@ export default function Navbar({
                   ))}
                 </nav>
               </div>
-              
+
               <div className="py-6 border-t border-border mt-auto">
                 <div className="flex flex-col space-y-4">
                   {!isAuthenticated ? (
@@ -264,13 +273,9 @@ export default function Navbar({
                       </Button>
                     </>
                   ) : (
-                    <Button
-                      onClick={onDashboardClick}
-                    >
-                      Dashboard
-                    </Button>
+                    <Button onClick={onDashboardClick}>Dashboard</Button>
                   )}
-                  
+
                   <div className="flex items-center justify-center space-x-2 pt-4">
                     <Button
                       variant="ghost"
@@ -279,7 +284,12 @@ export default function Navbar({
                       onClick={() => setTheme("light")}
                       aria-label="Light mode"
                     >
-                      <Sun className={cn("h-5 w-5", theme === "light" && "text-primary")} />
+                      <Sun
+                        className={cn(
+                          "h-5 w-5",
+                          theme === "light" && "text-primary"
+                        )}
+                      />
                     </Button>
                     <Button
                       variant="ghost"
@@ -288,7 +298,12 @@ export default function Navbar({
                       onClick={() => setTheme("dark")}
                       aria-label="Dark mode"
                     >
-                      <Moon className={cn("h-5 w-5", theme === "dark" && "text-primary")} />
+                      <Moon
+                        className={cn(
+                          "h-5 w-5",
+                          theme === "dark" && "text-primary"
+                        )}
+                      />
                     </Button>
                     <Button
                       variant="ghost"
@@ -297,7 +312,12 @@ export default function Navbar({
                       onClick={() => setTheme("system")}
                       aria-label="System theme"
                     >
-                      <Monitor className={cn("h-5 w-5", theme === "system" && "text-primary")} />
+                      <Monitor
+                        className={cn(
+                          "h-5 w-5",
+                          theme === "system" && "text-primary"
+                        )}
+                      />
                     </Button>
                   </div>
                 </div>
@@ -314,7 +334,9 @@ export default function Navbar({
       <header
         className={cn(
           "fixed top-0 left-0 right-0 z-40 transition-all duration-300",
-          isScrolled || !transparent ? "bg-background/95 backdrop-blur-sm shadow-sm" : "bg-transparent"
+          isScrolled || !transparent
+            ? "bg-background/95 backdrop-blur-sm shadow-sm"
+            : "bg-transparent"
         )}
       >
         <div className="container mx-auto px-4 md:px-6">
@@ -322,19 +344,19 @@ export default function Navbar({
             <div className="flex items-center -ml-3 md:-ml-4">
               <Logo size="xl" />
             </div>
-            
+
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-1 lg:space-x-2">
               {navItems.map((item) => (
                 <div key={item.label} className="relative group">
-                  {item.type === 'scroll' ? (
+                  {item.type === "scroll" ? (
                     <button
                       onClick={() => handleNavigation(item.id)}
                       className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors dark:text-white text-gray-800"
                     >
                       {item.label}
                     </button>
-                  ) : item.type === 'menu' && item.items ? (
+                  ) : item.type === "menu" && item.items ? (
                     <div>
                       <button
                         onClick={() => toggleDropdown(item.label)}
@@ -352,7 +374,7 @@ export default function Navbar({
                           )}
                         />
                       </button>
-                      
+
                       <AnimatePresence>
                         {openDropdowns.includes(item.label) && (
                           <motion.div
@@ -366,7 +388,9 @@ export default function Navbar({
                               {item.items.map((subItem) => (
                                 <button
                                   key={subItem.label}
-                                  onClick={() => handleNavigation(undefined, subItem.href)}
+                                  onClick={() =>
+                                    handleNavigation(undefined, subItem.href)
+                                  }
                                   className="block w-full text-left px-4 py-2 text-sm hover:bg-accent/50 transition-colors dark:text-white text-gray-800"
                                 >
                                   {subItem.label}
@@ -379,7 +403,7 @@ export default function Navbar({
                     </div>
                   ) : (
                     <Link
-                      href={item.href || '#'}
+                      href={item.href || "#"}
                       className="px-3 py-2 rounded-md text-sm font-medium hover:bg-accent/50 transition-colors dark:text-white text-gray-800"
                     >
                       {item.label}
@@ -388,7 +412,7 @@ export default function Navbar({
                 </div>
               ))}
             </nav>
-            
+
             {/* Desktop Auth Buttons */}
             <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
               {!isAuthenticated ? (
@@ -409,13 +433,9 @@ export default function Navbar({
                   </Button>
                 </>
               ) : (
-                <Button
-                  onClick={onDashboardClick}
-                >
-                  Dashboard
-                </Button>
+                <Button onClick={onDashboardClick}>Dashboard</Button>
               )}
-              
+
               <div className="hidden lg:flex items-center space-x-1">
                 <Button
                   variant="ghost"
@@ -424,7 +444,12 @@ export default function Navbar({
                   onClick={() => setTheme("light")}
                   aria-label="Light mode"
                 >
-                  <Sun className={cn("h-4 w-4", theme === "light" && "text-primary")} />
+                  <Sun
+                    className={cn(
+                      "h-4 w-4",
+                      theme === "light" && "text-primary"
+                    )}
+                  />
                 </Button>
                 <Button
                   variant="ghost"
@@ -433,7 +458,12 @@ export default function Navbar({
                   onClick={() => setTheme("dark")}
                   aria-label="Dark mode"
                 >
-                  <Moon className={cn("h-4 w-4", theme === "dark" && "text-primary")} />
+                  <Moon
+                    className={cn(
+                      "h-4 w-4",
+                      theme === "dark" && "text-primary"
+                    )}
+                  />
                 </Button>
                 <Button
                   variant="ghost"
@@ -442,11 +472,16 @@ export default function Navbar({
                   onClick={() => setTheme("system")}
                   aria-label="System theme"
                 >
-                  <Monitor className={cn("h-4 w-4", theme === "system" && "text-primary")} />
+                  <Monitor
+                    className={cn(
+                      "h-4 w-4",
+                      theme === "system" && "text-primary"
+                    )}
+                  />
                 </Button>
               </div>
             </div>
-            
+
             {/* Mobile Menu Button */}
             <Button
               variant="ghost"
@@ -460,10 +495,10 @@ export default function Navbar({
           </div>
         </div>
       </header>
-      
+
       {/* Mobile Menu */}
       {renderMobileMenu()}
-      
+
       {/* Spacer for fixed header */}
       <div className="h-16 md:h-20" />
     </>

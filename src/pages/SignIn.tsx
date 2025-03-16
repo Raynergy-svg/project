@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Eye, EyeOff, ArrowRight, Lock, Shield, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from '@/empty-module';
 import { Logo } from "@/components/Logo";
 import { useSecurity } from "@/contexts/SecurityContext";
 import { useAuth } from "@/contexts/AuthContext";

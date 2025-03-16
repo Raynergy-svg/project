@@ -1,32 +1,48 @@
 /**
- * Type declarations for webpack global variables
+ * TypeScript declarations for webpack runtime
+ * This helps TypeScript understand the webpack module system
  */
+
 interface WebpackRequire {
   (moduleId: any): any;
-  m?: Record<string, any>; // module cache
-  c?: Record<string, any>; // exports cache
-  p?: string; // public path
-  n?: (module: any) => any; // compatibility function
-  d?: (exports: any, name: string, getter: () => any) => void; // define getter
-  o?: (object: any, property: string) => boolean; // has own property
-  r?: (exports: any) => void; // mark as ES module
-  t?: (value: any, mode: any) => any; // create a fake namespace object
-  nmd?: (module: any) => void; // no module.id needed
-  [key: string]: any; // catch-all for other properties
+  m: Record<string, any>;
+  c: Record<string, any>;
+  p: string;
+  n: (moduleId: any) => any;
+  o: (object: any, property: string) => boolean;
+  d: (exports: any, name: string, getter: () => any) => void;
+  r: (exports: any) => void;
+  t: (value: any, mode: string) => any;
+  nmd: (module: any) => any;
+  f: {
+    j: (chunkId: any) => Promise<void>;
+    [key: string]: any;
+  };
+  e: (chunkId: any) => Promise<void>;
+  u: (chunkId: any) => string;
+  g: any;
+  h: () => string;
+  S: Record<string, any>;
+  [key: string]: any;
+}
+
+interface WebpackModules {
+  [moduleId: string]: {
+    exports: any;
+    id: string;
+    loaded: boolean;
+    [key: string]: any;
+  };
 }
 
 declare global {
   interface Window {
     __webpack_require__?: WebpackRequire;
-    __WEBPACK_PATCH_APPLIED?: boolean;
+    __webpack_modules__?: WebpackModules;
     webpackChunk_N_E?: any[];
     webpackJsonp?: any[];
+    [key: string]: any;
   }
-  
-  var __webpack_require__: WebpackRequire | undefined;
-  var __webpack_public_path__: string | undefined;
-  var __webpack_modules__: Record<string, any> | undefined;
-  var __webpack_chunk_load__: Function | undefined;
 }
 
 export {}; 

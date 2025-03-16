@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from '@/empty-module';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { User, Lock, CreditCard, Headphones, MessageCircle, Mail, Code, Shield, ArrowLeft, Home, KeyRound, Database } from 'lucide-react';

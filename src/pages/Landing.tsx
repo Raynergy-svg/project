@@ -2,7 +2,7 @@ import { ArrowRight, Shield, Star, Lock, CheckCircle } from "lucide-react";
 import { Suspense, lazy, useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence, useScroll, useSpring, useInView } from "framer-motion";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from '@/empty-module';
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Bookmark, Share2, ThumbsUp, Eye, Star, HelpCircle, File, ListChecks, PiggyBank, TrendingUp, Zap, DollarSign, Calculator, MessageCircle, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from '@/empty-module';
 import { useEffect, useState } from 'react';
 
 export default function AvalancheMethodArticle() {

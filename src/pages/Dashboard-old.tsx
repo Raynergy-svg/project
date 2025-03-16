@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@/empty-module';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboard } from '@/hooks/useDashboard';

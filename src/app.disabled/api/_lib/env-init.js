@@ -7,7 +7,7 @@
  * Note: Turnstile has been disabled and moved to src/utils/captcha
  */
 
-import { forceTurnstileEnv } from "@/utils/env-loader";
+import { forceTurnstileEnv } from "@/utils/temp-constants";
 
 // Force environment variables to be set (now a no-op for Turnstile)
 forceTurnstileEnv();

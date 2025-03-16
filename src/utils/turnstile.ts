@@ -5,7 +5,7 @@
  * with special handling for development mode and Supabase integration.
  */
 
-import { getTurnstileEnv, CLOUDFLARE_TEST_SITE_KEY, forceTurnstileEnv } from './env-loader';
+import { getTurnstileEnv, CLOUDFLARE_TEST_SITE_KEY, forceTurnstileEnv } from './temp-constants';
 
 // Ensure environment variables are forced on import
 forceTurnstileEnv();

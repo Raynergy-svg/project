@@ -1,53 +1,56 @@
-// This adapter provides compatibility between Vite's import.meta.env and Next.js process.env
+/**
+ * Environment Adapter
+ * 
+ * This adapter provides compatibility between Vite's import.meta.env and Next.js process.env
+ * It creates a unified interface for accessing environment variables regardless of the build system.
+ */
 
-// Check if we're in a browser environment
-const isBrowser = typeof window !== 'undefined';
+// Import the lightweight constants
+import { IS_DEV, IS_PROD, getEnvSafe } from './env-constants';
 
-// Is development mode?
-export const IS_DEV = process.env.NODE_ENV === 'development';
+// Define an interface that matches both Vite and Next.js env properties
+interface EnvAdapter {
+  // Common environment flags
+  DEV: boolean;
+  PROD: boolean;
+  MODE: string;
+  // Environment variables (using string indexing)
+  [key: string]: any;
+}
 
-// Is production mode?
-export const IS_PROD = process.env.NODE_ENV === 'production';
-
-// Is test mode?
-export const IS_TEST = process.env.NODE_ENV === 'test';
-
-// Get environment variables with fallbacks
-export function getEnv(key: string, fallback = ''): string {
-  // For Vite style env vars (VITE_*)
-  if (typeof process !== 'undefined' && process.env) {
-    if (key.startsWith('VITE_')) {
-      const nextKey = `NEXT_PUBLIC_${key.substring(5)}`;
-      return process.env[nextKey] || process.env[key] || fallback;
-    }
-    return process.env[key] || fallback;
-  }
+/**
+ * Creates a unified environment object that works in both Next.js and Vite
+ */
+function createEnvAdapter(): EnvAdapter {
+  // Start with a base object using our lightweight constants
+  const adapter: EnvAdapter = {
+    DEV: IS_DEV,
+    PROD: IS_PROD,
+    MODE: IS_DEV ? 'development' : 'production',
+  };
   
-  return fallback;
+  // Just add a few essential variables that are commonly used
+  const essentialVars = [
+    'SUPABASE_URL',
+    'SUPABASE_ANON_KEY',
+    'API_URL',
+    'APP_URL'
+  ];
+  
+  // Add essential variables
+  essentialVars.forEach(key => {
+    adapter[key] = getEnvSafe(key);
+  });
+  
+  return adapter;
 }
 
-// Check if we're in development mode
-export function isDevelopmentMode(): boolean {
-  return IS_DEV;
-}
+// Create a singleton instance
+export const env = createEnvAdapter();
 
-// Check if we're in production mode
-export function isProductionMode(): boolean {
-  return IS_PROD;
-}
+// Convenience methods
+export const isDev = IS_DEV;
+export const isProd = IS_PROD;
 
-// Environment check for features
-export function isFeatureEnabled(featureName: string): boolean {
-  const envKey = `NEXT_PUBLIC_FEATURE_${featureName.toUpperCase()}`;
-  return getEnv(envKey, 'false').toLowerCase() === 'true';
-}
-
-// Get base URL depending on environment
-export function getBaseUrl(): string {
-  if (isBrowser) {
-    return window.location.origin;
-  }
-  return IS_PROD
-    ? 'https://yourproductiondomain.com'  // Replace with your production domain
-    : 'http://localhost:3001';            // Development URL
-} 
+// Export default for convenience
+export default env; 

@@ -1,10 +1,5 @@
 import { Suspense } from "react";
-import dynamic from "next/dynamic";
-
-// Import the Dashboard component with no SSR to ensure it only runs on client
-const DashboardClient = dynamic(() => import("@/pages/Dashboard"), {
-  ssr: false,
-});
+import DashboardClientWrapper from "./DashboardClientWrapper";
 
 // This is a server component that wraps our client component
 export default function DashboardPage() {
@@ -18,7 +13,7 @@ export default function DashboardPage() {
         </div>
       }
     >
-      <DashboardClient />
+      <DashboardClientWrapper />
     </Suspense>
   );
 }

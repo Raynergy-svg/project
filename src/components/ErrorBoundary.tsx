@@ -1,107 +1,98 @@
-'use client';
+"use client";
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import React, { Component, ErrorInfo } from "react";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, AlertCircle } from "lucide-react";
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: React.ReactNode;
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
-  errorInfo: ErrorInfo | null;
+  isNotFound: boolean;
 }
 
 /**
  * Error Boundary component for Next.js
- * 
+ *
  * This component catches JavaScript errors in its child component tree,
  * logs those errors, and displays a fallback UI instead of the component
  * tree that crashed.
- * 
+ *
  * Note: Error boundaries do not catch errors in:
  * - Event handlers
  * - Asynchronous code (e.g. setTimeout or requestAnimationFrame callbacks)
  * - Server-side rendering
  * - Errors thrown in the error boundary itself
  */
-class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false,
-      error: null,
-      errorInfo: null
+export class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+    isNotFound: false,
+  };
+
+  public static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      error,
+      isNotFound:
+        error.message.includes("404") ||
+        error.message.toLowerCase().includes("not found"),
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
-    // Update state so the next render will show the fallback UI
-    return { hasError: true, error, errorInfo: null };
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // You can also log the error to an error reporting service
-    console.error('ErrorBoundary caught an error', error, errorInfo);
-    this.setState({
-      error,
-      errorInfo
-    });
-
-    // Here you could send the error to your analytics or error tracking service
-    // Example: sendToAnalytics(error, errorInfo);
-  }
-
-  resetErrorBoundary = (): void => {
-    this.setState({
-      hasError: false,
-      error: null,
-      errorInfo: null
-    });
+  private handleRefresh = () => {
+    window.location.reload();
   };
 
-  render(): ReactNode {
+  private handleBack = () => {
+    window.history.back();
+  };
+
+  public render() {
     if (this.state.hasError) {
-      // If a custom fallback is provided, use it
-      if (this.props.fallback) {
-        return this.props.fallback;
+      if (this.state.isNotFound) {
+        return (
+          <div className="min-h-[400px] flex flex-col items-center justify-center p-4 text-center">
+            <div className="bg-background/80 backdrop-blur-xl p-8 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full">
+              <AlertCircle className="w-12 h-12 text-primary mx-auto mb-4" />
+              <h1 className="text-2xl font-bold mb-2">Page Not Found</h1>
+              <p className="text-gray-400 mb-6">
+                The page you're looking for doesn't exist or has been moved.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={this.handleBack} variant="outline">
+                  Go Back
+                </Button>
+                <Button onClick={() => (window.location.href = "/")}>
+                  Go Home
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
       }
 
-      // Otherwise, use the default fallback UI
       return (
-        <div className="flex min-h-[400px] flex-col items-center justify-center text-center p-6">
-          <div className="mb-4 rounded-full bg-muted p-3">
-            <AlertCircle className="h-8 w-8 text-destructive" />
-          </div>
-          <h2 className="mb-2 text-2xl font-semibold">Something went wrong</h2>
-          <p className="mb-6 max-w-md text-muted-foreground">
-            We've encountered an unexpected error. Please try refreshing the page.
-          </p>
-          <div className="flex gap-4">
-            <Button
-              onClick={this.resetErrorBoundary}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Try Again
+        <div className="min-h-[400px] flex flex-col items-center justify-center p-4 text-center">
+          <div className="bg-background/80 backdrop-blur-xl p-8 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full">
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
+            <p className="text-gray-400 mb-6">
+              We encountered an error while loading this page.
+            </p>
+            <Button onClick={this.handleRefresh}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh Page
             </Button>
-            <Link href="/" passHref>
-              <Button variant="outline">Return Home</Button>
-            </Link>
           </div>
-          {process.env.NODE_ENV === 'development' && this.state.error && (
-            <div className="mt-8 max-w-md overflow-auto rounded border bg-muted p-4 text-left">
-              <p className="mb-2 font-medium">Error details (development only):</p>
-              <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
-                {this.state.error.toString()}
-                {this.state.errorInfo?.componentStack}
-              </pre>
-            </div>
-          )}
         </div>
       );
     }

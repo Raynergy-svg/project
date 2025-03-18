@@ -37,25 +37,38 @@ export function useAuth() {
         return null;
       }
 
+      // First ensure we have a valid session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        console.warn('No active session when fetching profile');
+      }
+
       const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
-        .single();
+        .filter('id', 'eq', userId)
+        .headers({
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Accept-Profile': 'public',
+          'Content-Profile': 'public',
+          'Prefer': 'return=representation'
+        });
       
       if (userError) {
         console.error('Error fetching user profile:', userError);
         return null;
       }
       
-      return userData;
+      // Return the first element if it exists
+      return userData && userData.length > 0 ? userData[0] : null;
     } catch (error) {
       console.error('Unexpected error fetching user profile:', error);
       return null;
     }
   }, []);
 
-  // Fetch subscription data
+  // Fetch user subscription data
   const fetchSubscription = useCallback(async (userId: string) => {
     try {
       if (!userId) {
@@ -63,27 +76,31 @@ export function useAuth() {
         return null;
       }
 
-      const { data: subData, error: subError } = await supabase
+      // First ensure we have a valid session
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        console.warn('No active session when fetching subscription');
+      }
+
+      const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscriptions')
         .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .filter('user_id', 'eq', userId)
+        .headers({
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Accept-Profile': 'public',
+          'Content-Profile': 'public',
+          'Prefer': 'return=representation'
+        });
       
-      if (subError) {
-        // This might not be an error if the user simply doesn't have a subscription
-        if (subError.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
-          console.error('Error fetching subscription:', subError);
-        }
+      if (subscriptionError) {
+        console.error('Error fetching subscription:', subscriptionError);
         return null;
       }
       
-      return subData ? {
-        status: subData.status as any,
-        planName: subData.plan_name as string,
-        currentPeriodEnd: new Date(subData.current_period_end as string)
-      } : null;
+      // Return the first element if it exists
+      return subscriptionData && subscriptionData.length > 0 ? subscriptionData[0] : null;
     } catch (error) {
       console.error('Unexpected error fetching subscription:', error);
       return null;

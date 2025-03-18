@@ -35,7 +35,7 @@ export const securityConfig = {
   headers: {
     // Headers that will be set via meta tags in the browser
     clientSide: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://cdn.plaid.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://*.unsplash.com; connect-src 'self' https://*.stripe.com https://api.stripe.com https://js.stripe.com https://*.supabase.co wss://*.supabase.co https://api.supabase.com https://fonts.googleapis.com https://fonts.gstatic.com https://*.cloudflareinsights.com https://*.plaid.com https://*.projectdcertan84workersdev.workers.dev https://api.ipify.org; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://connect.stripe.com https://buy.stripe.com https://cdn.plaid.com;"
+      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'sha256-5fX8Q4oLjQ7N2uNUZJgOZ4F7KlpTCn1R2fL4Jd+HlE=' https://js.stripe.com https://cdn.plaid.com; style-src 'self' 'sha256-9fJb+ZKXLAtBkXga0ep6j6iOBGj8JNmZX3CDn+LhE6Q=' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: https://*.unsplash.com; connect-src 'self' https://*.stripe.com https://api.stripe.com https://js.stripe.com https://*.supabase.co wss://*.supabase.co https://api.supabase.com https://fonts.googleapis.com https://fonts.gstatic.com https://*.cloudflareinsights.com https://*.plaid.com https://*.projectdcertan84workersdev.workers.dev https://api.ipify.org; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://checkout.stripe.com https://connect.stripe.com https://buy.stripe.com https://cdn.plaid.com;"
     },
     // Headers that must be set on the server side
     serverSide: {
@@ -57,8 +57,7 @@ export const securityConfig = {
         'default-src': ["'self'"],
         'script-src': [
           "'self'", 
-          "'unsafe-inline'", 
-          "'unsafe-eval'", 
+          "'sha256-5fX8Q4oLjQ7N2uNUZJgOZ4F7KlpTCn1R2fL4Jd+HlE='", 
           "https://js.stripe.com", 
           "https://cdn.plaid.com",
           "https://static.cloudflareinsights.com",
@@ -70,8 +69,12 @@ export const securityConfig = {
           "https://*.vercel-analytics.com",
           "https://*.vercel.com"
         ],
-        'style-src': ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-        'font-src': ["'self'", "https://fonts.gstatic.com"],
+        'style-src': ["'self'", "'sha256-9fJb+ZKXLAtBkXga0ep6j6iOBGj8JNmZX3CDn+LhE6Q='", "https://fonts.googleapis.com"],
+        'font-src': [
+          "'self'",
+          "https://fonts.gstatic.com",
+          "data:"
+        ],
         'img-src': [
           "'self'", 
           "data:", 
@@ -105,8 +108,8 @@ export const securityConfig = {
           "https://js.stripe.com", 
           "https://hooks.stripe.com", 
           "https://checkout.stripe.com", 
-          "https://cdn.plaid.com",
-          "https://challenges.cloudflare.com"
+          "https://connect.stripe.com",
+          "https://buy.stripe.com"
         ],
         'object-src': ["'none'"],
         'base-uri': ["'self'"]

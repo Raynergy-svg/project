@@ -24,7 +24,7 @@ const getSupabaseUrl = () => {
   }
   
   // Hard-coded fallback
-  return 'https://gnwdahoiauduyncppbdb.supabase.co';
+  return 'https://awxsrdtfystzsndjmygz.supabase.co';
 };
 
 const getSupabaseAnonKey = () => {

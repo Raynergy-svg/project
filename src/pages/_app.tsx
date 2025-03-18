@@ -13,15 +13,15 @@ import { useEffect, useState } from "react";
 import type { AppProps } from "next/app";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { NextAuthProvider } from "@/contexts/next-auth-context";
-import { SecurityProvider } from "@/contexts/SecurityContext";
-import { DeviceProvider } from "@/contexts/DeviceContext";
-import { AuthAdapter } from "@/contexts/auth-adapter";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { Toaster } from "@/components/ui/toaster";
+import { NextAuthProvider } from "@/providers/auth/NextAuthProvider";
+import { AuthAdapter } from "@/providers/auth/AuthAdapter";
+import { SecurityProvider } from "@/providers/SecurityProvider";
+import { DeviceProvider } from "@/providers/DeviceProvider";
 import { CookieConsent } from "@/components/CookieConsent";
+import { ThemeProvider } from "@/providers/ThemeProvider";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Toaster } from "react-hot-toast";
 import { useRouter } from "next/router";
-import ThemeProvider from "@/components/ThemeProvider";
 import analytics from "@/utils/analytics";
 import { initPolyfills } from "@/utils/polyfills";
 import { injectEnvToWindow } from "@/utils/env";
@@ -29,7 +29,15 @@ import FontLoader from "@/components/FontLoader";
 import "@/index.css";
 import "@/styles/globals.css";
 import "@/styles/animation-effects.css";
+import "@/styles/theme.css";
 import Head from "next/head";
+import { Nunito } from "next/font/google";
+
+const nunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-nunito",
+  display: "swap",
+});
 
 // Initialize polyfills as early as possible
 if (typeof window !== "undefined") {
@@ -160,20 +168,20 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <title>Smart Debt Flow</title>
+        <title>SmartDebtFlow - Take Control of Your Finances</title>
         <meta
           name="description"
           content="Manage your debts smartly and efficiently"
         />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
       {/* Use our custom font loader */}
       <FontLoader />
 
       <ErrorBoundary>
-        <ThemeProvider defaultTheme="system" storageKey="smartdebtflow-theme">
-          <div className="font-sans">
+        <ThemeProvider>
+          <div className={`${nunito.variable} font-sans`}>
             <NextAuthProvider>
               <AuthAdapter>
                 <SecurityProvider>

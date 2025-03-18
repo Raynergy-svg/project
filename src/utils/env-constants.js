@@ -61,12 +61,12 @@ export function getEnvSafe(key, fallback = "") {
 
 // Hard-coded critical values for development
 export const SUPABASE_URL = IS_DEV
-  ? getEnvSafe("SUPABASE_URL", "https://gnwdahoiauduyncppbdb.supabase.co")
+  ? getEnvSafe("SUPABASE_URL", "https://awxsrdtfystzsndjmygz.supabase.co")
   : getEnvSafe("SUPABASE_URL", "");
 
 export const SUPABASE_ANON_KEY = IS_DEV
   ? getEnvSafe(
       "SUPABASE_ANON_KEY",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U"
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF3eHNyZHRmeXN0enNuZGpteWd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwNzU3MzMsImV4cCI6MjA1NzY1MTczM30.AXMSq7TQjuuBOc_LvoDkhTRzLfNG5IEbeb_hGtIGe5w"
     )
   : getEnvSafe("SUPABASE_ANON_KEY", "");

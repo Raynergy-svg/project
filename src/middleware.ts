@@ -1,17 +1,18 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// This middleware handles routing between App Router and Pages Router
+// This middleware handles routing cases for the App Router
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
   
   // Convert the pathname to lowercase for case-insensitive matching
   const lowercasePath = pathname.toLowerCase();
   
-  // If the original path has uppercase but we have a lowercase version in App Router,
-  // redirect to the lowercase version
+  // Handle case-sensitivity in routes - this ensures all routes are lowercase
+  // which is the Next.js App Router convention
   if (pathname !== lowercasePath && !pathname.startsWith('/_next') && !pathname.includes('.')) {
-    return NextResponse.redirect(new URL(lowercasePath, request.url));
+    const redirectUrl = new URL(lowercasePath + search, request.url);
+    return NextResponse.redirect(redirectUrl);
   }
   
   return NextResponse.next();

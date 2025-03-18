@@ -1,19 +1,26 @@
 import { cn } from "@/lib/utils";
+import { Skeleton } from "./_skeleton-compat";
 
 interface LoadingSpinnerProps {
   size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export function LoadingSpinner({ size = "md", className }: LoadingSpinnerProps) {
+export function LoadingSpinner({
+  size = "md",
+  className,
+}: LoadingSpinnerProps) {
   const sizeClasses = {
     sm: "w-4 h-4",
     md: "w-8 h-8",
-    lg: "w-12 h-12"
+    lg: "w-12 h-12",
   };
 
   return (
-    <div role="status" className={cn("animate-spin", sizeClasses[size], className)}>
+    <div
+      role="status"
+      className={cn("animate-spin", sizeClasses[size], className)}
+    >
       <svg
         aria-hidden="true"
         viewBox="0 0 100 101"
@@ -35,30 +42,12 @@ export function LoadingSpinner({ size = "md", className }: LoadingSpinnerProps) 
   );
 }
 
-interface SkeletonProps {
-  className?: string;
-  children?: React.ReactNode;
-}
-
-export function Skeleton({ className, children }: SkeletonProps) {
-  return (
-    <div
-      className={cn(
-        "animate-pulse rounded-md bg-muted/10",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-}
-
 export function CardSkeleton() {
   return (
     <div className="p-4">
-      <Skeleton className="h-32 w-full mb-4" />
-      <Skeleton className="h-4 w-3/4 mb-2" />
-      <Skeleton className="h-4 w-1/2" />
+      <Skeleton variant="card" className="h-32 w-full mb-4" />
+      <Skeleton variant="text" className="h-4 w-3/4 mb-2" />
+      <Skeleton variant="text" className="h-4 w-1/2" />
     </div>
   );
 }
@@ -66,9 +55,11 @@ export function CardSkeleton() {
 export function ListSkeleton({ count = 3 }) {
   return (
     <div className="space-y-3">
-      {Array(count).fill(0).map((_, i) => (
-        <Skeleton key={i} className="h-16 w-full" />
-      ))}
+      {Array(count)
+        .fill(0)
+        .map((_, i) => (
+          <Skeleton key={i} variant="card" className="h-16 w-full" />
+        ))}
     </div>
   );
 }

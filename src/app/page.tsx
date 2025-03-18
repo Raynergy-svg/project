@@ -2,10 +2,27 @@ import { Metadata } from "next";
 import dynamic from "next/dynamic";
 import { Suspense } from "react";
 
-// Static loading fallback
+// Static loading fallback - Using the elegant loading screen
 const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+  <div className="min-h-screen flex flex-col items-center justify-center">
+    <div className="relative">
+      <img
+        src="/favicon-192.png"
+        alt="Logo"
+        width={80}
+        height={80}
+        className="mb-4 animate-pulse"
+      />
+      <div className="absolute -bottom-2 left-0 right-0 mx-auto w-full">
+        <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent rounded-full animate-pulse" />
+      </div>
+    </div>
+    <div className="mt-6 text-primary font-bold text-xl md:text-2xl">
+      Smart Debt Flow
+    </div>
+    <div className="mt-2 text-muted-foreground text-sm">
+      Creating a better financial future...
+    </div>
   </div>
 );
 

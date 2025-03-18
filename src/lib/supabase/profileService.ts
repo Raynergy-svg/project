@@ -62,18 +62,65 @@ export async function fetchUserProfile(userId: string): Promise<ServiceResponse<
 
     console.log(`Fetching profile for user: ${userId}`);
     
-    const { data, error } = await supabase
+    // First check if profile exists
+    const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle()
+      .headers({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'public',
+        'Content-Profile': 'public',
+        'Prefer': 'return=representation'
+      });
 
-    if (error) {
-      console.error('Supabase error fetching profile:', error);
-      throw error;
+    if (checkError) {
+      console.error('Supabase error checking profile:', checkError);
+      return { data: null, error: checkError };
     }
 
-    return { data: data as Profile, error: null };
+    // If profile doesn't exist, create one with default values
+    if (!existingProfile) {
+      console.log('Profile not found, creating new profile');
+      const defaultProfile = {
+        id: userId,
+        is_premium: false,
+        trial_ends_at: null,
+        preferences: {
+          email_notifications: true,
+          theme: 'system',
+          language: 'en'
+        },
+        subscription: {
+          status: 'free',
+          current_period_end: new Date().toISOString()
+        }
+      };
+
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert([defaultProfile])
+        .select()
+        .single()
+        .headers({
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Accept-Profile': 'public',
+          'Content-Profile': 'public',
+          'Prefer': 'return=representation'
+        });
+
+      if (createError) {
+        console.error('Error creating profile:', createError);
+        return { data: null, error: createError };
+      }
+
+      return { data: newProfile as Profile, error: null };
+    }
+
+    return { data: existingProfile as Profile, error: null };
   } catch (error) {
     console.error('Error fetching profile:', error);
     return { 
@@ -103,7 +150,14 @@ export async function updateUserProfile(
       .update(profileData)
       .eq('id', userId)
       .select()
-      .single();
+      .single()
+      .headers({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'public',
+        'Content-Profile': 'public',
+        'Prefer': 'return=representation'
+      });
 
     if (error) {
       console.error('Supabase error updating profile:', error);

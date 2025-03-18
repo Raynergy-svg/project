@@ -39,7 +39,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/_skeleton-compat';
 import { useToast } from '@/hooks/useToast';
 import { formatCurrency, formatDate, formatPercentage } from '@/utils/formatters';
 

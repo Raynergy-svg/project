@@ -1,275 +1,303 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { 
-  BarChart3, 
-  CreditCard, 
-  Home, 
-  PiggyBank, 
-  Settings, 
-  FileText, 
-  ChevronRight, 
-  LogOut, 
-  User, 
-  Shield, 
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import {
+  LayoutDashboard,
+  CreditCard,
+  PiggyBank,
+  Settings,
+  FileText,
+  LogOut,
   Menu,
-  X,
-  TrendingDown,
-  Sparkles,
-  Wallet,
-  Calculator,
-  Building,
-  Headphones,
-  DollarSign,
-  Brain
-} from 'lucide-react';
-import { useAuth } from '@/components/AuthProvider';
-import { Logo } from '@/components/Logo';
-import { Button } from '@/components/ui/button';
-
-interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ElementType;
-}
+  ChevronLeft,
+  ChevronRight,
+  Bell,
+  Search,
+  HelpCircle,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
+import { Logo } from "@/components/Logo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tooltip } from "@/components/ui/tooltip";
+import { motion, AnimatePresence } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+const sidebarLinks = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Debts",
+    href: "/dashboard/debts",
+    icon: CreditCard,
+    badge: "New",
+  },
+  {
+    title: "Savings",
+    href: "/dashboard/savings",
+    icon: PiggyBank,
+  },
+  {
+    title: "Reports",
+    href: "/dashboard/reports",
+    icon: FileText,
+  },
+  {
+    title: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
+  },
+];
+
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user, logout } = useAuth();
-  const router = useRouter();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
-  // Main navigation items
-  const navItems: NavItem[] = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Debt Overview', href: '/dashboard/debts', icon: TrendingDown },
-    { name: 'Savings', href: '/dashboard/savings', icon: PiggyBank },
-    { name: 'Accounts', href: '/dashboard/accounts', icon: Wallet },
-    { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
-    { name: 'Calculator', href: '/dashboard/calculator', icon: Calculator },
-  ];
-
-  // Secondary navigation items
-  const secondaryNavItems: NavItem[] = [
-    { name: 'Settings', href: '/settings', icon: Settings },
-    { name: 'Help Center', href: '/help', icon: Headphones },
-    { name: 'Support', href: '/support', icon: Building },
-  ];
-
-  // Close sidebar on mobile when route changes
+  // Check if mobile on component mount and window resize
   useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
 
-  // Toggle sidebar on desktop
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+    checkIfMobile();
+    window.addEventListener("resize", checkIfMobile);
+
+    return () => window.removeEventListener("resize", checkIfMobile);
+  }, []);
+
+  // Toggle mobile menu
+  const toggleMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
   };
 
-  // Check if a navigation item is active
-  const isActive = (href: string) => {
-    return pathname === href || pathname?.startsWith(`${href}/`);
-  };
-
-  // Handle sign out
-  const handleSignOut = async () => {
-    try {
-      await logout();
-      router.push('/signin');
-    } catch (error) {
-      console.error('Error signing out:', error);
+  // Get user initials for avatar fallback
+  const getInitials = () => {
+    if (!user?.email) return "U";
+    const parts = user.email.split("@")[0].split(".");
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
     }
+    return user.email.substring(0, 2).toUpperCase();
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile menu button */}
-      <div className="sticky top-0 z-40 lg:hidden">
-        <div className="flex items-center justify-between p-4 bg-card border-b">
-          <Logo />
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-          >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </Button>
-        </div>
-      </div>
+      {/* Mobile menu button removed since it's now in the header */}
 
-      {/* Mobile sidebar */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden" onClick={() => setIsMobileMenuOpen(false)}>
-          <motion.div 
-            className="fixed inset-y-0 left-0 z-40 w-64 bg-card p-4" 
-            initial={{ x: -100, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            onClick={(e) => e.stopPropagation()}
+      {/* Sidebar */}
+      <AnimatePresence>
+        {(!isMobile || mobileMenuOpen) && (
+          <motion.aside
+            initial={isMobile ? { x: -300 } : false}
+            animate={{ x: 0 }}
+            exit={isMobile ? { x: -300 } : undefined}
+            transition={{ ease: "easeOut", duration: 0.3 }}
+            className={cn(
+              "fixed left-0 top-0 z-40 h-screen dashboard-sidebar border-r border-border transition-all duration-300",
+              isCollapsed && !isMobile ? "w-[80px]" : "w-[240px]",
+              isMobile ? "shadow-xl" : "" // Add shadow to mobile menu for better visibility
+            )}
           >
-            <div className="flex flex-col h-full">
-              <div className="mb-6">
-                <Logo />
-              </div>
-              
-              <div className="space-y-1 mb-8">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                      isActive(item.href) 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'hover:bg-muted'
-                    }`}
-                  >
-                    <item.icon className="h-5 w-5 mr-3" />
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-              
-              <div className="space-y-1 mb-8">
-                <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Support
-                </h3>
-                {secondaryNavItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                      isActive(item.href) 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'hover:bg-muted'
-                    }`}
-                  >
-                    <item.icon className="h-5 w-5 mr-3" />
-                    {item.name}
-                  </Link>
-                ))}
-              </div>
-              
-              <div className="mt-auto">
-                <Button 
-                  variant="outline" 
-                  className="w-full justify-start"
-                  onClick={handleSignOut}
-                >
-                  <LogOut className="h-5 w-5 mr-3" />
-                  Sign Out
-                </Button>
+            {/* Logo section - updated to prevent navigation to landing page */}
+            <div className="flex h-16 items-center border-b border-border px-4">
+              <div
+                className="cursor-pointer"
+                onClick={isMobile ? toggleMenu : undefined}
+              >
+                <Logo
+                  size="sm"
+                  showText={!isCollapsed || isMobile}
+                  isLink={false} // Prevent navigation to homepage
+                />
               </div>
             </div>
-          </motion.div>
-        </div>
-      )}
 
-      {/* Desktop sidebar */}
-      <div className={`hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:flex-col lg:border-r transition-all duration-300 ${
-        isSidebarOpen ? 'lg:w-64' : 'lg:w-20'
-      }`}>
-        <div className="flex flex-col h-full bg-card p-4">
-          <div className="flex items-center justify-between mb-6">
-            {isSidebarOpen ? (
-              <Logo />
-            ) : (
-              <div className="mx-auto">
-                <Logo showText={false} />
+            {/* Navigation links */}
+            <nav className="flex h-[calc(100vh-4rem)] flex-col justify-between py-4">
+              <div className="space-y-1 px-3">
+                {sidebarLinks.map((link) => {
+                  const Icon = link.icon;
+                  const isActive = pathname === link.href;
+
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors relative",
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      )}
+                      onClick={
+                        isMobile ? () => setMobileMenuOpen(false) : undefined
+                      }
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      {(!isCollapsed || isMobile) && (
+                        <>
+                          <span>{link.title}</span>
+                          {link.badge && (
+                            <Badge className="ml-auto text-xs py-0 h-5 bg-green-500/90 text-white">
+                              {link.badge}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                      {isCollapsed && !isMobile && link.badge && (
+                        <Badge className="absolute -right-1 -top-1 h-4 w-4 p-0 flex items-center justify-center text-[8px] bg-green-500/90 text-white">
+                          !
+                        </Badge>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
-            )}
-            {isSidebarOpen && (
-              <Button variant="ghost" size="icon" onClick={toggleSidebar} aria-label="Collapse sidebar">
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            )}
-          </div>
-          
-          <div className="space-y-1 mb-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                  isActive(item.href) 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'hover:bg-muted'
-                }`}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {isSidebarOpen && <span className="ml-3">{item.name}</span>}
-              </Link>
-            ))}
-          </div>
-          
-          <div className="space-y-1 mb-8">
-            {isSidebarOpen && (
-              <h3 className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Support
-              </h3>
-            )}
-            {secondaryNavItems.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium ${
-                  isActive(item.href) 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'hover:bg-muted'
-                }`}
-              >
-                <item.icon className="h-5 w-5 flex-shrink-0" />
-                {isSidebarOpen && <span className="ml-3">{item.name}</span>}
-              </Link>
-            ))}
-          </div>
-          
-          {/* User profile or sign out at the bottom */}
-          <div className="mt-auto">
-            {user && isSidebarOpen ? (
-              <div className="flex items-center p-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground overflow-hidden">
-                  {user.name ? (
-                    user.name.charAt(0).toUpperCase()
-                  ) : (
-                    <User className="h-5 w-5" />
+
+              <div className="space-y-4 px-3">
+                {/* User profile section */}
+                <div
+                  className={cn(
+                    "p-3 rounded-lg bg-muted/50",
+                    isCollapsed && !isMobile
+                      ? "text-center"
+                      : "flex items-center gap-3"
+                  )}
+                >
+                  <Avatar className="h-8 w-8 border border-border">
+                    <AvatarImage src={user?.image} />
+                    <AvatarFallback>{getInitials()}</AvatarFallback>
+                  </Avatar>
+
+                  {(!isCollapsed || isMobile) && (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {user?.email?.split("@")[0] || "User"}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {user?.email || "user@example.com"}
+                      </p>
+                    </div>
                   )}
                 </div>
-                <div className="ml-3 truncate">
-                  <p className="text-sm font-medium">{user.name || 'User'}</p>
-                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                </div>
+
+                {/* Collapse button - hide on mobile */}
+                {!isMobile && (
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start"
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                  >
+                    {isCollapsed ? (
+                      <ChevronRight className="h-4 w-4" />
+                    ) : (
+                      <>
+                        <ChevronLeft className="h-4 w-4" />
+                        <span className="ml-2">Collapse</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {/* Sign out button */}
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-red-500 hover:bg-red-500/10 hover:text-red-500"
+                  onClick={() => signOut()}
+                >
+                  <LogOut className="h-4 w-4" />
+                  {(!isCollapsed || isMobile) && (
+                    <span className="ml-2">Sign Out</span>
+                  )}
+                </Button>
               </div>
-            ) : null}
-            
-            <Button 
-              variant="outline" 
-              className={`${isSidebarOpen ? 'w-full justify-start' : 'mx-auto'}`} 
-              onClick={handleSignOut}
-            >
-              <LogOut className="h-5 w-5 flex-shrink-0" />
-              {isSidebarOpen && <span className="ml-3">Sign Out</span>}
-            </Button>
-          </div>
-        </div>
-      </div>
+            </nav>
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {/* Main content */}
-      <main className={`min-h-screen lg:pl-${isSidebarOpen ? '64' : '20'}`}>
-        {children}
+      <main
+        className={cn(
+          "min-h-screen transition-all duration-300 pt-4 relative",
+          isMobile ? "ml-0" : isCollapsed ? "ml-[80px]" : "ml-[240px]"
+        )}
+      >
+        {/* Header bar for mobile & desktop */}
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex flex-1 items-center gap-4">
+            {/* Mobile menu toggle button - visible only on mobile */}
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMenu}
+                className="lg:hidden"
+              >
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            )}
+
+            {!isMobile && (
+              <form className="hidden lg:flex-1 lg:flex max-w-sm">
+                <div className="relative w-full">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="search"
+                    placeholder="Search..."
+                    className="w-full bg-background pl-8 h-9 rounded-md border border-input px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  />
+                </div>
+              </form>
+            )}
+          </div>
+
+          <div className="flex items-center gap-4">
+            {/* Theme toggle in header for all cases */}
+            <ThemeToggle variant="icon" />
+
+            <Tooltip content="Help & Support">
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <HelpCircle className="h-4 w-4" />
+                <span className="sr-only">Help</span>
+              </Button>
+            </Tooltip>
+
+            <Tooltip content="Notifications">
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Bell className="h-4 w-4" />
+                <span className="sr-only">Notifications</span>
+              </Button>
+            </Tooltip>
+          </div>
+        </header>
+
+        <div className="container mx-auto p-4 lg:p-8">{children}</div>
       </main>
+
+      {/* Overlay for mobile menu - click to close */}
+      {isMobile && mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30"
+          onClick={toggleMenu}
+          aria-hidden="true"
+        />
+      )}
     </div>
   );
-} 
+}

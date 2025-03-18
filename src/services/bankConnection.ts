@@ -51,13 +51,14 @@ export class BankConnectionService {
   private useRealData: boolean = true; // Default to real data
 
   private constructor() {
-    this.apiUrl = import.meta.env.VITE_BANK_API_URL || '';
-    this.apiKey = import.meta.env.VITE_BANK_API_KEY || '';
+    // Use Next.js environment variables
+    this.apiUrl = process.env.NEXT_PUBLIC_BANK_API_URL || '';
+    this.apiKey = process.env.NEXT_PUBLIC_BANK_API_KEY || '';
     // Determine if we're in mock mode (no real API configured)
     this.isMockMode = !this.apiUrl || !this.apiKey;
     
     // Always force real data in production environment
-    if (import.meta.env.PROD) {
+    if (process.env.NODE_ENV === 'production') {
       this.useRealData = true;
     }
     
@@ -77,7 +78,7 @@ export class BankConnectionService {
   // Get whether real data should be used
   public getUseRealData(): boolean {
     // Always force real data in production
-    if (import.meta.env.PROD) {
+    if (process.env.NODE_ENV === 'production') {
       return true;
     }
     return this.useRealData;
@@ -86,7 +87,7 @@ export class BankConnectionService {
   // Set whether real data should be used
   public setUseRealData(useReal: boolean): void {
     // Don't allow setting to mock data in production
-    if (import.meta.env.PROD) {
+    if (process.env.NODE_ENV === 'production') {
       this.useRealData = true;
       console.warn('Mock data is not allowed in production. Forcing real data.');
       return;

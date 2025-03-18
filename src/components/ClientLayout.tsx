@@ -18,7 +18,7 @@ import dynamic from "next/dynamic";
 import MainLayout from "./MainLayout";
 
 // Dynamically import NotFoundErrorBoundaryFix to prevent bundling issues
-const NotFoundErrorBoundaryFix = dynamic(() => import("@/app/not-found-fix"), {
+const NotFoundErrorBoundaryFix = dynamic(() => import("@/app/_utils/not-found-fix"), {
   ssr: false,
 });
 
@@ -76,13 +76,27 @@ export default function ClientLayout({
   if (!isMounted) {
     return (
       <div
-        className={`${interVariable} ${poppinsVariable} font-sans min-h-screen`}
+        className={`${interVariable} ${poppinsVariable} font-sans min-h-screen bg-background dark:bg-background`}
       >
-        {/* Minimal placeholder during SSR and initial hydration */}
-        <div className="h-screen w-screen flex items-center justify-center">
-          <div className="animate-pulse text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/20 mx-auto mb-4"></div>
-            <div className="h-4 w-24 bg-muted rounded mx-auto"></div>
+        {/* Elegant loading screen that matches landing page aesthetic */}
+        <div className="h-screen w-screen flex flex-col items-center justify-center">
+          <div className="relative">
+            <img
+              src="/favicon-192.png"
+              alt="Logo"
+              width={64}
+              height={64}
+              className="mb-4 animate-pulse"
+            />
+            <div className="absolute -bottom-2 left-0 right-0 mx-auto w-full">
+              <div className="h-1 w-full bg-gradient-to-r from-transparent via-primary to-transparent rounded-full animate-pulse" />
+            </div>
+          </div>
+          <div className="mt-6 text-primary font-bold text-xl md:text-2xl">
+            Smart Debt Flow
+          </div>
+          <div className="mt-2 text-muted-foreground text-sm">
+            Loading your experience...
           </div>
         </div>
       </div>

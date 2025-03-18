@@ -295,12 +295,20 @@ export default function CareersPage() {
                             <p className="text-muted-foreground mb-4">
                               {position.description}
                             </p>
-                            <Button
-                              variant="outline"
-                              className="group-hover:border-primary group-hover:text-primary transition-colors"
+                            <Link
+                              href={`/apply?position=${encodeURIComponent(
+                                position.title
+                              )}&department=${encodeURIComponent(
+                                position.department
+                              )}`}
                             >
-                              Apply Now
-                            </Button>
+                              <Button
+                                variant="outline"
+                                className="group-hover:border-primary group-hover:text-primary transition-colors"
+                              >
+                                Apply Now
+                              </Button>
+                            </Link>
                           </div>
                         ))}
                       </div>
@@ -314,4 +322,4 @@ export default function CareersPage() {
       </div>
     </div>
   );
-}
+} 

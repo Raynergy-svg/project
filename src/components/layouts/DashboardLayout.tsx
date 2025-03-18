@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/_skeleton-compat';
 import { useToast } from '@/hooks/useToast';
 
 interface DashboardLayoutProps {

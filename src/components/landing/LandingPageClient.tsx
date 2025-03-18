@@ -87,11 +87,12 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
     [router]
   );
 
-  // Load state
+  // Immediately set loading to false on mount to prevent lingering loading screen
   useEffect(() => {
+    // Use a minimal timeout to ensure smooth transitions
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 600);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, []);

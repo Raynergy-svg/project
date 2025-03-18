@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ExternalLink, Download, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "@/components/ui/_skeleton-compat";
 import {
   Table,
   TableBody,

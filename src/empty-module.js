@@ -1,134 +1,58 @@
-// This is an empty module to replace React Router imports in Next.js
-// In Next.js, we use the built-in routing system instead of react-router-dom
+/**
+ * Empty module to replace missing dependencies in Next.js projects.
+ * This is useful for component mocking, especially when migrating 
+ * from one framework to another.
+ */
 
-import { useRouter } from "next/navigation";
-import NextLink from "next/link";
-import React, { createContext, useContext, useState, useEffect } from "react";
+// Import React for the component mocks
+const React = typeof window !== 'undefined' ? require('react') : { createElement: () => null };
 
-// Simple location context to avoid circular dependencies
-const LocationContext = createContext({
-  pathname: typeof window !== "undefined" ? window.location.pathname : "/",
-});
-
-// Simple implementation of BrowserRouter
-export const BrowserRouter = ({ children }) => {
-  const [pathname, setPathname] = useState(
-    typeof window !== "undefined" ? window.location.pathname : "/"
-  );
-
-  // Update pathname when location changes
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const handleRouteChange = () => {
-        setPathname(window.location.pathname);
-      };
-
-      window.addEventListener("popstate", handleRouteChange);
-
-      return () => {
-        window.removeEventListener("popstate", handleRouteChange);
-      };
-    }
-  }, []);
-
-  return (
-    <LocationContext.Provider value={{ pathname }}>
-      {children}
-    </LocationContext.Provider>
-  );
-};
-
-// Simple Routes implementation
-export const Routes = ({ children }) => {
-  return <>{children}</>;
-};
-
-// Simple Route implementation
-export const Route = ({ path, element }) => {
-  const { pathname } = useContext(LocationContext);
-
-  // Basic path matching
-  if (
-    path === "*" ||
-    pathname === path ||
-    (path === "/" && (pathname === "" || pathname === "/"))
-  ) {
-    return element;
-  }
-
-  return null;
-};
-
-// Link component that uses Next.js Link
-export const Link = ({ to, children, ...props }) => {
-  return (
-    <NextLink href={to} {...props}>
-      {children}
-    </NextLink>
-  );
-};
-
-// Navigate component that performs navigation
-export const Navigate = ({ to, replace }) => {
-  const router = useRouter();
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (replace) {
-        router.replace(to);
-      } else {
-        router.push(to);
-      }
-    }
-  }, [to, replace, router]);
-
-  return null;
-};
-
-// Simple implementation of useNavigate
+// No-op function that can be used as a replacement for useNavigate or similar hooks
 export const useNavigate = () => {
-  const router = useRouter();
-
-  return React.useCallback(
-    (to, options) => {
-      if (typeof window !== "undefined") {
-        if (options?.replace) {
-          router.replace(to);
-        } else {
-          router.push(to);
-        }
-      }
-    },
-    [router]
-  );
-};
-
-// Simple implementation of useLocation
-export const useLocation = () => {
-  const { pathname } = useContext(LocationContext);
-
-  return {
-    pathname,
-    search: typeof window !== "undefined" ? window.location.search : "",
-    hash: typeof window !== "undefined" ? window.location.hash : "",
-    state: {},
+  return (path) => {
+    console.warn(`Navigation to ${path} not implemented in this context`);
+    return null;
   };
 };
 
-// Other hooks with minimal implementations
-export const useParams = () => ({});
-export const useSearchParams = () => [new URLSearchParams(), () => {}];
-export const Outlet = ({ children }) => children;
+// Mock for useLocation hook
+export const useLocation = () => {
+  return {
+    pathname: typeof window !== 'undefined' ? window.location.pathname : '/',
+    search: typeof window !== 'undefined' ? window.location.search : '',
+    hash: typeof window !== 'undefined' ? window.location.hash : '',
+    state: null
+  };
+};
 
+// Mock for Link component
+export const Link = ({ to, children, className, ...props }) => {
+  if (typeof window !== 'undefined') {
+    const NextLink = require('next/link').default;
+    return React.createElement(NextLink, { href: to, className, ...props }, children);
+  }
+  return null;
+};
+
+// Mock for NavLink component
+export const NavLink = ({ to, children, className, activeClassName, ...props }) => {
+  if (typeof window !== 'undefined') {
+    const NextLink = require('next/link').default;
+    return React.createElement(NextLink, { href: to, className, ...props }, children);
+  }
+  return null;
+};
+
+// Mock for Outlet component
+export const Outlet = () => {
+  return null;
+};
+
+// Default export for compatibility
 export default {
-  BrowserRouter,
-  Routes,
-  Route,
-  Link,
-  Navigate,
   useNavigate,
   useLocation,
-  useParams,
-  useSearchParams,
-  Outlet,
+  Link,
+  NavLink,
+  Outlet
 };

@@ -35,14 +35,12 @@ const CURRENT_CONSENT_VERSION = "1.0";
 // Add these utility functions
 // Get Supabase URL from environment or use a fallback
 function getSupabaseUrl(): string {
-  // Hard-coded fallback for development
-  return "https://gnwdahoiauduyncppbdb.supabase.co";
+  return process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 }
 
 // Get Supabase Anon Key from environment or use a fallback
 function getSupabaseAnonKey(): string {
-  // Hard-coded fallback for development
-  return "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud2RhaG9pYXVkdXluY3BwYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDAyMzg2MTksImV4cCI6MjA1NTgxNDYxOX0.enn_-enfIn0b7Q2qPkrwnVTF7iQYcGoAD6d54-ac77U";
+  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
 }
 
 export function CookieConsent() {
@@ -62,67 +60,10 @@ export function CookieConsent() {
   useEffect(() => {
     const fetchConsent = async () => {
       try {
-        // For authenticated users, try to fetch consent from backend
+        // For authenticated users, try to fetch from local storage first
         if (isAuthenticated && user) {
           setIsLoading(true);
-
-          try {
-            // Get the current session to ensure we have a valid token
-            const {
-              data: { session },
-              error: sessionError,
-            } = await supabase.auth.getSession();
-
-            if (sessionError || !session || !session.access_token) {
-              console.log(
-                "🍪 Cookie Consent: No active session, using local storage for consent preferences"
-              );
-              checkLocalConsent();
-              setIsLoading(false);
-              return;
-            }
-
-            // Use direct fetch for more reliable authentication
-            const response = await fetch(
-              `${getSupabaseUrl()}/functions/v1/consent`,
-              {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                  apikey: getSupabaseAnonKey(),
-                  Authorization: `Bearer ${session.access_token}`,
-                },
-              }
-            );
-
-            if (!response.ok) {
-              console.warn(
-                `Error fetching consent preferences: ${response.status} ${response.statusText}`
-              );
-              checkLocalConsent();
-            } else {
-              const data = await response.json();
-
-              if (data && data.preferences) {
-                setConsent({
-                  necessary: data.preferences.necessary,
-                  functional: data.preferences.functional,
-                  analytics: data.preferences.analytics,
-                  marketing: data.preferences.marketing,
-                  thirdParty: data.preferences.thirdParty,
-                });
-                // Don't show banner if we have preferences from the backend
-                setShowBanner(false);
-              } else {
-                // If no preferences found in backend, check localStorage
-                checkLocalConsent();
-              }
-            }
-          } catch (fetchError) {
-            console.error("Error fetching consent preferences:", fetchError);
-            checkLocalConsent();
-          }
-
+          checkLocalConsent();
           setIsLoading(false);
         } else {
           // For unauthenticated users, check localStorage
@@ -162,61 +103,34 @@ export function CookieConsent() {
       // Save to local storage for client-side usage
       localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(options));
 
-      // For authenticated users, try to save to backend
+      // Store consent in Supabase table directly instead of using Edge Function
       if (isAuthenticated && user) {
         try {
-          // Get the current session to ensure we have a valid token
-          const {
-            data: { session },
-            error: sessionError,
-          } = await supabase.auth.getSession();
-
-          if (sessionError || !session || !session.access_token) {
-            console.log(
-              "🍪 Cookie Consent: No active session, using local storage only"
-            );
-            // Continue with local storage only
-            setIsLoading(false);
-            return;
-          }
-
-          console.log(
-            "🍪 Cookie Consent: Saving to database via Edge Function"
-          );
-          console.log(
-            "🍪 This will save to cookie_consent_preferences and create records in user_consent_records GDPR tables"
-          );
-
-          // Use direct fetch for more reliable authentication
-          const response = await fetch(
-            `${getSupabaseUrl()}/functions/v1/consent`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                apikey: getSupabaseAnonKey(),
-                Authorization: `Bearer ${session.access_token}`,
+          const { error: consentError } = await supabase
+            .from("cookie_consent_preferences")
+            .upsert(
+              {
+                user_id: user.id,
+                necessary: options.necessary,
+                functional: options.functional,
+                analytics: options.analytics,
+                marketing: options.marketing,
+                third_party: options.thirdParty,
+                consent_version: CURRENT_CONSENT_VERSION,
+                user_agent: navigator.userAgent,
+                updated_at: new Date().toISOString(),
               },
-              body: JSON.stringify({
-                consentData: {
-                  ...options,
-                  consentVersion: CURRENT_CONSENT_VERSION,
-                  userAgent: navigator.userAgent,
-                },
-              }),
-            }
-          );
-
-          if (!response.ok) {
-            console.warn(
-              `Error saving consent to backend: ${response.status} ${response.statusText}`
+              {
+                onConflict: "user_id",
+              }
             );
+
+          if (consentError) {
+            console.warn("Error saving consent to database:", consentError);
             // Continue with local storage only
-          } else {
-            console.log("🍪 Cookie Consent: Successfully saved to GDPR tables");
           }
         } catch (err) {
-          console.error("Error getting session for consent saving:", err);
+          console.error("Error saving consent to database:", err);
           // Continue with local storage only
         }
       }

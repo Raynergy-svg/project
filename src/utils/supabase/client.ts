@@ -65,6 +65,12 @@ const clientOptions: SupabaseClientOptions<'public'> = {
   global: {
     headers: {
       'X-Client-Info': `supabase-js/unknown`,
+      // These headers are critical for content negotiation with PostgREST
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Accept-Profile': 'public',
+      'Content-Profile': 'public',
+      'Prefer': 'return=representation',
       // Add headers to disable captcha in development only if not using "Always Pass" mode
       ...(IS_DEV && process.env.ENABLE_TURNSTILE_IN_DEV !== 'true' ? {
         'X-Captcha-Disable': 'true',
@@ -203,23 +209,32 @@ export const createSupabaseBrowserClient = () => {
  * Check if the Supabase connection is working properly
  * This is useful for debugging connection issues
  */
-export const checkSupabaseConnection = async () => {
+export async function checkSupabaseConnection(): Promise<boolean> {
   try {
-    // Try to get the session first to check authentication
-    const { data: authData, error: authError } = await supabase.auth.getSession();
-    
-    if (authError) {
-      return { connected: false, error: `Authentication error: ${authError.message}` };
+    // Try to check if we can connect to the profiles table
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .limit(1)
+      .headers({
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'public',
+        'Content-Profile': 'public',
+        'Prefer': 'return=representation'
+      });
+
+    if (error) {
+      console.error('Supabase connection check failed:', error);
+      return false;
     }
-    
-    // Then check if we can query the profiles table (which should exist in most Supabase setups)
-    const { error } = await supabase.from('profiles').select('id').limit(1);
-    return { connected: !error, error: error ? error.message : null };
-  } catch (err) {
-    console.error('Error checking Supabase connection:', err);
-    return { connected: false, error: err instanceof Error ? err.message : 'Unknown error' };
+
+    return true;
+  } catch (error) {
+    console.error('Unexpected error during Supabase connection check:', error);
+    return false;
   }
-};
+}
 
 /**
  * Development-only authentication helper
@@ -265,76 +280,36 @@ export const devAuth = async (
 /**
  * Development Sign-In Helper
  * 
- * This function provides enhanced authentication for development environments,
- * handling CAPTCHA issues with multiple test strategies.
+ * This function provides enhanced authentication for development environments.
  */
-export async function devSignIn(email: string, password: string, options: { captchaToken?: string } = {}) {
+export async function devSignIn(email: string, password: string) {
   if (process.env.NODE_ENV !== 'development') {
     console.warn('devSignIn should only be used in development!');
   }
   
-  const isDev = process.env.NODE_ENV === 'development';
-  const enableTurnstileInDev = process.env.ENABLE_TURNSTILE_IN_DEV === 'true';
+  console.log('🔑 Attempting development sign-in with:', email);
   
-  // For development, try multiple strategies if CAPTCHA is required
-  if (isDev) {
-    // STRATEGY 1: Try with provided token or default test token
-    let captchaToken = options.captchaToken || CLOUDFLARE_TEST_SITE_KEY;
-    console.log('🔑 Attempting sign-in with CAPTCHA token:', captchaToken.substring(0, 10) + '...');
-    
-    const result = await supabase.auth.signInWithPassword({
+  try {
+    // Sign in with email and password
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password,
-      options: {
-        captchaToken
-      }
+      password
     });
-    
-    // If it worked, or if the error is not CAPTCHA-related, return the result
-    if (!result.error || !result.error.message.includes('captcha')) {
-      return result;
+
+    if (error) {
+      console.error('🔑 Sign-in error:', error.message);
+      return { error };
     }
-    
-    console.log('🔑 First sign-in attempt failed, trying alternative tokens...');
-    
-    // STRATEGY 2: Try with different test tokens if first attempt failed
-    const testTokens = [
-      '1x0000000000000000000000', // Alternative Cloudflare test token
-      '1x00000000000000000000AB', // Another alternative
-      'bypass', // Sometimes Supabase accepts this
-      // Generate dynamic-looking token
-      `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
-    ];
-    
-    for (const token of testTokens) {
-      console.log(`🔑 Trying token: ${token}`);
-      
-      const attempt = await supabase.auth.signInWithPassword({
-        email,
-        password,
-        options: {
-          captchaToken: token
-        }
-      });
-      
-      if (!attempt.error || !attempt.error.message.includes('captcha')) {
-        console.log('🎉 Found working token:', token);
-        return attempt;
-      }
-    }
-    
-    // STRATEGY 3: Return the original result if all strategies failed
-    console.log('❌ All CAPTCHA token strategies failed.');
-    return result;
+
+    console.log('🔑 Sign-in successful');
+    return { data, error: null };
+  } catch (error) {
+    console.error('🔑 Unexpected error during sign-in:', error);
+    return { error };
   }
-  
-  // For production, use standard sign-in
-  return supabase.auth.signInWithPassword({
-    email,
-    password,
-    ...(options || {})
-  });
 }
 
-// Default export for convenience
-export default supabase;
+// Export a default object with all functions
+export default {
+  devSignIn
+};

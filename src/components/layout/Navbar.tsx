@@ -61,6 +61,13 @@ export default function Navbar({
 
   const backgroundColor = "rgba(0, 0, 0, 0.9)";
 
+  // Debug current path to help troubleshoot routing issues
+  useEffect(() => {
+    if (pathname) {
+      console.log('Current pathname:', pathname);
+    }
+  }, [pathname]);
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -131,8 +138,38 @@ export default function Navbar({
       onNavigate(id);
       setIsMenuOpen(false);
     } else if (href) {
-      router.push(href);
-      setIsMenuOpen(false);
+      // Use window.location for external navigation to ensure proper page load
+      // This ensures a full page reload which can help with routing issues
+      if (href.startsWith('http')) {
+        window.location.href = href;
+      } else {
+        // For app-router paths, ensure they are properly formatted
+        // and force a full navigation rather than client-side routing
+        // This helps fix 404 issues with Next.js app router
+        try {
+          if (pathname === href) {
+            // If already on the page, just close the menu
+            setIsMenuOpen(false);
+            return;
+          }
+
+          // Check if we're navigating to a parent route from a nested route
+          const isNavigatingUp = pathname && pathname.startsWith(href + '/');
+          
+          if (isNavigatingUp) {
+            // Force a full navigation for parent routes to avoid 404s
+            window.location.href = href;
+          } else {
+            // Use router for normal Next.js navigation
+            router.push(href);
+          }
+          setIsMenuOpen(false);
+        } catch (err) {
+          console.error('Navigation error:', err);
+          // Fallback to direct navigation
+          window.location.href = href;
+        }
+      }
     }
   };
 
@@ -220,8 +257,9 @@ export default function Navbar({
                               >
                                 <div className="pl-4 py-2 flex flex-col space-y-4">
                                   {item.items.map((subItem) => (
-                                    <button
+                                    <Link
                                       key={subItem.label}
+                                      href={subItem.href}
                                       onClick={() =>
                                         handleNavigation(
                                           undefined,
@@ -232,7 +270,7 @@ export default function Navbar({
                                       aria-label={`Navigate to ${subItem.label}`}
                                     >
                                       {subItem.label}
-                                    </button>
+                                    </Link>
                                   ))}
                                 </div>
                               </motion.div>
@@ -386,15 +424,16 @@ export default function Navbar({
                           >
                             <div className="py-1">
                               {item.items.map((subItem) => (
-                                <button
+                                <Link
                                   key={subItem.label}
+                                  href={subItem.href}
                                   onClick={() =>
                                     handleNavigation(undefined, subItem.href)
                                   }
                                   className="block w-full text-left px-4 py-2 text-sm hover:bg-accent/50 transition-colors dark:text-white text-gray-800"
                                 >
                                   {subItem.label}
-                                </button>
+                                </Link>
                               ))}
                             </div>
                           </motion.div>

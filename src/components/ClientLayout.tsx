@@ -11,9 +11,10 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ClientWebpackErrorHandler from "@/components/ClientWebpackErrorHandler";
-import RSCErrorFix from "@/components/RSCErrorFix";
+// RSCErrorFix removed - now consolidated in utils/rsc-patches.ts
 import HydrationErrorSuppressor from "@/components/HydrationErrorSuppressor";
 import { applyHydrationErrorPatch } from "@/utils/hydration-patch";
+import { ChunkErrorBoundary } from "@/components/error/ChunkErrorBoundary";
 import MainLayout from "./MainLayout";
 
 // Inline implementation of NotFoundErrorBoundaryFix to prevent chunking issues
@@ -175,7 +176,6 @@ export default function ClientLayout({
   return (
     <div className={`${interVariable} ${poppinsVariable} font-sans`}>
       {/* Global error suppressors and fixes */}
-      <RSCErrorFix />
       <NotFoundErrorBoundaryFix />
       <HydrationErrorSuppressor />
 
@@ -185,17 +185,19 @@ export default function ClientLayout({
           storageKey="ui-theme"
         >
           <ClientWebpackErrorHandler>
-            <AuthProvider>
-              <SecurityProvider>
-                <DeviceProvider>
-                  <MainLayout>{children}</MainLayout>
-                  <Toaster />
-                  <CookieConsent />
-                  <Analytics />
-                  <SpeedInsights />
-                </DeviceProvider>
-              </SecurityProvider>
-            </AuthProvider>
+            <ChunkErrorBoundary>
+              <AuthProvider>
+                <SecurityProvider>
+                  <DeviceProvider>
+                    <MainLayout>{children}</MainLayout>
+                    <Toaster />
+                    <CookieConsent />
+                    <Analytics />
+                    <SpeedInsights />
+                  </DeviceProvider>
+                </SecurityProvider>
+              </AuthProvider>
+            </ChunkErrorBoundary>
           </ClientWebpackErrorHandler>
         </ThemeProvider>
       </ErrorBoundary>

@@ -27,7 +27,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Import the client component wrappers
 import ClientWebpackErrorHandler from "@/components/ClientWebpackErrorHandler";
-import RSCErrorFix from "@/components/RSCErrorFix";
+// RSCErrorFix removed - now consolidated in utils/rsc-patches.ts
 import ClientLayout from "@/components/ClientLayout";
 
 // Load fonts properly
@@ -106,76 +106,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  if (typeof window !== 'undefined') {
-                    // 1. Patch webpack require
-                    var patchWebpackRequire = function() {
-                      if (window.__webpack_require__) {
-                        var originalRequire = window.__webpack_require__;
-                        window.__webpack_require__ = function(id) {
-                          try {
-                            if (id == null) return {};
-                            return originalRequire(id);
-                          } catch (e) {
-                            console.warn('Error in webpack require:', e);
-                            return {};
-                          }
-                        };
-                        
-                        // Copy properties
-                        for (var key in originalRequire) {
-                          if (originalRequire.hasOwnProperty(key)) {
-                            window.__webpack_require__[key] = originalRequire[key];
-                          }
-                        }
-                      }
-                    };
-                    
-                    // 2. Suppress hydration errors
-                    var suppressHydrationErrors = function() {
-                      var originalConsoleError = console.error;
-                      console.error = function() {
-                        var args = Array.prototype.slice.call(arguments);
-                        var message = args[0] || '';
-                        if (typeof message === 'string' && (
-                          message.indexOf('hydration') !== -1 || 
-                          message.indexOf('Hydration') !== -1 ||
-                          message.indexOf('did not match') !== -1 ||
-                          message.indexOf('Expected server HTML') !== -1
-                        )) {
-                          // Skip logging hydration errors
-                          return;
-                        }
-                        return originalConsoleError.apply(console, args);
-                      };
-
-                      // Mark as already hydrated
-                      window.__NEXT_HYDRATED__ = true;
-                      window.__NEXT_HYDRATION_COMPLETE__ = true;
-                      window.__NEXT_HYDRATION_ERROR_SUPPRESSED__ = true;
-                    };
-                    
-                    // Apply patches
-                    patchWebpackRequire();
-                    suppressHydrationErrors();
-                    
-                    // Also apply after a short delay for race conditions
-                    setTimeout(function() {
-                      patchWebpackRequire();
-                      suppressHydrationErrors();
-                    }, 0);
-                  }
-                } catch (e) {
-                  console.warn('Error in patch script:', e);
-                }
-              })();
-            `,
-          }}
-        />
+        {/* RSC patches are now loaded from utils/rsc-patches.ts */}
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans`}>
         {/* Wrap everything in ClientLayout to fix hydration issues */}

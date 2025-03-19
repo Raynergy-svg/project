@@ -1,34 +1,10 @@
 "use client";
 
-// Reference the webpack type declarations
-/// <reference path="../types/webpack.d.ts" />
+// Import consolidated RSC patches
+import "@/utils/patches";
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-
-// Define the WebpackRequire interface here for explicit access
-interface WebpackRequire {
-  (moduleId: any): any;
-  m: Record<string, any>;
-  c: Record<string, any>;
-  p: string;
-  n: (moduleId: any) => any;
-  o: (object: any, property: string) => boolean;
-  d: (exports: any, name: string, getter: () => any) => void;
-  r: (exports: any) => void;
-  t: (value: any, mode: string) => any;
-  nmd: (module: any) => any;
-  f: {
-    j: (chunkId: any) => Promise<void>;
-    [key: string]: any;
-  };
-  e: (chunkId: any) => Promise<void>;
-  u: (chunkId: any) => string;
-  g: any;
-  h: () => string;
-  S: Record<string, any>;
-  [key: string]: any;
-}
 
 interface ClientWebpackErrorHandlerProps {
   children: React.ReactNode;
@@ -51,64 +27,8 @@ export default function ClientWebpackErrorHandler({
     setIsClient(true);
   }, []);
 
-  // Fix React Server Components client error
-  useEffect(() => {
-    // Early return if not in browser
-    if (typeof window === "undefined") return;
-
-    // Apply patches to react-server-dom-webpack
-    const patchReactServerDOMWebpack = () => {
-      try {
-        // Get all script elements that might contain the problematic module
-        const scripts = document.querySelectorAll("script");
-
-        // Find the webpack runtime script
-        const webpackScript = Array.from(scripts).find(
-          (script) => script.src && script.src.includes("webpack.js")
-        );
-
-        if (webpackScript) {
-          // Enhance the webpack require function
-          const webpackRequire = window.__webpack_require__;
-          if (webpackRequire) {
-            const originalRequire = webpackRequire;
-
-            // Create a proxy function that maintains all the required properties of WebpackRequire
-            const patchedRequire = function(moduleId: any) {
-              try {
-                if (moduleId === undefined || moduleId === null) {
-                  console.warn("Attempted to require undefined module");
-                  return {};
-                }
-                return originalRequire(moduleId);
-              } catch (e) {
-                console.warn(`Error requiring module ${moduleId}:`, e);
-                return {};
-              }
-            } as WebpackRequire;
-
-            // Copy all properties from the original require
-            for (const key in originalRequire) {
-              if (Object.prototype.hasOwnProperty.call(originalRequire, key)) {
-                patchedRequire[key] = originalRequire[key];
-              }
-            }
-            
-            // Assign back to window
-            window.__webpack_require__ = patchedRequire;
-          }
-        }
-      } catch (e) {
-        console.warn("Error patching React Server DOM Webpack:", e);
-      }
-    };
-
-    // Apply patch immediately
-    patchReactServerDOMWebpack();
-
-    // Also patch after a short delay in case scripts load later
-    setTimeout(patchReactServerDOMWebpack, 500);
-  }, []);
+  // Webpack patching is now done in utils/rsc-patches.ts
+  // This component only handles the error UI display
 
   useEffect(() => {
     // Handle global errors

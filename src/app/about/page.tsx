@@ -1,10 +1,9 @@
-"use client";
+'use client';
 
-import { useState, useRef } from "react";
-import { motion, useInView } from "framer-motion";
-import Image from "next/image";
-import Link from "next/link";
-import { Metadata } from "next";
+import { useState, useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
+import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";

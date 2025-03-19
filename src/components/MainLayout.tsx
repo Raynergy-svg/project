@@ -29,6 +29,15 @@ const LANDING_PAGE_ROUTES = [
   "/pricing",
   "/contact",
   "/blog",
+  "/blog/archive",
+  "/blog/all",
+  "/careers",
+  "/help",
+  "/docs",
+  "/status",
+  "/privacy",
+  "/terms",
+  "/security",
   "/faq",
 ];
 
@@ -42,14 +51,33 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
   // Don't show any navbar on auth routes
   const isAuthRoute =
-    ROUTES_WITHOUT_NAVBAR.includes(pathname) || pathname.startsWith("/auth/");
+    pathname ? (ROUTES_WITHOUT_NAVBAR.includes(pathname) || pathname.startsWith("/auth/")) : false;
 
-  // Show landing page navbar on landing page routes
-  const isLandingPageRoute =
-    LANDING_PAGE_ROUTES.includes(pathname) || pathname === "/";
+  // Show landing page navbar on landing page routes or their child routes
+  const isLandingPageRoute = pathname ? (
+    LANDING_PAGE_ROUTES.includes(pathname) || 
+    pathname === "/" ||
+    // Also match child routes of allowed paths (like /blog/[slug])
+    (pathname.startsWith('/blog/') && !pathname.startsWith('/blog/dashboard')) ||
+    pathname.startsWith('/help/') ||
+    pathname.startsWith('/docs/')
+  ) : false;
 
   // Don't show any navbar on dashboard routes
-  const isDashboardRoute = pathname.startsWith("/dashboard");
+  const isDashboardRoute = pathname ? pathname.startsWith("/dashboard") : false;
+  
+  // Debug routing for easier troubleshooting
+  useEffect(() => {
+    if (pathname) {
+      console.log('MainLayout routing state:', { 
+        pathname,
+        isAuthRoute,
+        isLandingPageRoute,
+        isDashboardRoute,
+        shouldShowNavbar: !isAuthRoute && !isDashboardRoute && isLandingPageRoute
+      });
+    }
+  }, [pathname, isAuthRoute, isLandingPageRoute, isDashboardRoute]);
 
   // Determine if we should show the navbar
   const shouldShowNavbar =

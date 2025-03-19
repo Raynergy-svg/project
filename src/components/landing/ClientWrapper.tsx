@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import SectionLoader from '@/components/SectionLoader';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import ClientErrorFallback from '@/components/ClientErrorFallback';
 import dynamic from 'next/dynamic';
 
 // This wrapper ensures dynamic imports happen only on the client side
@@ -21,7 +22,22 @@ const ClientWrapper: React.FC<WrapperProps> = ({ componentName, fallback, props 
   // Ensure we're only running on the client side
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    
+    // Listen for chunk loading errors
+    const handleChunkError = (event: Event) => {
+      const customEvent = event as CustomEvent<{chunkId: string; error: Error}>;
+      if (customEvent.detail?.chunkId?.includes(componentName)) {
+        console.warn(`Chunk load error for ${componentName}:`, customEvent.detail);
+        setHasError(true);
+      }
+    };
+    
+    window.addEventListener('chunkLoadError', handleChunkError);
+    
+    return () => {
+      window.removeEventListener('chunkLoadError', handleChunkError);
+    };
+  }, [componentName]);
 
   // Mapping of component names to their dynamic imports with enhanced error handling
   const componentMap: Record<string, any> = {
@@ -66,11 +82,7 @@ const ClientWrapper: React.FC<WrapperProps> = ({ componentName, fallback, props 
 
   // Handle errors in component mapping
   if (hasError) {
-    return (
-      <div className="py-8 text-center">
-        <p>We're having trouble loading this section. Please try refreshing the page.</p>
-      </div>
-    );
+    return <ClientErrorFallback componentName={componentName} />;
   }
 
   const DynamicComponent = componentMap[componentName];
@@ -91,11 +103,7 @@ const ClientWrapper: React.FC<WrapperProps> = ({ componentName, fallback, props 
     );
   } catch (error) {
     console.error(`Error rendering ${componentName}:`, error);
-    return (
-      <div className="py-8 text-center">
-        <p>Something went wrong. Please try again later.</p>
-      </div>
-    );
+    return <ClientErrorFallback componentName={componentName} />;
   }
 };
 

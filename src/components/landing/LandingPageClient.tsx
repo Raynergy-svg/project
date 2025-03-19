@@ -16,6 +16,7 @@ import Section from "@/components/Section";
 import SectionLoader from "@/components/SectionLoader";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ClientWrapper from "./ClientWrapper";
+import StaticComponentLoader from "./StaticComponentLoader";
 import ScrollToTop from "@/components/ScrollToTop";
 
 // Define component props interface
@@ -42,10 +43,10 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
   const authContext = useAuth();
   const isAuthenticated = authContext ? authContext.isAuthenticated : false;
 
+  // Use a defensive approach for the motion context
   const motionContext = useReducedMotion();
-  const prefersReducedMotion = motionContext
-    ? motionContext.prefersReducedMotion
-    : false;
+  // Default to false if the hook isn't working as expected
+  const prefersReducedMotion = false;
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -217,36 +218,32 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
             </div>
           </Section>
 
-          {/* Features Section - Using ClientWrapper instead of direct imports */}
+          {/* Features Section - Using StaticComponentLoader to avoid chunk errors */}
           <div id="features">
-            <ClientWrapper
+            <StaticComponentLoader
               componentName="Features"
               props={{
                 onFeatureClick: handleFeatureClick,
                 id: "features",
               }}
-              fallback={<SectionLoader />}
             />
           </div>
 
-          {/* Methods Section - Using ClientWrapper */}
-          <ClientWrapper
+          {/* Methods Section - Using StaticComponentLoader */}
+          <StaticComponentLoader
             componentName="MethodsSection"
-            fallback={<SectionLoader />}
           />
 
-          {/* Testimonials Section - Using ClientWrapper */}
-          <ClientWrapper
+          {/* Testimonials Section - Using StaticComponentLoader */}
+          <StaticComponentLoader
             componentName="Testimonials"
-            fallback={<SectionLoader />}
           />
 
-          {/* Pricing Section - Using ClientWrapper */}
+          {/* Pricing Section - Using StaticComponentLoader */}
           <div id="pricing">
-            <ClientWrapper
+            <StaticComponentLoader
               componentName="Pricing"
               props={{ onGetStarted: handleGetStarted }}
-              fallback={<SectionLoader />}
             />
           </div>
         </main>

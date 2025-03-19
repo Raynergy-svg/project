@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   },
 };
 
+// Simple static layout with no dynamic imports or client-side error boundaries
 export default function CareersLayout({
   children,
 }: {

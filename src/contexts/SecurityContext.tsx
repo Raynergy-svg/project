@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
-import { useAuth } from "@/components/AuthProvider";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   logSecurityEvent,
   SecurityEventType,

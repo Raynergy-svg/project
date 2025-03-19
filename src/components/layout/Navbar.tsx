@@ -133,19 +133,48 @@ export default function Navbar({
     },
   ];
 
+  // List of all routes that use App Router - keep this in sync with middleware.ts
+  const appRouterPages = [
+    '/about', '/about/',
+    '/careers', '/careers/',
+    '/blog', '/blog/',
+    '/dashboard', '/dashboard/',
+    '/auth', '/auth/',
+    '/help', '/help/',
+    '/privacy', '/privacy/',
+    '/security', '/security/',
+    '/status', '/status/',
+    '/terms', '/terms/',
+    '/apply', '/apply/',
+  ];
+
+  /**
+   * Checks if a path is handled by the App Router
+   * @param path The path to check
+   */
+  const isAppRouterPath = (path: string) => {
+    // Exact match
+    if (appRouterPages.includes(path)) return true;
+    
+    // Check if it's a child route of an App Router page
+    return appRouterPages.some(appPath => 
+      // Only consider parent paths that end with slash
+      appPath.endsWith('/') && path.startsWith(appPath)
+    );
+  };
+  
+  /**
+   * Handles navigation between pages
+   */
   const handleNavigation = (id?: string, href?: string) => {
     if (id && onNavigate) {
       onNavigate(id);
       setIsMenuOpen(false);
     } else if (href) {
       // Use window.location for external navigation to ensure proper page load
-      // This ensures a full page reload which can help with routing issues
       if (href.startsWith('http')) {
         window.location.href = href;
       } else {
-        // For app-router paths, ensure they are properly formatted
-        // and force a full navigation rather than client-side routing
-        // This helps fix 404 issues with Next.js app router
         try {
           if (pathname === href) {
             // If already on the page, just close the menu
@@ -153,7 +182,16 @@ export default function Navbar({
             return;
           }
 
-          // Check if we're navigating to a parent route from a nested route
+          // For App Router pages, always use the router for client-side navigation
+          // This is the proper way to navigate in Next.js 13+ with App Router
+          if (isAppRouterPath(href)) {
+            console.log('Using Next.js router for App Router page:', href);
+            router.push(href);
+            setIsMenuOpen(false);
+            return;
+          }
+          
+          // Check if we're navigating to a parent route from a nested route in Pages Router
           const isNavigatingUp = pathname && pathname.startsWith(href + '/');
           
           if (isNavigatingUp) {
@@ -161,6 +199,7 @@ export default function Navbar({
             window.location.href = href;
           } else {
             // Use router for normal Next.js navigation
+            console.log('Using Next.js router for Pages Router page:', href);
             router.push(href);
           }
           setIsMenuOpen(false);

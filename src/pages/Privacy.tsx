@@ -1,10 +1,24 @@
+/**
+ * @deprecated This file uses the Pages Router, which is being phased out.
+ * The Privacy page has been migrated to the App Router.
+ * This file remains for backwards compatibility and will redirect to the new page.
+ */
+
 import { GetStaticProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 
 export default function PrivacyPage() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Redirect to App Router version
+    router.push("/privacy");
+  }, [router]);
   return (
     <Layout 
       title="Privacy Policy - Smart Debt Flow" 

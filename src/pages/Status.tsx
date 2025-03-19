@@ -1,3 +1,9 @@
+/**
+ * @deprecated This file uses the Pages Router, which is being phased out.
+ * The Status page has been migrated to the App Router.
+ * This file remains for backwards compatibility and will redirect to the new page.
+ */
+
 import { motion } from 'framer-motion';
 import { 
   CheckCircle, AlertTriangle, Clock, Activity, Server, Database, 
@@ -7,8 +13,15 @@ import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 
 export default function Status() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Redirect to App Router version
+    router.push('/status');
+  }, [router]);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [subscribeEmail, setSubscribeEmail] = useState('');
   const [submitStatus, setSubmitStatus] = useState<null | 'success' | 'error'>(null);

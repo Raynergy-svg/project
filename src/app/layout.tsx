@@ -107,6 +107,63 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         {/* RSC patches are now loaded from utils/rsc-patches.ts */}
+        {/* Chunk error handler to catch and recover from webpack chunk loading errors */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Track failed chunks
+              window.__failedChunks = new Set();
+
+              // Retry loading failed chunks
+              function retryLoadChunk(url, maxRetries = 3) {
+                if (window.__failedChunks.has(url)) return;
+                
+                let retries = 0;
+                const loadScript = () => {
+                  if (retries >= maxRetries) {
+                    window.__failedChunks.add(url);
+                    window.dispatchEvent(new CustomEvent('chunkLoadError', { 
+                      detail: { url, message: 'Failed to load chunk after ' + maxRetries + ' retries' } 
+                    }));
+                    return;
+                  }
+
+                  retries++;
+                  const script = document.createElement('script');
+                  script.src = url;
+                  script.async = true;
+                  script.onerror = () => {
+                    setTimeout(loadScript, 500 * Math.pow(2, retries - 1));
+                  };
+                  document.head.appendChild(script);
+                };
+
+                loadScript();
+              }
+
+              // Handle errors and retry chunk loading
+              window.onerror = function(msg, url, lineNo, columnNo, error) {
+                if (url?.includes('/_next/') && 
+                    (msg.includes('chunk') || msg.includes('Loading chunk'))) {
+                  retryLoadChunk(url);
+                  return true;
+                }
+                return false;
+              };
+
+              // Handle script load failures
+              window.addEventListener('error', function(event) {
+                if (event.target?.tagName === 'SCRIPT') {
+                  const src = event.target.src;
+                  if (src.includes('/_next/')) {
+                    retryLoadChunk(src);
+                    event.preventDefault();
+                  }
+                }
+              }, true);
+            `
+          }}
+        />
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans`}>
         {/* Wrap everything in ClientLayout to fix hydration issues */}

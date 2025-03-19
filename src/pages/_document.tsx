@@ -7,9 +7,8 @@ import Document, {
   DocumentContext,
 } from "next/document";
 
-// Import patches in order - most specific first
-import "../rsc-patch.js";
-import "../rsc-client-patch.js";
+// Import consolidated patches
+import "../utils/patches"; // This includes all RSC patches in one file
 import "../use-server-patch.js";
 import "../app-router-patch.js";
 // Import preboot patcher first - this must load before anything else

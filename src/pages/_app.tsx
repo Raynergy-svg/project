@@ -1,6 +1,5 @@
-// Import patchers - order matters, most specific first
-import "../rsc-patch";
-import "../rsc-client-patch";
+// Import consolidated patchers - order matters
+import "../utils/patches"; // This includes all RSC patches in one file
 import "../use-server-patch";
 import "../app-router-patch";
 // Other patchers

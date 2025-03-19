@@ -56,7 +56,7 @@ if (typeof window !== "undefined") {
       } catch (err) {
         console.warn("Caught Next.js routing error:", err);
         // Return a no-op function to prevent further errors
-        return function () {};
+        return 0; // Return a number to match the expected return type
       }
     };
   }

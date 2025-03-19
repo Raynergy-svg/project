@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from '@/empty-module';
+import { useNavigate } from '@/empty-module-browser';
 import { useAuth } from "../../contexts/AuthContext";
 import DisabledCaptchaNotice from "../DisabledCaptchaNotice";
 import CelebrationEffect from "../effects/CelebrationEffect";

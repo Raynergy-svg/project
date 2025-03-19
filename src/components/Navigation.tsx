@@ -1,5 +1,5 @@
 import React from "react";
-import { useLocation, useNavigate } from '@/empty-module';
+import { useLocation, useNavigate } from '@/empty-module-browser';
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 
 /**

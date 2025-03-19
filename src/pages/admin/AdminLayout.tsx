@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, useLocation } from '@/empty-module';
+import { NavLink, Outlet, useLocation } from '@/empty-module-browser';
 import { 
   LayoutDashboard, 
   Users, 

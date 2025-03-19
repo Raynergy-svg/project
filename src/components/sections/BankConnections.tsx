@@ -49,7 +49,7 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
-import { useNavigate } from "@/empty-module";
+import { useNavigate } from "@/empty-module-browser";
 import { cn } from "@/lib/utils";
 
 // Define type for Plaid Link config without importing the library

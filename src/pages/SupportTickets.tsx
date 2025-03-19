@@ -4,7 +4,7 @@ import { Ticket, MessageSquare, Clock, CheckCircle, AlertCircle, Plus, ChevronRi
 import axios from 'axios';
 import { useAuth } from '@/hooks/useAuth';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Link } from '@/empty-module';
+import { Link } from '@/empty-module-browser';
 
 interface SupportTicket {
   id: string;

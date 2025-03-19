@@ -3,7 +3,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import DebtPayoffCalculator from '@/components/dashboard/DebtPayoffCalculator';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from '@/empty-module';
+import { useNavigate } from '@/empty-module-browser';
 
 export default function DebtPayoffTool() {
   const navigate = useNavigate();

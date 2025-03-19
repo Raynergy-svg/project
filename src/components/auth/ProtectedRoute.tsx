@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { Navigate, useLocation } from "@/empty-module";
+import { Navigate, useLocation } from "@/empty-module-browser";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { supabase } from "@/utils/supabase/client";

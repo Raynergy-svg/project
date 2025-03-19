@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from "react";
 // Used for redirecting users after login/logout operations
-import { useNavigate } from "@/empty-module";
+import { useNavigate } from "@/empty-module-browser";
 import type { User, SignUpData } from "@/types";
 import { supabase, createSupabaseBrowserClient } from "@/utils/supabase/client";
 import { useDevAccount } from "@/hooks/useDevAccount";

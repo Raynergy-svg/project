@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Calculator, Wallet, TrendingUp, PiggyBank, CreditCard, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useNavigate } from '@/empty-module';
+import { useNavigate } from '@/empty-module-browser';
 
 interface FinancialToolsProps {
   className?: string;

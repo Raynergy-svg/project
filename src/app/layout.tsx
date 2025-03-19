@@ -7,8 +7,8 @@ initPolyfills();
 // Set runtime to nodejs in development and edge in production
 export const runtime = "nodejs"; // Using nodejs for stability
 
-// Import RSC patch (must come before other imports)
-import "./rsc-patch";
+// Import consolidated RSC patches (must come before other imports)
+import "@/utils/patches";
 
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";

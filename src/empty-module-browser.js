@@ -1,14 +1,11 @@
+'use client';
+
 /**
- * Empty module to replace missing dependencies in Next.js projects.
- * This is useful for component mocking, especially when migrating 
- * from one framework to another.
+ * Empty module to replace missing dependencies in Next.js projects - browser version.
+ * This is specifically designed to work in client-side contexts without using require().
  */
 
-// Import React for the component mocks
-// Don't use require() as it's not available in browser contexts
 import * as React from 'react';
-// Fallback in case import doesn't work
-const ReactFallback = { createElement: () => null };
 
 // No-op function that can be used as a replacement for useNavigate or similar hooks
 export const useNavigate = () => {
@@ -30,21 +27,12 @@ export const useLocation = () => {
 
 // Mock for Link component
 export const Link = ({ to, children, className, ...props }) => {
-  if (typeof window !== 'undefined') {
-    // Use dynamic import instead of require
-    // This will be removed during bundling and replaced with a module reference
-    return React.createElement('a', { href: to, className, ...props }, children);
-  }
-  return null;
+  return React.createElement('a', { href: to, className, ...props }, children);
 };
 
 // Mock for NavLink component
 export const NavLink = ({ to, children, className, activeClassName, ...props }) => {
-  if (typeof window !== 'undefined') {
-    // Use dynamic import instead of require
-    return React.createElement('a', { href: to, className, ...props }, children);
-  }
-  return null;
+  return React.createElement('a', { href: to, className, ...props }, children);
 };
 
 // Mock for Outlet component

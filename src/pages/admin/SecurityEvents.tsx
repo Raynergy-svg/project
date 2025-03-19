@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from '@/empty-module';
+import { useNavigate } from '@/empty-module-browser';
 import { 
   Shield, 
   Search, 

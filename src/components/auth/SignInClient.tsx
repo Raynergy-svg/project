@@ -14,7 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { checkSupabaseConnection, devSignIn } from "@/utils/supabase/client";
 import { IS_DEV } from "@/utils/environment";
-import { useNavigate } from "@/empty-module";
+import { useNavigate } from "@/empty-module-browser";
 
 interface FormData {
   email: string;

@@ -14,13 +14,81 @@ import ClientWebpackErrorHandler from "@/components/ClientWebpackErrorHandler";
 import RSCErrorFix from "@/components/RSCErrorFix";
 import HydrationErrorSuppressor from "@/components/HydrationErrorSuppressor";
 import { applyHydrationErrorPatch } from "@/utils/hydration-patch";
-import dynamic from "next/dynamic";
 import MainLayout from "./MainLayout";
 
-// Dynamically import NotFoundErrorBoundaryFix to prevent bundling issues
-const NotFoundErrorBoundaryFix = dynamic(() => import("@/app/_utils/not-found-fix"), {
-  ssr: false,
-});
+// Inline implementation of NotFoundErrorBoundaryFix to prevent chunking issues
+function NotFoundErrorBoundaryFix() {
+  useEffect(() => {
+    // Only run in browser
+    if (typeof window === "undefined") return;
+
+    try {
+      // Find the NotFoundErrorBoundary component in Next.js internals
+      const patchNextNotFoundBoundary = () => {
+        // TypeScript safety for webpack modules
+        const webpackModules = (window as any).__webpack_modules__;
+        
+        if (!webpackModules) {
+          console.warn("webpack modules not found, can't patch NotFoundErrorBoundary");
+          return;
+        }
+
+        // Define a type for webpack modules
+        interface WebpackModule {
+          exports?: {
+            NotFoundBoundary?: any;
+            NotFoundErrorBoundary?: any;
+            [key: string]: any;
+          }
+        }
+        
+        // Look for the module in webpack chunks
+        const moduleToFind = Object.values(webpackModules).find((module: any) => {
+          if (!module || !module.exports) return false;
+
+          // Looking for the module that exports NotFoundBoundary
+          const exports = module.exports as { NotFoundBoundary?: any; NotFoundErrorBoundary?: any };
+          return exports.NotFoundBoundary && exports.NotFoundErrorBoundary;
+        }) as WebpackModule | undefined;
+
+        if (moduleToFind && moduleToFind.exports) {
+          // Found the module, patch its error behavior
+          const originalErrorBoundary = moduleToFind.exports.NotFoundErrorBoundary;
+
+          if (originalErrorBoundary && originalErrorBoundary.prototype) {
+            // Create a wrapped version of the getDerivedStateFromError method
+            const originalGetDerivedStateFromError =
+              originalErrorBoundary.getDerivedStateFromError;
+
+            if (originalGetDerivedStateFromError) {
+              originalErrorBoundary.getDerivedStateFromError = function (error: Error) {
+                // Prevent hydration errors from triggering the boundary
+                if (error.message && error.message.includes("hydration")) {
+                  console.warn("Suppressing hydration error in NotFoundErrorBoundary:", error);
+                  return null; // Don't activate the error boundary for hydration errors
+                }
+
+                // Otherwise, use the original behavior
+                return originalGetDerivedStateFromError(error);
+              };
+              console.debug("Successfully patched NotFoundErrorBoundary");
+            }
+          }
+        } else {
+          console.warn("Could not find NotFoundErrorBoundary module");
+        }
+      };
+
+      // Run the patch after a brief delay to ensure modules are loaded
+      setTimeout(patchNextNotFoundBoundary, 100);
+    } catch (err) {
+      console.error("Error patching NotFoundErrorBoundary:", err);
+    }
+  }, []);
+
+  // This component doesn't render anything
+  return null;
+}
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -113,10 +181,8 @@ export default function ClientLayout({
 
       <ErrorBoundary>
         <ThemeProvider
-          attribute="class"
           defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+          storageKey="ui-theme"
         >
           <ClientWebpackErrorHandler>
             <AuthProvider>

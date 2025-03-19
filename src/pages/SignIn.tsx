@@ -1,4 +1,4 @@
-import { useLocation } from "@/empty-module";
+import { useLocation } from "@/empty-module-browser";
 import SignInClient from "@/components/auth/SignInClient";
 
 export default function SignIn() {

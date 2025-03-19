@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from '@/empty-module';
+import { useLocation } from '@/empty-module-browser';
 import { Shield, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoadingScreen from "@/components/ui/loading-screen";

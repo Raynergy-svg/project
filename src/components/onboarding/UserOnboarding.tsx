@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from '@/empty-module';
+import { useNavigate } from '@/empty-module-browser';
 import { Check, ArrowRight, XCircle } from 'lucide-react';
 
 const steps = [

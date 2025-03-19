@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from '@/empty-module';
+import { useNavigate, useLocation } from '@/empty-module-browser';
 import { toast } from '@/hooks/use-toast';
 import { UserOnboarding } from '@/components/onboarding/UserOnboarding';
 import { motion } from 'framer-motion';

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from '@/empty-module';
+import { Link } from '@/empty-module-browser';
 import { supabase } from '@/utils/supabase/client';
 import { 
   Card, 

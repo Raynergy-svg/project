@@ -3,10 +3,28 @@
  * This file patches webpack's factory functions to prevent errors
  */
 
-if (typeof window !== 'undefined') {
-  try {
+// Declare global interfaces to make TypeScript happy
+declare global {
+  // Define webpack require interface to match existing type declarations
+  interface WebpackRequire {
+    f?: Record<string, Function>;
+    [key: string]: any;
+  }
+
+  interface Window {
+    webpackJsonp?: any[];
+    __NEXT_P?: any[];
+    __webpack_require__?: WebpackRequire;
+    React?: any;
+  }
+}
+
+// Export function to apply webpack factory patch
+export const applyBundlerPatches = () => {
+  if (typeof window !== 'undefined') {
+    try {
     // Patch webpack factory
-    const patchWebpackFactory = () => {
+    const applyBundlerPatches = () => {
       // Patch webpack global objects
       if (typeof window.webpackJsonp === 'undefined') {
         window.webpackJsonp = window.webpackJsonp || [];
@@ -18,16 +36,17 @@ if (typeof window !== 'undefined') {
       }
       
       // Patch common webpack factory methods if available
-      if (window.__webpack_require__) {
+      const webpackRequire = window.__webpack_require__;
+      if (webpackRequire) {
         // Create a backup of the original call method
         const originalCall = Function.prototype.call;
         
         // Check and fix missing factory methods
-        if (window.__webpack_require__.f) {
-          Object.keys(window.__webpack_require__.f).forEach(key => {
-            const originalMethod = window.__webpack_require__.f[key];
+        if (webpackRequire.f) {
+          Object.keys(webpackRequire.f).forEach(key => {
+            const originalMethod = webpackRequire.f?.[key];
             if (typeof originalMethod === 'function') {
-              window.__webpack_require__.f[key] = function patchedFactoryMethod(...args) {
+              webpackRequire.f[key] = function patchedFactoryMethod(...args: any[]) {
                 try {
                   return originalMethod.apply(this, args);
                 } catch (e) {
@@ -62,10 +81,14 @@ if (typeof window !== 'undefined') {
 
     // Apply patches once the document is ready
     setTimeout(() => {
-      patchWebpackFactory();
+      applyBundlerPatches();
       patchFunctionCall();
     }, 0);
-  } catch (e) {
-    console.warn('Error in webpack factory patch:', e);
+    } catch (e) {
+      console.warn('Error in webpack factory patch:', e);
+    }
   }
-} 
+};
+
+// Auto-execute the patch
+applyBundlerPatches();

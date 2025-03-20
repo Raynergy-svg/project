@@ -11,8 +11,17 @@ function withTurbopack(nextConfig = {}) {
       ...nextConfig.experimental,
       turbo: {
         ...(nextConfig.experimental?.turbo || {}),
-        loaders: {
-          ...(nextConfig.experimental?.turbo?.loaders || {}),
+        rules: {
+          // Convert existing loaders to rules using glob pattern format
+          ...(nextConfig.experimental?.turbo?.loaders 
+            ? Object.entries(nextConfig.experimental.turbo.loaders).reduce((acc, [ext, loader]) => {
+                // Convert .ext to *.ext format for compatibility
+                const pattern = ext.startsWith('.') ? `*${ext}` : ext;
+                acc[pattern] = loader;
+                return acc;
+              }, {})
+            : {}),
+          ...(nextConfig.experimental?.turbo?.rules || {}),
         },
         resolve: {
           ...(nextConfig.experimental?.turbo?.resolve || {}),

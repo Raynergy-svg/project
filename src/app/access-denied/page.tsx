@@ -13,10 +13,10 @@ export default function AccessDeniedPage() {
   const { user } = useAuth();
   
   // Get the custom message if provided in query, or use default
-  const message = searchParams.get('message') || "You don't have permission to access this page.";
+  const message = searchParams?.get('message') || "You don't have permission to access this page.";
   
   // Get the previous path if available
-  const from = searchParams.get('from') || '/';
+  const from = searchParams?.get('from') || '/';
   
   // Handle going back to the previous page
   const goBack = () => {

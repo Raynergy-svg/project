@@ -1,4 +1,13 @@
 {
   "/about/page": "app/about/page.js",
-  "/page": "app/page.js"
+  "/auth/signin/page": "app/auth/signin/page.js",
+  "/blog/page": "app/blog/page.js",
+  "/careers/page": "app/careers/page.js",
+  "/docs/page": "app/docs/page.js",
+  "/help/page": "app/help/page.js",
+  "/page": "app/page.js",
+  "/privacy/page": "app/privacy/page.js",
+  "/security/page": "app/security/page.js",
+  "/status/page": "app/status/page.js",
+  "/terms/page": "app/terms/page.js"
 }

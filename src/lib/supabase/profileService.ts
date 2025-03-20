@@ -67,14 +67,7 @@ export async function fetchUserProfile(userId: string): Promise<ServiceResponse<
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .maybeSingle()
-      .headers({
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Accept-Profile': 'public',
-        'Content-Profile': 'public',
-        'Prefer': 'return=representation'
-      });
+      .maybeSingle();
 
     if (checkError) {
       console.error('Supabase error checking profile:', checkError);
@@ -103,14 +96,7 @@ export async function fetchUserProfile(userId: string): Promise<ServiceResponse<
         .from('profiles')
         .insert([defaultProfile])
         .select()
-        .single()
-        .headers({
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Accept-Profile': 'public',
-          'Content-Profile': 'public',
-          'Prefer': 'return=representation'
-        });
+        .single();
 
       if (createError) {
         console.error('Error creating profile:', createError);
@@ -150,14 +136,7 @@ export async function updateUserProfile(
       .update(profileData)
       .eq('id', userId)
       .select()
-      .single()
-      .headers({
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Accept-Profile': 'public',
-        'Content-Profile': 'public',
-        'Prefer': 'return=representation'
-      });
+      .single();
 
     if (error) {
       console.error('Supabase error updating profile:', error);

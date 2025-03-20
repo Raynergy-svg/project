@@ -325,7 +325,7 @@ class MyDocument extends Document {
                     window.__webpack_factory_patch_applied = true;
                     
                     // Patch for webpack - will apply once webpack loads
-                    var patchWebpackChunks = function() {
+                    var applyBundlerPatchesChunks = function() {
                       if (window.webpackChunk_N_E) {
                         console.log('Patching webpack chunk push');
                         var originalPush = window.webpackChunk_N_E.push;
@@ -339,12 +339,12 @@ class MyDocument extends Document {
                         };
                       } else {
                         // Retry until webpackChunk is available
-                        setTimeout(patchWebpackChunks, 50);
+                        setTimeout(applyBundlerPatchesChunks, 50);
                       }
                     };
                     
                     // Start the patching process for webpack
-                    patchWebpackChunks();
+                    applyBundlerPatchesChunks();
                     
                     // Global error handler to prevent crashes
                     window.addEventListener('error', function(event) {

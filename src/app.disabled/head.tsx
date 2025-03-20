@@ -16,7 +16,7 @@ export default function Head() {
       <script
         dangerouslySetInnerHTML={{
           __html:
-            "(function patchWebpackRuntime() {" +
+            "(function applyBundlerPatchesRuntime() {" +
             "  // This script runs before any other JavaScript" +
             "  // It patches the webpack runtime to handle the \"Cannot read properties of undefined (reading 'call')\" error" +
             "  " +

@@ -165,7 +165,7 @@ export function initPolyfills(): void {
         polyfillStorageAPI();
         
         // Patch webpack if we're in the browser
-        patchWebpackRuntime();
+        applyBundlerPatchesRuntime();
       }
     }
   } catch (error) {
@@ -177,7 +177,7 @@ export function initPolyfills(): void {
  * Patch webpack runtime to handle common errors
  * This helps prevent "Cannot read properties of undefined (reading 'call')" errors
  */
-function patchWebpackRuntime(): void {
+function applyBundlerPatchesRuntime(): void {
   if (!isBrowser) return;
   
   try {

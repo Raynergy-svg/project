@@ -3,8 +3,10 @@
  * Provides top-level error catching for webpack-specific errors
  */
 
-if (typeof window !== 'undefined') {
-  try {
+// Export function to apply webpack error handler
+export const applyWebpackErrorHandler = () => {
+  if (typeof window !== 'undefined') {
+    try {
     // Set up global error handler
     window.addEventListener('error', (event) => {
       const errorMessage = event.message || '';
@@ -54,7 +56,11 @@ if (typeof window !== 'undefined') {
     
     // Log that the handler is installed
     console.log('Webpack error handler installed successfully');
-  } catch (e) {
-    console.warn('Error setting up webpack error handler:', e);
+    } catch (e) {
+      console.warn('Error setting up webpack error handler:', e);
+    }
   }
-} 
+};
+
+// Auto-execute the handler
+applyWebpackErrorHandler();

@@ -4,9 +4,9 @@ import "../use-server-patch";
 import "../app-router-patch";
 // Other patchers
 import "../webpack-error-handler";
-import "../utils/webpackPatch";
+import { applyBundlerPatches } from '@/utils/bundler-patches';
 import "../utils/error-boundary-patch";
-import "../utils/webpack-factory-patch";
+import { applyBundlerPatches } from '@/utils/bundler-patches';
 
 import { useEffect, useState } from "react";
 import type { AppProps } from "next/app";

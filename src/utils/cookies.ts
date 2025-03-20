@@ -3,11 +3,14 @@
  * This implements proper SameSite attributes to avoid third-party cookie warnings
  */
 
+// Import Supabase types
+import type { CookieOptions as SupabaseCookieOptions } from '@supabase/ssr';
+
 // Default cookie options
 const DEFAULT_OPTIONS: CookieOptions = {
   path: '/',
   maxAge: 60 * 60 * 24 * 7, // 7 days
-  sameSite: 'Lax',
+  sameSite: 'Lax' as const,
   secure: true,
   partitioned: false,
 };
@@ -112,23 +115,60 @@ export function removeCookie(name: string, options: CookieOptions = {}): void {
 }
 
 /**
- * Cookie handler for Supabase
+ * Browser Cookie handler for Supabase
  */
 export const supabaseCookieHandler = {
+  // Get a single cookie by name (for deprecated interface)
   get(name: string): string | undefined {
     return getCookie(name) || undefined;
   },
   
-  set(name: string, value: string, options?: CookieOptions): void {
-    setCookie(name, value, {
+  // Set a cookie (for deprecated interface)
+  set(name: string, value: string, options: SupabaseCookieOptions): void {
+    // Convert Supabase cookie options to our CookieOptions format
+    const convertedOptions: CookieOptions = {
       ...options,
-      // Use Lax for first-party cookies (most common case)
-      sameSite: 'Lax',
-    });
+      // Handle sameSite conversion properly
+      sameSite: (options.sameSite === 'lax' ? 'Lax' :
+                 options.sameSite === 'strict' ? 'Strict' :
+                 options.sameSite === 'none' ? 'None' : 'Lax') as 'Lax' | 'Strict' | 'None'
+    };
+    
+    setCookie(name, value, convertedOptions);
   },
   
-  remove(name: string, options?: CookieOptions): void {
-    removeCookie(name, options);
+  // Remove a cookie (for deprecated interface)
+  remove(name: string, options: SupabaseCookieOptions): void {
+    // Convert Supabase cookie options to our CookieOptions format using the same logic as set
+    const convertedOptions: CookieOptions = {
+      ...options,
+      sameSite: (options.sameSite === 'lax' ? 'Lax' :
+                 options.sameSite === 'strict' ? 'Strict' :
+                 options.sameSite === 'none' ? 'None' : 'Lax') as 'Lax' | 'Strict' | 'None'
+    };
+    
+    removeCookie(name, convertedOptions);
+  },
+  
+  // Get all cookies (for new interface)
+  getAll(): { name: string; value: string }[] | null {
+    if (typeof document === 'undefined') return null;
+    
+    const cookies: { name: string; value: string }[] = [];
+    document.cookie.split('; ').forEach(cookie => {
+      if (cookie) {
+        const [name, value] = cookie.split('=');
+        if (name && value) cookies.push({ name, value });
+      }
+    });
+    return cookies.length > 0 ? cookies : null;
+  },
+  
+  // Set multiple cookies at once (for new interface)
+  setAll(cookies: Array<{ name: string; value: string; options: SupabaseCookieOptions }>): void {
+    cookies.forEach(({ name, value, options }) => {
+      this.set(name, value, options);
+    });
   },
 };
 

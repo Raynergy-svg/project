@@ -1,7 +1,15 @@
 "use client";
 
-// Import webpack patch to fix "Cannot read properties of undefined (reading 'call')" error
-import "@/utils/webpackPatch";
+// Import and apply webpack patches to fix "Cannot read properties of undefined (reading 'call')" error
+import { applyBundlerPatches } from '@/utils/bundler-patches';
+import { applyRSCPatches } from '@/utils/rsc-patches';
+
+// Apply patches immediately
+if (typeof window !== 'undefined') {
+  // Ensure RSC patches are applied before bundler patches
+  applyRSCPatches();
+  applyBundlerPatches();
+}
 
 import React, { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -41,7 +49,8 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
   // Router and auth hooks - with safety checks
   const router = useRouter();
   const authContext = useAuth();
-  const isAuthenticated = authContext ? authContext.isAuthenticated : false;
+  // Force authentication state to false on landing page
+  const isAuthenticated = false;
 
   // Use a defensive approach for the motion context
   const motionContext = useReducedMotion();
@@ -230,9 +239,11 @@ const LandingPageClient = ({ initialData = {} }: LandingPageClientProps) => {
           </div>
 
           {/* Methods Section - Using StaticComponentLoader */}
-          <StaticComponentLoader
-            componentName="MethodsSection"
-          />
+          <div id="methods">
+            <StaticComponentLoader
+              componentName="MethodsSection"
+            />
+          </div>
 
           {/* Testimonials Section - Using StaticComponentLoader */}
           <StaticComponentLoader

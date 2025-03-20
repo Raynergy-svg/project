@@ -113,7 +113,7 @@ export default function RootLayout({
                 try {
                   if (typeof window !== 'undefined') {
                     // 1. Patch webpack require
-                    var patchWebpackRequire = function() {
+                    var applyBundlerPatchesRequire = function() {
                       if (window.__webpack_require__) {
                         var originalRequire = window.__webpack_require__;
                         window.__webpack_require__ = function(id) {
@@ -160,12 +160,12 @@ export default function RootLayout({
                     };
                     
                     // Apply patches
-                    patchWebpackRequire();
+                    applyBundlerPatchesRequire();
                     suppressHydrationErrors();
                     
                     // Also apply after a short delay for race conditions
                     setTimeout(function() {
-                      patchWebpackRequire();
+                      applyBundlerPatchesRequire();
                       suppressHydrationErrors();
                     }, 0);
                   }

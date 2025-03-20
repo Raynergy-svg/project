@@ -3,8 +3,22 @@
  * This file patches React Error Boundaries to prevent uncaught errors
  */
 
-if (typeof window !== 'undefined') {
-  try {
+// Add type declarations for global objects
+declare global {
+  interface Window {
+    React?: {
+      // Define interface matching React internals
+      __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: {
+        ReactCurrentDispatcher?: any;
+      };
+    };
+  }
+}
+
+// Export function to apply error boundary patch
+export const applyErrorBoundaryPatch = () => {
+  if (typeof window !== 'undefined') {
+    try {
     // Global error handler for uncaught errors
     window.addEventListener('error', (event) => {
       // Handle specific webpack/turbopack module errors
@@ -55,7 +69,11 @@ if (typeof window !== 'undefined') {
     } else {
       setTimeout(patchReactError, 0);
     }
-  } catch (e) {
-    console.warn('Error in error boundary patch:', e);
+    } catch (e) {
+      console.warn('Error in error boundary patch:', e);
+    }
   }
-} 
+};
+
+// Auto-execute the patch
+applyErrorBoundaryPatch();

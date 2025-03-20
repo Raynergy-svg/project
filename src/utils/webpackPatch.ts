@@ -51,7 +51,7 @@ if (typeof window !== 'undefined') {
     };
 
     // Patch for webpack chunks
-    const patchWebpackChunks = () => {
+    const applyBundlerPatchesChunks = () => {
       // Safely create webpack chunk array if not existing
       if (!window.webpackChunk_N_E) {
         window.webpackChunk_N_E = [];
@@ -92,7 +92,7 @@ if (typeof window !== 'undefined') {
     // Apply patches
     setTimeout(() => {
       patchTurbopack();
-      patchWebpackChunks();
+      applyBundlerPatchesChunks();
       console.log('Webpack/Turbopack patching complete');
     }, 0);
   } catch (e) {

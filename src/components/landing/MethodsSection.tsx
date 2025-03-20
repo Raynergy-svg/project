@@ -33,16 +33,16 @@ import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRouter } from 'next/navigation';
 
-// Enhanced animation variants
+// Enhanced animation variants with immediate visibility
 const containerVariants = {
-  hidden: { opacity: 0, y: 50 },
+  hidden: { opacity: 1, y: 0 },  // Start visible
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.8,
+      duration: 0.3,
       ease: [0.6, -0.05, 0.01, 0.99],
-      staggerChildren: 0.2
+      staggerChildren: 0.1
     }
   }
 };
@@ -249,7 +249,7 @@ const MethodsSection = () => {
   const [isPlaying, setIsPlaying] = useState(true);
   const [selectedStrategy, setSelectedStrategy] = useState('snowball');
   const containerRef = useRef(null);
-  const isInView = useInView(containerRef, { once: true, margin: "-100px" });
+  const isInView = useInView(containerRef, { once: true, margin: "0px" });
   const controls = useAnimation();
   const progress = useMotionValue(0);
   const progressPercent = useTransform(progress, [0, 1], [0, 100]);
@@ -273,14 +273,18 @@ const MethodsSection = () => {
     return () => clearInterval(interval);
   }, [isPlaying, controls]);
 
-  // Animate progress when in view
+  // Always show content immediately
   useEffect(() => {
-    if (isInView) {
-      progress.set(0);
-      progress.set(1, { duration: 1.5 });
-      controls.start("visible");
-    }
-  }, [isInView, controls, progress]);
+    // Force visibility immediately
+    controls.start("visible");
+    
+    // Set progress to 1 after a short delay
+    const timer = setTimeout(() => {
+      progress.set(1);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [controls, progress]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -788,12 +792,12 @@ const MethodsSection = () => {
   );
 
   return (
-    <section id="methods" className="py-24 bg-background">
+    <section id="methods" className="py-24 bg-gradient-to-b from-background to-accent/10 border-t border-b border-accent/50 min-h-[600px]">
       <motion.div
         ref={containerRef}
         variants={containerVariants}
-        initial="hidden"
-        animate={isInView ? "visible" : "hidden"}
+        initial="visible"
+        animate="visible"
         className="container mx-auto px-4"
       >
         <div className="text-center mb-16">

@@ -12,7 +12,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { IS_DEV } from '@/utils/environment';
+import { IS_DEV } from '@/utils/env-constants';
 
 // Environment variables - these should ONLY be available on the server
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
